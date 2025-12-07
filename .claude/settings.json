@@ -1,0 +1,16 @@
+{
+  "project": "ebmc-group",
+  "description": "Site vitrine EBMC GROUP - Payload CMS + Next.js",
+  "commands": {
+    "fix": "npm run lint:fix",
+    "check": "npm run typecheck",
+    "build": "npm run build",
+    "deploy": "./fix-and-deploy.ps1"
+  },
+  "rules": [
+    "Toujours utiliser .toString() sur les IDs Payload",
+    "Utiliser <Link> de next/link pour les liens internes",
+    "Supprimer les imports inutilisés",
+    "Port de dev: 8889"
+  ]
+}
