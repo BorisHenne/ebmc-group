@@ -4,11 +4,14 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 # Install build dependencies for sharp
-RUN apk add --no-cache python3 make g++ vips-dev
+RUN apk add --no-cache python3 make g++ vips-dev pkgconfig
 
 # Install dependencies
 COPY package.json pnpm-lock.yaml* ./
 RUN corepack enable pnpm && pnpm install
+
+# Rebuild sharp for Alpine/musl
+RUN pnpm rebuild sharp
 
 # Copy source
 COPY . .
