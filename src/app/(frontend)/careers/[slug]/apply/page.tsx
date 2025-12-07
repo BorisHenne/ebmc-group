@@ -101,7 +101,7 @@ export default async function ApplyPage({ params }: PageProps) {
         {/* Form */}
         <div className="p-6 sm:p-8 rounded-xl border bg-card/50">
           <h2 className="text-xl font-semibold mb-6">Votre candidature</h2>
-          <ApplyForm offerId={doc.id} offerTitle={doc.title} />
+          <ApplyForm offerId={doc.id.toString()} offerTitle={doc.title} />
         </div>
 
         {/* Info */}
