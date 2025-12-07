@@ -107,7 +107,7 @@ jobs:
             --exclude='.env' \
             --exclude='media/*' \
             -e "ssh -o StrictHostKeyChecking=no" \
-            ./ nas-tunnel:/volume1/docker/ebmc-group/
+            ./ nas-tunnel:/dxp4800plus-8a6/docker/ebmc-group/
 
       - name: Rebuild Docker on NAS
         run: |
