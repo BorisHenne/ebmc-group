@@ -8,7 +8,6 @@ on:
 
 env:
   NODE_VERSION: '20'
-  PNPM_VERSION: '8'
 
 jobs:
   # ========== Lint & Type Check ==========
@@ -19,25 +18,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: ${{ env.PNPM_VERSION }}
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: npm install
 
       - name: Run ESLint
-        run: pnpm lint
+        run: npm run lint
 
       - name: Run TypeScript check
-        run: pnpm exec tsc --noEmit
+        run: npx tsc --noEmit
 
   # ========== Build ==========
   build:
@@ -48,26 +41,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: ${{ env.PNPM_VERSION }}
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: npm install
 
       - name: Build application
-        run: pnpm build
+        run: npm run build
         env:
           PAYLOAD_SECRET: ${{ secrets.PAYLOAD_SECRET || 'ci-build-secret-not-used' }}
           MONGODB_URI: ${{ secrets.MONGODB_URI || 'mongodb://localhost:27017/ebmc' }}
-          NEXT_PUBLIC_APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL || 'http://localhost:3000' }}
+          NEXT_PUBLIC_APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL || 'http://localhost:8889' }}
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
@@ -91,13 +78,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Download build artifacts
-        uses: actions/download-artifact@v4
+      - name: Deploy to NAS via rsync
+        uses: burnett01/rsync-deployments@6.0.0
         with:
-          name: build
-          path: .next/
+          switches: -avz --delete --exclude='node_modules' --exclude='.next' --exclude='.git' --exclude='.env' --exclude='media/*'
+          path: ./
+          remote_path: /volume1/docker/ebmc-group/
+          remote_host: ${{ secrets.SSH_HOST }}
+          remote_user: ${{ secrets.SSH_USER }}
+          remote_key: ${{ secrets.SSH_PRIVATE_KEY }}
+          remote_port: ${{ secrets.SSH_PORT || 22 }}
 
-      - name: Deploy to UGOS NAS via SSH
+      - name: Rebuild Docker on NAS
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -105,11 +97,8 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT || 22 }}
           script: |
-            cd /volume1/docker/ebmc
-            git pull origin main
-            sudo docker compose build --no-cache
-            sudo docker compose up -d
-            sudo docker compose exec -T app pnpm payload generate:types || true
+            cd /volume1/docker/ebmc-group
+            sudo docker compose up -d --build
             echo "Deployment complete!"
 
       - name: Verify deployment
@@ -138,7 +127,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Deploy to staging
+      - name: Deploy to staging via rsync
+        uses: burnett01/rsync-deployments@6.0.0
+        with:
+          switches: -avz --delete --exclude='node_modules' --exclude='.next' --exclude='.git' --exclude='.env' --exclude='media/*'
+          path: ./
+          remote_path: /volume1/docker/ebmc-staging/
+          remote_host: ${{ secrets.STAGING_SSH_HOST }}
+          remote_user: ${{ secrets.STAGING_SSH_USER }}
+          remote_key: ${{ secrets.STAGING_SSH_PRIVATE_KEY }}
+          remote_port: ${{ secrets.STAGING_SSH_PORT || 22 }}
+
+      - name: Rebuild staging
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.STAGING_SSH_HOST }}
@@ -147,9 +147,7 @@ jobs:
           port: ${{ secrets.STAGING_SSH_PORT || 22 }}
           script: |
             cd /volume1/docker/ebmc-staging
-            git pull origin develop
-            sudo docker compose -f docker-compose.staging.yml build
-            sudo docker compose -f docker-compose.staging.yml up -d
+            sudo docker compose up -d --build
             echo "Staging deployment complete!"
 
   # ========== Backup Database (Manual) ==========
