@@ -99,20 +99,20 @@ jobs:
             StrictHostKeyChecking no
           EOF
 
-      - name: Deploy to NAS via rsync through Cloudflare Tunnel
-        run: |
-          rsync -avz --delete \
-            --exclude='node_modules' \
-            --exclude='.git' \
-            --exclude='.env' \
-            --exclude='media/*' \
-            -e "ssh -o StrictHostKeyChecking=no" \
-            ./ nas-tunnel:/dxp4800plus-8a6/docker/ebmc-group/
-
-      - name: Rebuild Docker on NAS
+      - name: Deploy to NAS via SSH
         run: |
           ssh nas-tunnel << 'EOF'
             cd /volume1/docker/ebmc-group
+
+            # Pull latest code from GitHub
+            if [ -d ".git" ]; then
+              git fetch origin main
+              git reset --hard origin/main
+            else
+              git clone https://github.com/${{ github.repository }}.git .
+            fi
+
+            # Rebuild and restart containers
             docker compose up -d --build
             echo "Deployment complete!"
           EOF
