@@ -28,8 +28,6 @@ export default buildConfig({
     user: Users.slug,
     meta: {
       titleSuffix: '- EBMC GROUP',
-      favicon: '/favicon.ico',
-      ogImage: '/og-image.png',
     },
     components: {
       graphics: {
