@@ -1,6 +1,7 @@
 import { getPayloadHMR } from '@payloadcms/next/utilities'
 import config from '@payload-config'
 import { notFound } from 'next/navigation'
+import Link from 'next/link'
 import { RenderBlocks } from '@/components/blocks/RenderBlocks'
 
 export const dynamic = 'force-dynamic'
@@ -67,7 +68,7 @@ function StaticHomePage() {
 
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
-              <a
+              <Link
                 href="/contact"
                 className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-[#2DB5B5] text-white font-medium hover:bg-[#249292] transition-colors shadow-lg shadow-[#2DB5B5]/25"
               >
@@ -75,13 +76,13 @@ function StaticHomePage() {
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                 </svg>
-              </a>
-              <a
+              </Link>
+              <Link
                 href="/careers"
                 className="inline-flex items-center justify-center px-6 py-3 rounded-lg border-2 border-[#2DB5B5] text-[#2DB5B5] font-medium hover:bg-[#2DB5B5] hover:text-white transition-colors"
               >
                 Rejoignez-nous
-              </a>
+              </Link>
             </div>
 
             {/* Stats */}
@@ -166,18 +167,18 @@ function StaticHomePage() {
             Discutons de votre projet et découvrez comment EBMC GROUP peut vous accompagner.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <a
+            <Link
               href="/contact"
               className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-lg bg-[#2DB5B5] text-white font-medium hover:bg-[#249292] transition-colors animate-pulse-glow"
             >
               Parlons de votre projet
-            </a>
-            <a
+            </Link>
+            <Link
               href="/careers"
               className="inline-flex items-center justify-center px-8 py-4 rounded-lg border border-white/20 text-white font-medium hover:bg-white/10 transition-colors"
             >
-              Rejoindre l'équipe
-            </a>
+              Rejoindre l&apos;équipe
+            </Link>
           </div>
         </div>
       </section>

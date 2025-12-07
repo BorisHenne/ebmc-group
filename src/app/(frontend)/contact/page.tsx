@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
+import Link from 'next/link'
 import { Mail, Phone, MapPin, Send, Loader2, CheckCircle2 } from 'lucide-react'
 
 const contactSchema = z.object({
@@ -275,9 +276,9 @@ export default function ContactPage() {
 
                   <p className="text-xs text-muted-foreground text-center">
                     En soumettant ce formulaire, vous acceptez notre{' '}
-                    <a href="/privacy" className="underline hover:text-[#2DB5B5]">
+                    <Link href="/privacy" className="underline hover:text-[#2DB5B5]">
                       politique de confidentialité
-                    </a>.
+                    </Link>.
                   </p>
                 </form>
               )}

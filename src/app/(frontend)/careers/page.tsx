@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { Briefcase, Search, ChevronRight } from 'lucide-react'
 import { OffersFilters } from '@/components/careers/OffersFilters'
 import { OfferCard } from '@/components/careers/OfferCard'
-import type { Offer } from '@/payload-types'
+import type { Offer } from '@/types/offers'
 
 export const dynamic = 'force-dynamic'
 
