@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
     let candidateId: string
 
     if (existingCandidates.docs.length > 0) {
-      candidateId = existingCandidates.docs[0].id
+      candidateId = existingCandidates.docs[0].id.toString()
     } else {
       // Create new candidate
       const newCandidate = await payload.create({
@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
           gdprConsentDate: new Date().toISOString(),
         },
       })
-      candidateId = newCandidate.id
+      candidateId = newCandidate.id.toString()
     }
 
     // Handle CV upload
@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
           size: cvFile.size,
         },
       })
-      cvId = media.id
+      cvId = media.id.toString()
 
       // Update candidate with CV
       await payload.update({
@@ -149,7 +149,7 @@ export async function POST(request: NextRequest) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            id: application.id,
+            id: application.id.toString(),
             candidateId,
             candidateName: `${data.firstName} ${data.lastName}`,
             candidateEmail: data.email,
@@ -167,7 +167,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { 
         success: true, 
-        applicationId: application.id,
+        applicationId: application.id.toString(),
         candidateId,
       },
       { status: 201 }

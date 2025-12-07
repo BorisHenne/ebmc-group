@@ -1,20 +1,17 @@
-/* THIS FILE WAS GENERATED AUTOMATICALLY BY PAYLOAD. */
-/* DO NOT MODIFY IT BECAUSE IT COULD BE REWRITTEN AT ANY TIME. */
-import config from '@payload-config'
+import type { Metadata } from 'next'
 import { RootLayout } from '@payloadcms/next/layouts'
+import config from '@payload-config'
 import React from 'react'
-
-import { importMap } from './[[...segments]]/importMap'
 import './custom.scss'
 
-type Args = {
-  children: React.ReactNode
+export const metadata: Metadata = {
+  title: 'EBMC Admin',
 }
 
-const Layout = ({ children }: Args) => (
-  <RootLayout config={config} importMap={importMap}>
-    {children}
-  </RootLayout>
-)
-
-export default Layout
+export default async function Layout({ children }: { children: React.ReactNode }) {
+  return (
+    <RootLayout config={config}>
+      {children}
+    </RootLayout>
+  )
+}

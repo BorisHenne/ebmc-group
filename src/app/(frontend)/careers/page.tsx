@@ -1,9 +1,10 @@
 import { getPayloadHMR } from '@payloadcms/next/utilities'
 import config from '@payload-config'
 import Link from 'next/link'
-import { Briefcase, MapPin, Clock, ChevronRight, Search, Filter } from 'lucide-react'
+import { Briefcase, Search, ChevronRight } from 'lucide-react'
 import { OffersFilters } from '@/components/careers/OffersFilters'
 import { OfferCard } from '@/components/careers/OfferCard'
+import type { Offer } from '@/payload-types'
 
 export const dynamic = 'force-dynamic'
 
@@ -28,7 +29,7 @@ export default async function CareersPage({
   const payload = await getPayloadHMR({ config })
 
   // Build query based on filters
-  const where: any = {
+  const where: Record<string, unknown> = {
     _status: { equals: 'published' },
   }
 
@@ -42,18 +43,21 @@ export default async function CareersPage({
     where.location = { contains: params.location }
   }
 
-  const offers = await payload.find({
+  const result = await payload.find({
     collection: 'offers',
     where,
     sort: '-publishedAt',
     limit: 50,
   })
 
+  // Cast to Offer type
+  const offers = result.docs as Offer[]
+
   // Filter by search if provided
-  let filteredOffers = offers.docs
+  let filteredOffers = offers
   if (params.search) {
     const searchLower = params.search.toLowerCase()
-    filteredOffers = offers.docs.filter(
+    filteredOffers = offers.filter(
       (offer) =>
         offer.title.toLowerCase().includes(searchLower) ||
         offer.excerpt?.toLowerCase().includes(searchLower)
@@ -91,10 +95,10 @@ export default async function CareersPage({
         <div className="text-center max-w-3xl mx-auto mb-12">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#2DB5B5]/10 border border-[#2DB5B5]/20 text-[#2DB5B5] text-sm font-medium mb-6">
             <Briefcase className="h-4 w-4" />
-            {offers.totalDocs} offres disponibles
+            {result.totalDocs} offres disponibles
           </div>
           <h1 className="text-4xl sm:text-5xl font-bold mb-4">
-            Rejoignez une équipe <span className="text-gradient">d'experts</span>
+            Rejoignez une équipe <span className="text-gradient">d&apos;experts</span>
           </h1>
           <p className="text-lg text-muted-foreground">
             Participez à des projets innovants au cœur de la transformation digitale européenne. 
@@ -158,7 +162,7 @@ export default async function CareersPage({
             <div className="flex flex-col md:flex-row items-center gap-6">
               <div className="flex-1">
                 <h3 className="text-xl font-bold mb-2">
-                  Vous ne trouvez pas l'offre idéale ?
+                  Vous ne trouvez pas l&apos;offre idéale ?
                 </h3>
                 <p className="text-muted-foreground">
                   Envoyez-nous votre candidature spontanée. Nous sommes toujours à la recherche 

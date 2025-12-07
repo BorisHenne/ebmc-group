@@ -18,7 +18,7 @@ export const Users: CollectionConfig = {
     lockTime: 600000, // 10 minutes
     cookies: {
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      sameSite: 'Lax',
     },
   },
   access: {
