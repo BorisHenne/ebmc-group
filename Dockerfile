@@ -3,6 +3,9 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
+# Install build dependencies for sharp
+RUN apk add --no-cache python3 make g++ vips-dev
+
 # Install dependencies
 COPY package.json pnpm-lock.yaml* ./
 RUN corepack enable pnpm && pnpm install
