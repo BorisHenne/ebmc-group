@@ -116,10 +116,12 @@ export function OfferCard({ offer }: { offer: Offer }) {
                 <span className="text-xs">{countryLabels[offer.country] || offer.country}</span>
               </div>
               
-              <div className="flex items-center gap-1.5">
-                <Globe className="h-4 w-4" />
-                <span>{remoteLabels[offer.remote] || offer.remote}</span>
-              </div>
+              {offer.remote && (
+                <div className="flex items-center gap-1.5">
+                  <Globe className="h-4 w-4" />
+                  <span>{remoteLabels[offer.remote] || offer.remote}</span>
+                </div>
+              )}
 
               <div className="flex items-center gap-1.5">
                 <Briefcase className="h-4 w-4" />
