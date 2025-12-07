@@ -1,5 +1,6 @@
 import Link from 'next/link'
-import { MapPin, Clock, Briefcase, Euro, ChevronRight, Globe } from 'lucide-react'
+import { MapPin, Briefcase, Euro, ChevronRight, Globe } from 'lucide-react'
+import type { Offer } from '@/types/offers'
 
 const categoryColors: Record<string, string> = {
   sap: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
@@ -48,26 +49,6 @@ const countryLabels: Record<string, string> = {
   belgium: '🇧🇪 Belgique',
   spain: '🇪🇸 Espagne',
   germany: '🇩🇪 Allemagne',
-}
-
-type Offer = {
-  id: string
-  title: string
-  slug: string
-  excerpt?: string
-  category: string
-  type: string
-  experienceLevel: string
-  location: string
-  country: string
-  remote: string
-  salaryMin?: number
-  salaryMax?: number
-  salaryCurrency?: string
-  salaryPeriod?: string
-  salaryVisible?: boolean
-  featured?: boolean
-  publishedAt?: string
 }
 
 export function OfferCard({ offer }: { offer: Offer }) {

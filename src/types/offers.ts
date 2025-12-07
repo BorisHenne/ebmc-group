@@ -2,7 +2,7 @@
 // Based on src/collections/Offers.ts
 
 export type Offer = {
-  id: string | number
+  id: string
   title: string
   slug: string
   excerpt?: string | null
