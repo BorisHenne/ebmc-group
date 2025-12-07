@@ -1,5 +1,5 @@
 import type { CollectionConfig } from 'payload'
-import { isAdmin, isAdminOrSelf } from '../access/roles'
+import { isAdmin, isAdminOrSelf, adminFieldAccess } from '../access/roles'
 
 export const Users: CollectionConfig = {
   slug: 'users',
@@ -52,7 +52,7 @@ export const Users: CollectionConfig = {
         { label: 'Super Admin', value: 'super_admin' },
       ],
       access: {
-        update: isAdmin,
+        update: adminFieldAccess,
       },
     },
     {
