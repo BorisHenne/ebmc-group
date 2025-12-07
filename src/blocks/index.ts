@@ -1,0 +1,8 @@
+export { HeroBlock } from './Hero'
+export { ContentBlock } from './Content'
+export { ServicesBlock } from './Services'
+export { CTABlock } from './CTA'
+export { FeaturesBlock } from './Features'
+export { StatsBlock, TestimonialsBlock } from './Stats'
+export { TeamBlock, FAQBlock } from './Team'
+export { ContactFormBlock, OffersListBlock } from './OffersList'
