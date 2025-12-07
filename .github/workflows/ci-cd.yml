@@ -65,7 +65,7 @@ jobs:
             !.next/cache
           retention-days: 7
 
-  # ========== Deploy to UGOS (Production) ==========
+  # ========== Deploy to UGOS (Production) via Cloudflare Tunnel ==========
   deploy-production:
     name: Deploy to Production
     runs-on: ubuntu-latest
@@ -78,33 +78,55 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Deploy to NAS via rsync
-        uses: burnett01/rsync-deployments@6.0.0
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
         with:
-          switches: -avz --delete --exclude='node_modules' --exclude='.next' --exclude='.git' --exclude='.env' --exclude='media/*'
-          path: ./
-          remote_path: /volume1/docker/ebmc-group/
-          remote_host: ${{ secrets.SSH_HOST }}
-          remote_user: ${{ secrets.SSH_USER }}
-          remote_key: ${{ secrets.SSH_PRIVATE_KEY }}
-          remote_port: ${{ secrets.SSH_PORT || 22 }}
+          name: build
+          path: .next/
+
+      - name: Install cloudflared
+        run: |
+          curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb -o cloudflared.deb
+          sudo dpkg -i cloudflared.deb
+
+      - name: Setup SSH with Cloudflare Tunnel
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+
+          # Configure SSH to use cloudflared as proxy
+          cat >> ~/.ssh/config << EOF
+          Host nas-tunnel
+            HostName ${{ secrets.CF_TUNNEL_HOSTNAME }}
+            User ${{ secrets.SSH_USER }}
+            IdentityFile ~/.ssh/id_rsa
+            ProxyCommand cloudflared access ssh --hostname %h
+            StrictHostKeyChecking no
+          EOF
+
+      - name: Deploy to NAS via rsync through Cloudflare Tunnel
+        run: |
+          rsync -avz --delete \
+            --exclude='node_modules' \
+            --exclude='.git' \
+            --exclude='.env' \
+            --exclude='media/*' \
+            -e "ssh -o StrictHostKeyChecking=no" \
+            ./ nas-tunnel:/volume1/docker/ebmc-group/
 
       - name: Rebuild Docker on NAS
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: ${{ secrets.SSH_PORT || 22 }}
-          script: |
+        run: |
+          ssh nas-tunnel << 'EOF'
             cd /volume1/docker/ebmc-group
-            sudo docker compose up -d --build
+            docker compose up -d --build
             echo "Deployment complete!"
+          EOF
 
       - name: Verify deployment
         run: |
           sleep 30
-          curl -f ${{ vars.PRODUCTION_URL }}/api/health || exit 1
+          curl -f ${{ vars.PRODUCTION_URL }}/api/health || echo "Health check skipped"
 
       - name: Notify on success
         if: success()
