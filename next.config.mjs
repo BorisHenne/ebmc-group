@@ -1,10 +1,6 @@
-import { withPayload } from '@payloadcms/next/withPayload'
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    reactCompiler: false,
-  },
+  output: 'standalone',
   images: {
     remotePatterns: [
       {
@@ -13,7 +9,6 @@ const nextConfig = {
       },
     ],
   },
-  // Security headers
   async headers() {
     return [
       {
@@ -35,23 +30,6 @@ const nextConfig = {
       },
     ]
   },
-  // Redirects
-  async redirects() {
-    return [
-      {
-        source: '/admin',
-        destination: '/admin/login',
-        permanent: false,
-        has: [
-          {
-            type: 'cookie',
-            key: 'payload-token',
-            value: undefined,
-          },
-        ],
-      },
-    ]
-  },
 }
 
-export default withPayload(nextConfig)
+export default nextConfig
