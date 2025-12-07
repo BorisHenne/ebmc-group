@@ -17,16 +17,18 @@ const schema = z.object({
   message: z.string().min(20),
 })
 
+type FormData = z.infer<typeof schema>
+
 export function ContactFormBlock({ title, description, showContactInfo = true, defaultType = 'general', successMessage }: any) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
 
-  const { register, handleSubmit, formState: { errors }, reset } = useForm({
+  const { register, handleSubmit, formState: { errors }, reset } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: { type: defaultType },
   })
 
-  const onSubmit = async (data: any) => {
+  const onSubmit = async (data: FormData) => {
     setIsSubmitting(true)
     try {
       const response = await fetch('/api/messages', {

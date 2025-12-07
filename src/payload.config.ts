@@ -28,8 +28,6 @@ export default buildConfig({
     user: Users.slug,
     meta: {
       titleSuffix: '- EBMC GROUP',
-      favicon: '/favicon.ico',
-      ogImage: '/og-image.png',
     },
     components: {
       graphics: {
@@ -145,10 +143,4 @@ export default buildConfig({
   cors: [
     process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
   ],
-
-  // Rate Limiting
-  rateLimit: {
-    max: 500,
-    window: 60000,
-  },
 })

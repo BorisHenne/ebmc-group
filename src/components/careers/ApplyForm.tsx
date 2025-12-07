@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
+import Link from 'next/link'
 import { Loader2, Upload, X } from 'lucide-react'
 
 const applySchema = z.object({
@@ -228,11 +229,11 @@ export function ApplyForm({ offerId, offerTitle }: ApplyFormProps) {
           {...register('gdprConsent')}
         />
         <label htmlFor="gdprConsent" className="text-sm text-muted-foreground">
-          J'accepte que mes données soient traitées conformément à la{' '}
-          <a href="/privacy" className="text-[#2DB5B5] hover:underline">
+          J&apos;accepte que mes données soient traitées conformément à la{' '}
+          <Link href="/privacy" className="text-[#2DB5B5] hover:underline">
             politique de confidentialité
-          </a>{' '}
-          d'EBMC GROUP. *
+          </Link>{' '}
+          d&apos;EBMC GROUP. *
         </label>
       </div>
       {errors.gdprConsent && (
