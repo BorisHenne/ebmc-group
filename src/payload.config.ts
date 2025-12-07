@@ -143,10 +143,4 @@ export default buildConfig({
   cors: [
     process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
   ],
-
-  // Rate Limiting
-  rateLimit: {
-    max: 500,
-    window: 60000,
-  },
 })
