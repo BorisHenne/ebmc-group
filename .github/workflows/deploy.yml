@@ -42,9 +42,6 @@ jobs:
           sudo dpkg -i cloudflared.deb
 
       - name: Setup SSH via Cloudflare Tunnel
-        env:
-          CF_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
-          CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
@@ -61,6 +58,8 @@ jobs:
 
       - name: Deploy via SSH (curl download)
         env:
+          CLOUDFLARE_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
+          CLOUDFLARE_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
           DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
           REPO: ${{ github.repository }}
         run: |
