@@ -56,23 +56,25 @@ jobs:
           EOF
           chmod 600 ~/.ssh/config
 
-      - name: Deploy via SSH (git pull)
+      - name: Deploy via SSH (curl download)
+        env:
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+          REPO: ${{ github.repository }}
         run: |
-          ssh nas << 'EOF'
-          cd ${{ secrets.DEPLOY_PATH }}
+          ssh nas << ENDSSH
+          cd ${DEPLOY_PATH}
 
-          # Pull latest code from GitHub
-          if [ -d ".git" ]; then
-            git fetch origin main
-            git reset --hard origin/main
-          else
-            rm -rf * .[!.]*
-            git clone --depth 1 https://github.com/${{ github.repository }}.git .
-          fi
+          # Download latest code from GitHub
+          curl -sL https://github.com/${REPO}/archive/refs/heads/main.tar.gz -o /tmp/repo.tar.gz
+
+          # Clean and extract
+          rm -rf ./* ./.[!.]*
+          tar -xzf /tmp/repo.tar.gz --strip-components=1
+          rm /tmp/repo.tar.gz
 
           # Rebuild Docker
           docker compose down
           docker compose up -d --build
 
           echo "Deployment complete!"
-          EOF
+          ENDSSH
