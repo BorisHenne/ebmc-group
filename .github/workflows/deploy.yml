@@ -46,8 +46,7 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
-
-          cat >> ~/.ssh/config << EOF
+          cat > ~/.ssh/config << EOF
           Host nas
             HostName ssh-nas.boris-henne.fr
             User ${{ secrets.SSH_USER }}
@@ -55,6 +54,11 @@ jobs:
             ProxyCommand cloudflared access ssh --hostname %h
             StrictHostKeyChecking no
           EOF
+          chmod 600 ~/.ssh/config
+          cat ~/.ssh/config
+
+      - name: Test SSH connection
+        run: ssh nas echo "SSH connection successful"
 
       - name: Deploy source code with rsync
         run: |
@@ -63,15 +67,15 @@ jobs:
             --exclude 'node_modules' \
             --exclude '.next' \
             --exclude '.env.local' \
-            -e "ssh -F ~/.ssh/config" \
+            -e "ssh" \
             ./ \
             nas:${{ secrets.DEPLOY_PATH }}/
 
       - name: Rebuild and restart Docker
         run: |
-          ssh -F ~/.ssh/config nas << 'EOF'
-            cd ${{ secrets.DEPLOY_PATH }}
-            docker compose down
-            docker compose up -d --build
-            echo "Deployment complete!"
+          ssh nas << 'EOF'
+          cd ${{ secrets.DEPLOY_PATH }}
+          docker compose down
+          docker compose up -d --build
+          echo "Deployment complete!"
           EOF
