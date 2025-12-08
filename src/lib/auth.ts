@@ -82,11 +82,11 @@ export async function initAdminUser() {
 
   if (!adminExists) {
     await createUser(
-      'admin@ebmcgroup.eu',
+      'admin@ebmc-group.com',
       'admin123',
       'Administrateur',
       'admin'
     )
-    console.log('Admin user created: admin@ebmcgroup.eu / admin123')
+    console.log('Admin user created: admin@ebmc-group.com / admin123')
   }
 }
