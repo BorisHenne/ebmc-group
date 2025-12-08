@@ -22,6 +22,7 @@ services:
     environment:
       - NODE_ENV=production
       - MONGODB_URI=mongodb://${MONGO_USER:-ebmc}:${MONGO_PASSWORD:-ebmc_secret}@mongo:27017/ebmc?authSource=admin
+      - JWT_SECRET=${JWT_SECRET:-ebmc-super-secret-jwt-key-2024}
     depends_on:
       - mongo
     networks:
