@@ -1,204 +1,202 @@
 # EBMC GROUP - Site Web & Plateforme de Recrutement
 
-> **L'union européenne de l'expertise digitale**  
-> SAP Silver Partner | ICT | Cybersécurité | IA Générative
+> **L'union européenne de l'expertise digitale**
+> SAP Silver Partner | ICT | Cybersecurity | IA Generative
 
 [![Next.js](https://img.shields.io/badge/Next.js-15-black?logo=next.js)](https://nextjs.org/)
-[![Payload CMS](https://img.shields.io/badge/Payload_CMS-3.0-blue)](https://payloadcms.com/)
 [![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)](https://reactjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.6-3178C6?logo=typescript)](https://www.typescriptlang.org/)
+[![MongoDB](https://img.shields.io/badge/MongoDB-7-47A248?logo=mongodb)](https://www.mongodb.com/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.4-06B6D4?logo=tailwindcss)](https://tailwindcss.com/)
 
 ---
 
-# EBMC GROUP - Site Vitrine & Plateforme RH
+## Table des matieres
 
-> **L'union européenne de l'expertise digitale**
-> Votre ESN de référence en Europe, née dans le SAP, enrichie par l'ICT, renforcée par la cybersécurité.
+- [Architecture](#architecture)
+- [Prerequis](#prerequis)
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Developpement](#developpement)
+- [Deploiement](#deploiement)
+- [Structure du projet](#structure-du-projet)
+- [Backoffice](#backoffice)
 
-![Next.js](https://img.shields.io/badge/Next.js-15-black)
-![Payload CMS](https://img.shields.io/badge/Payload%20CMS-3.0-blue)
-![TypeScript](https://img.shields.io/badge/TypeScript-5.6-blue)
-![MongoDB](https://img.shields.io/badge/MongoDB-7-green)
-
-## 📋 Table des matières
-
-- [Architecture](#-architecture)
-- [Prérequis](#-prérequis)
-- [Installation](#-installation)
-- [Configuration](#-configuration)
-- [Développement](#-développement)
-- [Déploiement](#-déploiement)
-- [Structure du projet](#-structure-du-projet)
-
-## 🏗 Architecture
+## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                         Client (Browser)                         │
-└───────────────────────────────┬─────────────────────────────────┘
-                                │
-┌───────────────────────────────▼─────────────────────────────────┐
-│                    Next.js 15 + Payload CMS 3.0                  │
-│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐│
-│  │   Frontend  │ │   Admin     │ │    API      │ │    Auth     ││
-│  │   (React)   │ │   Panel     │ │  (REST/GQL) │ │  (Payload)  ││
-│  └─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘│
-└───────────────────────────────┬─────────────────────────────────┘
-                                │
-        ┌───────────────────────┼───────────────────────┐
-        ▼                       ▼                       ▼
-┌───────────────┐      ┌───────────────┐      ┌───────────────┐
-│   MongoDB     │      │   Make.com    │      │  Boondmanager │
-│   Database    │      │   Webhooks    │      │     API       │
-└───────────────┘      └───────────────┘      └───────────────┘
++-------------------------------------------------------------+
+|                      Client (Browser)                        |
++-----------------------------+-------------------------------+
+                              |
++-----------------------------v-------------------------------+
+|                    Next.js 15 (App Router)                   |
+|  +-------------+ +-------------+ +-------------+ +---------+ |
+|  |  Frontend   | |   Admin     | |    API      | |  Auth   | |
+|  |  (React 19) | |  Backoffice | |   Routes    | | (JWT)   | |
+|  +-------------+ +-------------+ +-------------+ +---------+ |
++-----------------------------+-------------------------------+
+                              |
+          +-------------------+-------------------+
+          v                                       v
++-------------------+                   +-------------------+
+|     MongoDB       |                   |   Cloudflare      |
+|     Database      |                   |     Tunnel        |
++-------------------+                   +-------------------+
 ```
 
-## 📋 Prérequis
+## Prerequis
 
 - **Node.js** >= 20.9.0
-- **pnpm** >= 8.0 (recommandé)
+- **npm** >= 10.0
 - **MongoDB** >= 7.0
-- **Docker** (optionnel, pour déploiement UGOS)
+- **Docker** (pour deploiement NAS)
 
-## 🚀 Installation
+## Installation
 
 ### Installation locale
 
 ```bash
 # Cloner le repository
-git clone https://github.com/BorisHenne/ebmc.git
-cd ebmc
+git clone https://github.com/BorisHenne/ebmc-group.git
+cd ebmc-group
 
-# Installer les dépendances
-pnpm install
+# Installer les dependances
+npm install
 
 # Copier et configurer les variables d'environnement
 cp .env.example .env
-# Éditer .env avec vos valeurs
+# Editer .env avec vos valeurs
 
-# Générer les types Payload
-pnpm generate:types
-pnpm generate:importmap
-
-# Initialiser la base de données avec les données de démonstration
-pnpm seed
-
-# Lancer le serveur de développement
-pnpm dev
+# Lancer le serveur de developpement
+npm run dev
 ```
 
-### Installation Docker (UGOS NAS)
+### Installation Docker
 
 ```bash
-# Cloner et installer
-./deploy.sh install
-
-# Ou manuellement
-docker compose up -d
+docker compose up -d --build
 ```
 
-## ⚙ Configuration
+## Configuration
 
-### Variables d'environnement principales
+### Variables d'environnement
 
 | Variable | Description | Exemple |
 |----------|-------------|---------|
 | `MONGODB_URI` | URI de connexion MongoDB | `mongodb://localhost:27017/ebmc` |
-| `PAYLOAD_SECRET` | Clé secrète Payload CMS | `votre-secret-32-chars` |
+| `JWT_SECRET` | Cle secrete pour JWT | `votre-secret-32-chars` |
 | `NEXT_PUBLIC_APP_URL` | URL de l'application | `https://ebmc-group.com` |
 | `SMTP_HOST` | Serveur SMTP | `mail.infomaniak.com` |
 | `SMTP_PORT` | Port SMTP | `465` |
 | `SMTP_USER` | Utilisateur SMTP | `noreply@ebmc-group.com` |
 | `SMTP_PASSWORD` | Mot de passe SMTP | `***` |
-| `CONTACT_EMAIL` | Email de contact | `contact@ebmcgroup.eu` |
 
-## 💻 Développement
+## Developpement
 
 ### Commandes disponibles
 
 ```bash
-# Développement
-pnpm dev          # Lance le serveur dev sur http://localhost:3000
+# Developpement (port 8889)
+npm run dev
 
-# Build
-pnpm build        # Build de production
-pnpm start        # Lance le serveur de production
+# Build production
+npm run build
 
-# Payload CMS
-pnpm generate:types      # Génère les types TypeScript
-pnpm generate:importmap  # Génère l'importmap
-pnpm payload             # CLI Payload
+# Lancer en production
+npm start
 
-# Base de données
-pnpm seed         # Initialise la BDD avec données de démo
+# Linting
+npm run lint
+npm run lint:fix
 
-# Qualité
-pnpm lint         # Vérification ESLint
+# Verification TypeScript
+npm run typecheck
 ```
 
-### URLs
+### URLs locales
 
-- **Frontend**: http://localhost:3000
-- **Admin Panel**: http://localhost:3000/admin
-- **API REST**: http://localhost:3000/api
+- **Frontend**: http://localhost:8889
+- **Admin Panel**: http://localhost:8889/admin
+- **API**: http://localhost:8889/api
 
-### Identifiants admin (après seed)
+## Deploiement
 
-- **Email**: `admin@ebmcgroup.eu`
-- **Password**: `admin123!`
+Le deploiement est automatise via GitHub Actions. Un push sur `main` declenche :
 
-## 🚀 Déploiement
+1. Build de l'application
+2. Connexion SSH via Cloudflare Tunnel
+3. Telechargement du code sur le NAS
+4. Rebuild des containers Docker
 
-### Déploiement sur UGOS (Docker)
+### Secrets GitHub requis
 
-```bash
-./deploy.sh install   # Installation complète
-./deploy.sh update    # Mise à jour
-./deploy.sh start     # Démarrer
-./deploy.sh stop      # Arrêter
-./deploy.sh logs      # Voir les logs
-./deploy.sh backup    # Backup MongoDB
+| Secret | Description |
+|--------|-------------|
+| `SSH_PRIVATE_KEY` | Cle SSH privee pour connexion NAS |
+| `SSH_USER` | Utilisateur SSH sur le NAS |
+| `DEPLOY_PATH` | Chemin du projet sur le NAS |
+
+## Structure du projet
+
 ```
-
-## 📁 Structure du projet
-
-```
-ebmc/
+ebmc-group/
 ├── src/
 │   ├── app/
-│   │   ├── (frontend)/         # Routes frontend publiques
-│   │   ├── (payload)/          # Admin Payload CMS
-│   │   └── api/                # Routes API custom
-│   ├── collections/            # Collections Payload
-│   ├── globals/                # Globals Payload
-│   ├── blocks/                 # Définitions des blocs
-│   ├── components/             # Composants React
-│   ├── access/                 # Contrôle d'accès
-│   └── payload.config.ts       # Configuration Payload
+│   │   ├── (frontend)/         # Pages publiques
+│   │   │   ├── page.tsx        # Page d'accueil
+│   │   │   ├── careers/        # Pages carrieres
+│   │   │   └── consultants/    # Page consultants
+│   │   ├── admin/              # Backoffice admin
+│   │   │   ├── page.tsx        # Dashboard
+│   │   │   ├── jobs/           # Gestion offres
+│   │   │   ├── consultants/    # Gestion consultants
+│   │   │   ├── messages/       # Messages contact
+│   │   │   └── users/          # Gestion utilisateurs
+│   │   ├── api/                # Routes API
+│   │   │   ├── auth/           # Authentification
+│   │   │   ├── admin/          # API admin (CRUD)
+│   │   │   └── contact/        # Formulaire contact
+│   │   └── login/              # Page connexion
+│   ├── components/
+│   │   ├── ui/                 # Composants UI (Aceternity)
+│   │   ├── layout/             # Header, Footer
+│   │   └── careers/            # Composants carrieres
+│   ├── lib/
+│   │   ├── mongodb.ts          # Connexion MongoDB
+│   │   └── auth.ts             # Utilitaires auth
+│   └── globals.css             # Styles globaux
+├── .github/
+│   └── workflows/
+│       └── deploy.yml          # CI/CD GitHub Actions
 ├── docker-compose.yml
 ├── Dockerfile
-├── deploy.sh
 └── package.json
 ```
 
-## 📦 Collections CMS
+## Backoffice
 
-- **Users** - Utilisateurs avec rôles
-- **Media** - Fichiers uploadés
-- **Pages** - Pages dynamiques avec 11 types de blocs
-- **Candidates** - Gestion des candidats
-- **Offers** - Offres d'emploi
-- **Applications** - Candidatures
-- **Messages** - Messages contact
+Le backoffice admin est accessible sur `/admin` apres connexion.
 
-## 🔗 Intégrations
+### Fonctionnalites
 
-- **Make.com** - Webhooks automatiques
-- **Boondmanager** - Synchronisation CRM
-- **Nodemailer** - Emails SMTP Infomaniak
+- **Dashboard** - Vue d'ensemble avec statistiques
+- **Offres d'emploi** - CRUD complet, champs bilingues FR/EN
+- **Consultants** - Gestion des profils, competences, disponibilites
+- **Messages** - Messages du formulaire de contact
+- **Utilisateurs** - Gestion des comptes admin
+
+### Collections MongoDB
+
+| Collection | Description |
+|------------|-------------|
+| `users` | Utilisateurs admin |
+| `jobs` | Offres d'emploi |
+| `consultants` | Profils consultants |
+| `messages` | Messages contact |
 
 ---
 
-**EBMC GROUP** - *L'union européenne de l'expertise digitale*
+**EBMC GROUP** - *L'union europeenne de l'expertise digitale*
 
-🇱🇺 Luxembourg (Siège) | 🇪🇸 Barcelone (Innovation)
+Luxembourg (Siege) | Barcelone (Innovation)
