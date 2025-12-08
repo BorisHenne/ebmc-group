@@ -1,9 +1,9 @@
-name: Deploy via rsync
+name: Deploy via Cloudflare Tunnel
 
 on:
   push:
     branches: [main]
-  workflow_dispatch:  # Permet de lancer manuellement
+  workflow_dispatch:
 
 jobs:
   build:
@@ -36,12 +36,25 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup SSH
+      - name: Install cloudflared
+        run: |
+          curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb -o cloudflared.deb
+          sudo dpkg -i cloudflared.deb
+
+      - name: Setup SSH via Cloudflare Tunnel
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -p ${{ secrets.SSH_PORT }} -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+
+          cat >> ~/.ssh/config << EOF
+          Host nas
+            HostName ssh-nas.boris-henne.fr
+            User ${{ secrets.SSH_USER }}
+            IdentityFile ~/.ssh/id_ed25519
+            ProxyCommand cloudflared access ssh --hostname %h
+            StrictHostKeyChecking no
+          EOF
 
       - name: Deploy source code with rsync
         run: |
@@ -50,20 +63,15 @@ jobs:
             --exclude 'node_modules' \
             --exclude '.next' \
             --exclude '.env.local' \
-            -e "ssh -p ${{ secrets.SSH_PORT }}" \
+            -e "ssh -F ~/.ssh/config" \
             ./ \
-            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.DEPLOY_PATH }}/
+            nas:${{ secrets.DEPLOY_PATH }}/
 
       - name: Rebuild and restart Docker
         run: |
-          ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+          ssh -F ~/.ssh/config nas << 'EOF'
             cd ${{ secrets.DEPLOY_PATH }}
             docker compose down
             docker compose up -d --build
             echo "Deployment complete!"
           EOF
-
-      - name: Verify deployment
-        run: |
-          sleep 30
-          curl -f http://${{ secrets.SSH_HOST }}:8889/api/health || echo "Health check failed (may need more time)"
