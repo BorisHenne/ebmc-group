@@ -2,7 +2,6 @@
 
 import { motion } from 'framer-motion'
 import { useState, useEffect, use } from 'react'
-import Image from 'next/image'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import {
@@ -12,20 +11,16 @@ import {
   Clock,
   Users,
   CheckCircle,
-  Send,
-  LogIn,
-  Menu,
-  X
+  Send
 } from 'lucide-react'
 import {
   GlowingCard,
-  Meteors,
-  GridBackground,
   TextGradient,
-  ShimmerButton,
-  FloatingElements
+  ShimmerButton
 } from '@/components/ui/aceternity'
-import { LanguageSwitcher } from '@/components/LanguageSwitcher'
+import { TechBackground, TechSection } from '@/components/ui/TechBackground'
+import { Navigation } from '@/components/layout/Navigation'
+import { Footer } from '@/components/layout/Footer'
 
 const jobs = [
   {
@@ -214,7 +209,6 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
   const { id } = use(params)
   const t = useTranslations()
   const [locale, setLocale] = useState('fr')
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -229,13 +223,6 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
   }, [])
 
   const job = jobs.find(j => j.id === id)
-
-  const navItems = [
-    { key: 'services', href: '/#services' },
-    { key: 'about', href: '/#a-propos' },
-    { key: 'careers', href: '/careers' },
-    { key: 'contact', href: '/#contact' }
-  ]
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -263,266 +250,190 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
 
   if (!job) {
     return (
-      <main className="min-h-screen bg-[#0a0a0a] text-white flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-4xl font-bold mb-4">{locale === 'fr' ? 'Offre non trouvée' : 'Job not found'}</h1>
-          <Link href="/careers" className="text-ebmc-turquoise hover:underline">
-            {t('jobs.backToList')}
-          </Link>
-        </div>
-      </main>
+      <TechBackground>
+        <main className="min-h-screen text-white flex items-center justify-center">
+          <div className="text-center">
+            <h1 className="text-4xl font-bold mb-4">{locale === 'fr' ? 'Offre non trouvée' : 'Job not found'}</h1>
+            <Link href="/careers" className="text-ebmc-turquoise hover:underline">
+              {t('jobs.backToList')}
+            </Link>
+          </div>
+        </main>
+      </TechBackground>
     )
   }
 
   return (
-    <main className="min-h-screen bg-[#0a0a0a] text-white overflow-hidden">
-      {/* Navigation */}
-      <motion.header
-        initial={{ y: -100 }}
-        animate={{ y: 0 }}
-        transition={{ duration: 0.8, ease: 'easeOut' }}
-        className="fixed top-0 left-0 right-0 z-50"
-      >
-        <div className="mx-4 mt-4">
-          <div className="max-w-7xl mx-auto glass rounded-2xl px-6 py-4">
-            <div className="flex justify-between items-center">
-              <Link href="/">
-                <Image src="/logo.svg" alt="EBMC GROUP" width={140} height={40} className="h-8 w-auto" />
+    <TechBackground>
+      <main className="min-h-screen text-white overflow-hidden">
+        <Navigation currentPage="careers" />
+
+        {/* Hero Section */}
+        <section className="relative pt-32 pb-12 overflow-hidden">
+          <div className="relative z-10 max-w-7xl mx-auto px-4">
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8 }}
+            >
+              <Link href="/careers" className="inline-flex items-center gap-2 text-white/60 hover:text-ebmc-turquoise transition mb-8">
+                <ArrowLeft className="w-4 h-4" />
+                {t('jobs.backToList')}
               </Link>
 
-              <nav className="hidden lg:flex items-center gap-6">
-                {navItems.map((item) => (
-                  <Link
-                    key={item.key}
-                    href={item.href}
-                    className={`text-white/70 hover:text-ebmc-turquoise transition-colors ${item.key === 'careers' ? 'text-ebmc-turquoise' : ''}`}
-                  >
-                    {t(`nav.${item.key}`)}
-                  </Link>
-                ))}
-                <LanguageSwitcher locale={locale} />
-                <Link
-                  href="/login"
-                  className="flex items-center gap-2 px-4 py-2 text-white/70 hover:text-ebmc-turquoise transition"
-                >
-                  <LogIn className="w-4 h-4" />
-                  {t('nav.login')}
-                </Link>
-              </nav>
-
-              <div className="flex items-center gap-4 lg:hidden">
-                <LanguageSwitcher locale={locale} />
-                <button className="text-white p-2" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
-                  {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-                </button>
-              </div>
-            </div>
-
-            {mobileMenuOpen && (
-              <motion.nav
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                className="lg:hidden mt-4 pt-4 border-t border-white/10"
-              >
-                {navItems.map((item) => (
-                  <Link
-                    key={item.key}
-                    href={item.href}
-                    className="block py-3 text-white/70 hover:text-ebmc-turquoise transition"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    {t(`nav.${item.key}`)}
-                  </Link>
-                ))}
-              </motion.nav>
-            )}
-          </div>
-        </div>
-      </motion.header>
-
-      {/* Hero Section */}
-      <section className="relative pt-32 pb-12 overflow-hidden">
-        <GridBackground>
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0a0a0a]" />
-        </GridBackground>
-        <FloatingElements />
-        <Meteors number={15} />
-
-        <div className="relative z-10 max-w-7xl mx-auto px-4">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-          >
-            <Link href="/careers" className="inline-flex items-center gap-2 text-white/60 hover:text-ebmc-turquoise transition mb-8">
-              <ArrowLeft className="w-4 h-4" />
-              {t('jobs.backToList')}
-            </Link>
-
-            <div className="flex items-start gap-6 mb-6">
-              <div className="p-4 rounded-2xl bg-gradient-to-r from-ebmc-turquoise to-cyan-400">
-                <Briefcase className="w-8 h-8 text-white" />
-              </div>
-              <div>
-                <h1 className="text-4xl md:text-5xl font-bold mb-4">
-                  {locale === 'fr' ? job.title : job.titleEn}
-                </h1>
-                <div className="flex flex-wrap gap-4 text-lg">
-                  <span className="flex items-center gap-2 text-white/60">
-                    <MapPin className="w-5 h-5" />
-                    {job.location}
-                  </span>
-                  <span className="flex items-center gap-2 text-white/60">
-                    <Clock className="w-5 h-5" />
-                    {locale === 'fr' ? job.type : job.typeEn}
-                  </span>
-                  <span className="flex items-center gap-2 text-white/60">
-                    <Users className="w-5 h-5" />
-                    {locale === 'fr' ? job.experience : job.experienceEn}
-                  </span>
+              <div className="flex items-start gap-6 mb-6">
+                <div className="p-4 rounded-2xl bg-gradient-to-r from-ebmc-turquoise to-cyan-400">
+                  <Briefcase className="w-8 h-8 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-4xl md:text-5xl font-bold mb-4">
+                    {locale === 'fr' ? job.title : job.titleEn}
+                  </h1>
+                  <div className="flex flex-wrap gap-4 text-lg">
+                    <span className="flex items-center gap-2 text-white/60">
+                      <MapPin className="w-5 h-5" />
+                      {job.location}
+                    </span>
+                    <span className="flex items-center gap-2 text-white/60">
+                      <Clock className="w-5 h-5" />
+                      {locale === 'fr' ? job.type : job.typeEn}
+                    </span>
+                    <span className="flex items-center gap-2 text-white/60">
+                      <Users className="w-5 h-5" />
+                      {locale === 'fr' ? job.experience : job.experienceEn}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
-          </motion.div>
-        </div>
-      </section>
+            </motion.div>
+          </div>
+        </section>
 
-      {/* Content */}
-      <section className="relative py-12 px-4">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid lg:grid-cols-3 gap-12">
-            {/* Job Details */}
-            <div className="lg:col-span-2 space-y-12">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.2 }}
-              >
-                <h2 className="text-2xl font-bold mb-6">
-                  <TextGradient>{locale === 'fr' ? 'Description du poste' : 'Job Description'}</TextGradient>
-                </h2>
-                <p className="text-white/70 text-lg leading-relaxed">
-                  {locale === 'fr' ? job.description : job.descriptionEn}
-                </p>
-              </motion.div>
+        {/* Content */}
+        <TechSection className="py-12 px-4">
+          <div className="max-w-7xl mx-auto">
+            <div className="grid lg:grid-cols-3 gap-12">
+              {/* Job Details */}
+              <div className="lg:col-span-2 space-y-12">
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: 0.2 }}
+                >
+                  <h2 className="text-2xl font-bold mb-6">
+                    <TextGradient>{locale === 'fr' ? 'Description du poste' : 'Job Description'}</TextGradient>
+                  </h2>
+                  <p className="text-white/70 text-lg leading-relaxed">
+                    {locale === 'fr' ? job.description : job.descriptionEn}
+                  </p>
+                </motion.div>
 
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.3 }}
-              >
-                <h2 className="text-2xl font-bold mb-6">
-                  <TextGradient>{locale === 'fr' ? 'Vos missions' : 'Your missions'}</TextGradient>
-                </h2>
-                <ul className="space-y-4">
-                  {(locale === 'fr' ? job.missions : job.missionsEn).map((mission, index) => (
-                    <li key={index} className="flex items-start gap-3">
-                      <CheckCircle className="w-5 h-5 text-ebmc-turquoise flex-shrink-0 mt-1" />
-                      <span className="text-white/70">{mission}</span>
-                    </li>
-                  ))}
-                </ul>
-              </motion.div>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: 0.3 }}
+                >
+                  <h2 className="text-2xl font-bold mb-6">
+                    <TextGradient>{locale === 'fr' ? 'Vos missions' : 'Your missions'}</TextGradient>
+                  </h2>
+                  <ul className="space-y-4">
+                    {(locale === 'fr' ? job.missions : job.missionsEn).map((mission, index) => (
+                      <li key={index} className="flex items-start gap-3">
+                        <CheckCircle className="w-5 h-5 text-ebmc-turquoise flex-shrink-0 mt-1" />
+                        <span className="text-white/70">{mission}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </motion.div>
 
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.4 }}
-              >
-                <h2 className="text-2xl font-bold mb-6">
-                  <TextGradient>{locale === 'fr' ? 'Profil recherché' : 'Required profile'}</TextGradient>
-                </h2>
-                <ul className="space-y-4">
-                  {(locale === 'fr' ? job.requirements : job.requirementsEn).map((req, index) => (
-                    <li key={index} className="flex items-start gap-3">
-                      <CheckCircle className="w-5 h-5 text-ebmc-turquoise flex-shrink-0 mt-1" />
-                      <span className="text-white/70">{req}</span>
-                    </li>
-                  ))}
-                </ul>
-              </motion.div>
-            </div>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: 0.4 }}
+                >
+                  <h2 className="text-2xl font-bold mb-6">
+                    <TextGradient>{locale === 'fr' ? 'Profil recherché' : 'Required profile'}</TextGradient>
+                  </h2>
+                  <ul className="space-y-4">
+                    {(locale === 'fr' ? job.requirements : job.requirementsEn).map((req, index) => (
+                      <li key={index} className="flex items-start gap-3">
+                        <CheckCircle className="w-5 h-5 text-ebmc-turquoise flex-shrink-0 mt-1" />
+                        <span className="text-white/70">{req}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </motion.div>
+              </div>
 
-            {/* Application Form */}
-            <div className="lg:col-span-1">
-              <motion.div
-                initial={{ opacity: 0, x: 30 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.6, delay: 0.3 }}
-                className="sticky top-32"
-              >
-                <GlowingCard className="p-8">
-                  <h3 className="text-xl font-bold mb-6">
-                    {locale === 'fr' ? 'Postuler à cette offre' : 'Apply to this offer'}
-                  </h3>
-                  <form onSubmit={handleSubmit} className="space-y-4">
-                    <input
-                      type="text"
-                      placeholder={locale === 'fr' ? 'Votre nom' : 'Your name'}
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      required
-                      className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl focus:border-ebmc-turquoise outline-none transition placeholder:text-white/40"
-                    />
-                    <input
-                      type="email"
-                      placeholder={locale === 'fr' ? 'Votre email' : 'Your email'}
-                      value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      required
-                      className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl focus:border-ebmc-turquoise outline-none transition placeholder:text-white/40"
-                    />
-                    <input
-                      type="tel"
-                      placeholder={locale === 'fr' ? 'Votre téléphone' : 'Your phone'}
-                      value={formData.phone}
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                      className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl focus:border-ebmc-turquoise outline-none transition placeholder:text-white/40"
-                    />
-                    <textarea
-                      placeholder={locale === 'fr' ? 'Votre message / motivation' : 'Your message / motivation'}
-                      value={formData.message}
-                      onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                      rows={4}
-                      className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl focus:border-ebmc-turquoise outline-none transition placeholder:text-white/40 resize-none"
-                    />
-                    <ShimmerButton type="submit" className="w-full" disabled={status === 'loading'}>
-                      {status === 'loading'
-                        ? (locale === 'fr' ? 'Envoi...' : 'Sending...')
-                        : (locale === 'fr' ? 'Envoyer ma candidature' : 'Send my application')}
-                      <Send className="w-4 h-4" />
-                    </ShimmerButton>
-                    {status === 'success' && (
-                      <p className="text-green-400 text-center">
-                        {locale === 'fr' ? 'Candidature envoyée !' : 'Application sent!'}
-                      </p>
-                    )}
-                    {status === 'error' && (
-                      <p className="text-red-400 text-center">
-                        {locale === 'fr' ? 'Erreur lors de l\'envoi' : 'Error sending'}
-                      </p>
-                    )}
-                  </form>
-                </GlowingCard>
-              </motion.div>
+              {/* Application Form */}
+              <div className="lg:col-span-1">
+                <motion.div
+                  initial={{ opacity: 0, x: 30 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.6, delay: 0.3 }}
+                  className="sticky top-32"
+                >
+                  <GlowingCard className="p-8">
+                    <h3 className="text-xl font-bold mb-6">
+                      {locale === 'fr' ? 'Postuler à cette offre' : 'Apply to this offer'}
+                    </h3>
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                      <input
+                        type="text"
+                        placeholder={locale === 'fr' ? 'Votre nom' : 'Your name'}
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        required
+                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl focus:border-ebmc-turquoise outline-none transition placeholder:text-white/40 text-white"
+                      />
+                      <input
+                        type="email"
+                        placeholder={locale === 'fr' ? 'Votre email' : 'Your email'}
+                        value={formData.email}
+                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        required
+                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl focus:border-ebmc-turquoise outline-none transition placeholder:text-white/40 text-white"
+                      />
+                      <input
+                        type="tel"
+                        placeholder={locale === 'fr' ? 'Votre téléphone' : 'Your phone'}
+                        value={formData.phone}
+                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl focus:border-ebmc-turquoise outline-none transition placeholder:text-white/40 text-white"
+                      />
+                      <textarea
+                        placeholder={locale === 'fr' ? 'Votre message / motivation' : 'Your message / motivation'}
+                        value={formData.message}
+                        onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                        rows={4}
+                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl focus:border-ebmc-turquoise outline-none transition placeholder:text-white/40 resize-none text-white"
+                      />
+                      <ShimmerButton type="submit" className="w-full" disabled={status === 'loading'}>
+                        {status === 'loading'
+                          ? (locale === 'fr' ? 'Envoi...' : 'Sending...')
+                          : (locale === 'fr' ? 'Envoyer ma candidature' : 'Send my application')}
+                        <Send className="w-4 h-4" />
+                      </ShimmerButton>
+                      {status === 'success' && (
+                        <p className="text-green-400 text-center">
+                          {locale === 'fr' ? 'Candidature envoyée !' : 'Application sent!'}
+                        </p>
+                      )}
+                      {status === 'error' && (
+                        <p className="text-red-400 text-center">
+                          {locale === 'fr' ? 'Erreur lors de l\'envoi' : 'Error sending'}
+                        </p>
+                      )}
+                    </form>
+                  </GlowingCard>
+                </motion.div>
+              </div>
             </div>
           </div>
-        </div>
-      </section>
+        </TechSection>
 
-      {/* Footer */}
-      <footer className="relative py-12 px-4 border-t border-white/10 mt-20">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-            <Link href="/">
-              <Image src="/logo.svg" alt="EBMC GROUP" width={120} height={35} className="h-8 w-auto" />
-            </Link>
-            <p className="text-white/40 text-sm">
-              © {new Date().getFullYear()} EBMC GROUP. {t('footer.rights')}
-            </p>
-          </div>
-        </div>
-      </footer>
-    </main>
+        <Footer />
+      </main>
+    </TechBackground>
   )
 }
