@@ -1,7 +1,0 @@
-export { Spotlight, SpotlightCard } from './spotlight'
-export { GlowingCard } from './glowing-card'
-export { TextGradient } from './text-gradient'
-export { ShimmerButton } from './shimmer-button'
-export { TypewriterEffect } from './typewriter-effect'
-export { AnimatedBeam } from './animated-beam'
-export { FloatingOrbs } from './floating-orbs'

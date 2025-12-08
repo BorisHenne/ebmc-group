@@ -105,12 +105,21 @@ export function GridBackground({ children }: { children?: React.ReactNode }) {
 export function TextGradient({
   children,
   className = '',
+  animate = true,
 }: {
   children: React.ReactNode
   className?: string
+  animate?: boolean
 }) {
+  if (animate) {
+    return (
+      <span className={`bg-gradient-to-r from-ebmc-turquoise via-cyan-400 to-ebmc-turquoise-light bg-clip-text text-transparent bg-[length:200%_auto] animate-gradient ${className}`}>
+        {children}
+      </span>
+    )
+  }
   return (
-    <span className={`bg-gradient-to-r from-ebmc-turquoise via-cyan-400 to-ebmc-turquoise-light bg-clip-text text-transparent bg-[length:200%_auto] animate-gradient ${className}`}>
+    <span className={`bg-gradient-to-r from-ebmc-turquoise via-cyan-400 to-blue-500 bg-clip-text text-transparent ${className}`}>
       {children}
     </span>
   )
