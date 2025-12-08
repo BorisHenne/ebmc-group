@@ -64,7 +64,7 @@ export default function JobsPage() {
 
   const fetchJobs = async () => {
     try {
-      const res = await fetch('/api/admin/jobs')
+      const res = await fetch('/api/admin/jobs', { credentials: 'include' })
       if (res.ok) {
         const data = await res.json()
         setJobs(data.jobs || [])
@@ -89,6 +89,7 @@ export default function JobsPage() {
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(editingJob)
       })
 
@@ -107,7 +108,7 @@ export default function JobsPage() {
     if (!confirm('Êtes-vous sûr de vouloir supprimer cette offre ?')) return
 
     try {
-      await fetch(`/api/admin/jobs/${id}`, { method: 'DELETE' })
+      await fetch(`/api/admin/jobs/${id}`, { method: 'DELETE', credentials: 'include' })
       fetchJobs()
     } catch (error) {
       console.error('Error deleting job:', error)
