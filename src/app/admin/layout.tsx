@@ -14,7 +14,11 @@ import {
   LogOut,
   Menu,
   X,
-  Loader2
+  Loader2,
+  Shield,
+  Webhook,
+  Key,
+  BookOpen
 } from 'lucide-react'
 
 interface User {
@@ -29,6 +33,10 @@ const menuItems = [
   { href: '/admin/consultants', icon: UserCheck, label: 'Consultants' },
   { href: '/admin/messages', icon: MessageSquare, label: 'Messages' },
   { href: '/admin/users', icon: Users, label: 'Utilisateurs' },
+  { href: '/admin/roles', icon: Shield, label: 'Rôles' },
+  { href: '/admin/webhooks', icon: Webhook, label: 'Webhooks' },
+  { href: '/admin/api-tokens', icon: Key, label: 'Tokens API' },
+  { href: '/admin/docs', icon: BookOpen, label: 'Documentation' },
   { href: '/admin/settings', icon: Settings, label: 'Paramètres' },
 ]
 
