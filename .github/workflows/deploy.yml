@@ -47,6 +47,11 @@ jobs:
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
 
+          # Debug: show key info (not the key itself)
+          echo "SSH key file size: $(wc -c < ~/.ssh/id_ed25519) bytes"
+          echo "SSH key first line: $(head -1 ~/.ssh/id_ed25519)"
+          echo "SSH_USER: ${{ secrets.SSH_USER }}"
+
           cat > ~/.ssh/config << EOF
           Host nas
             HostName ssh-nas.boris-henne.fr
