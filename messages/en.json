@@ -1,0 +1,124 @@
+{
+  "nav": {
+    "services": "Services",
+    "about": "About",
+    "careers": "Careers",
+    "contact": "Contact",
+    "login": "Login",
+    "startProject": "Start a project"
+  },
+  "hero": {
+    "badge": "Digital Transformation & Innovation",
+    "title": "Your partner in",
+    "words": ["SAP & ERP", "Cybersecurity", "Artificial Intelligence", "Cloud & DevOps"],
+    "description": "EBMC GROUP supports companies in their digital evolution with innovative and tailored solutions.",
+    "cta": "Discover our services",
+    "ctaSecondary": "Book a meeting",
+    "scroll": "Scroll"
+  },
+  "stats": {
+    "years": "Years of experience",
+    "projects": "Completed projects",
+    "experts": "Certified experts",
+    "satisfaction": "Satisfied clients"
+  },
+  "services": {
+    "badge": "Our expertise",
+    "title": "Tailored",
+    "titleHighlight": "solutions",
+    "description": "We combine technical expertise and strategic vision to transform your challenges into opportunities.",
+    "learnMore": "Learn more",
+    "sap": {
+      "title": "SAP & ERP",
+      "description": "Complete expertise on SAP S/4HANA solutions, implementation and optimization of your business processes."
+    },
+    "security": {
+      "title": "Cybersecurity",
+      "description": "Protection of your systems and data with advanced security solutions and GDPR compliance."
+    },
+    "ai": {
+      "title": "Artificial Intelligence",
+      "description": "Integration of AI solutions to automate and optimize your business operations."
+    },
+    "dev": {
+      "title": "Development",
+      "description": "Creation of custom applications with modern technologies (React, Node.js, Cloud)."
+    }
+  },
+  "about": {
+    "badge": "Why choose us",
+    "title": "Excellence at the service of your",
+    "titleHighlight": "transformation",
+    "description": "For over 15 years, we have been supporting companies of all sizes in their digital transformation. Our team of certified experts guarantees tailor-made solutions and personalized support.",
+    "features": [
+      "Recognized expertise in SAP and cloud technologies",
+      "Team of certified and passionate experts",
+      "Personalized support from A to Z",
+      "Innovative and sustainable solutions"
+    ],
+    "security": "Guaranteed security",
+    "support": "Available support",
+    "global": "International presence"
+  },
+  "contact": {
+    "badge": "Contact",
+    "title": "Let's start your",
+    "titleHighlight": "project",
+    "description": "Let's discuss your needs and find together the ideal solution for your company.",
+    "email": "Email",
+    "phone": "Phone",
+    "address": "Address",
+    "form": {
+      "name": "Your name",
+      "email": "Your email",
+      "subject": "Subject",
+      "message": "Your message",
+      "submit": "Send message",
+      "sending": "Sending...",
+      "success": "Message sent successfully!",
+      "error": "Error sending. Please try again."
+    }
+  },
+  "careers": {
+    "badge": "Join us",
+    "title": "Build your",
+    "titleHighlight": "future",
+    "description": "Join a passionate team and participate in innovative projects that transform businesses.",
+    "whyJoin": "Why join us?",
+    "benefits": [
+      "Innovative projects with the latest technologies",
+      "Continuous training and certifications",
+      "Flexible work environment",
+      "Caring and collaborative team",
+      "Personalized career development",
+      "Attractive compensation"
+    ],
+    "openPositions": "Open positions",
+    "viewOffers": "View offers",
+    "spontaneous": "Spontaneous application",
+    "spontaneousDesc": "No offer matches your profile? Send us your spontaneous application.",
+    "apply": "Apply"
+  },
+  "jobs": {
+    "badge": "Job offers",
+    "title": "Our",
+    "titleHighlight": "opportunities",
+    "description": "Discover our job offers and join a dynamic team at the heart of digital transformation.",
+    "filters": {
+      "all": "All",
+      "tech": "Technical",
+      "consulting": "Consulting",
+      "management": "Management"
+    },
+    "location": "Location",
+    "type": "Type",
+    "experience": "Experience",
+    "apply": "Apply",
+    "details": "View details",
+    "noJobs": "No offers available at the moment.",
+    "backToList": "Back to offers"
+  },
+  "footer": {
+    "rights": "All rights reserved."
+  }
+}

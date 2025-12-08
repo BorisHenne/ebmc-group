@@ -1,8 +1,10 @@
 'use client'
 
 import { motion, useScroll, useTransform } from 'framer-motion'
-import { useRef, useState } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import Image from 'next/image'
+import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 import {
   Shield,
   Brain,
@@ -20,7 +22,9 @@ import {
   ChevronDown,
   Send,
   Menu,
-  X
+  X,
+  LogIn,
+  Users
 } from 'lucide-react'
 import {
   SpotlightCard,
@@ -32,46 +36,20 @@ import {
   TypewriterEffect,
   FloatingElements
 } from '@/components/ui/aceternity'
+import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 
 const services = [
-  {
-    icon: Server,
-    title: 'SAP & ERP',
-    description: 'Expertise complète sur les solutions SAP S/4HANA, implémentation et optimisation de vos processus métier.',
-    gradient: 'from-cyan-500 to-blue-500'
-  },
-  {
-    icon: Shield,
-    title: 'Cybersécurité',
-    description: 'Protection de vos systèmes et données avec des solutions de sécurité avancées et conformité RGPD.',
-    gradient: 'from-green-500 to-emerald-500'
-  },
-  {
-    icon: Brain,
-    title: 'Intelligence Artificielle',
-    description: 'Intégration de solutions IA pour automatiser et optimiser vos opérations business.',
-    gradient: 'from-purple-500 to-pink-500'
-  },
-  {
-    icon: Code,
-    title: 'Développement',
-    description: 'Création d&apos;applications sur mesure avec les technologies modernes (React, Node.js, Cloud).',
-    gradient: 'from-orange-500 to-red-500'
-  }
+  { icon: Server, key: 'sap', gradient: 'from-cyan-500 to-blue-500' },
+  { icon: Shield, key: 'security', gradient: 'from-green-500 to-emerald-500' },
+  { icon: Brain, key: 'ai', gradient: 'from-purple-500 to-pink-500' },
+  { icon: Code, key: 'dev', gradient: 'from-orange-500 to-red-500' }
 ]
 
 const stats = [
-  { value: 15, suffix: '+', label: 'Années d\'expérience' },
-  { value: 200, suffix: '+', label: 'Projets réalisés' },
-  { value: 50, suffix: '+', label: 'Experts certifiés' },
-  { value: 98, suffix: '%', label: 'Clients satisfaits' }
-]
-
-const features = [
-  'Expertise reconnue en SAP et technologies cloud',
-  'Équipe d\'experts certifiés et passionnés',
-  'Accompagnement personnalisé de A à Z',
-  'Solutions innovantes et durables'
+  { value: 15, suffix: '+', key: 'years' },
+  { value: 200, suffix: '+', key: 'projects' },
+  { value: 50, suffix: '+', key: 'experts' },
+  { value: 98, suffix: '%', key: 'satisfaction' }
 ]
 
 function AnimatedCounter({ value, suffix }: { value: number; suffix: string }) {
@@ -107,6 +85,7 @@ function AnimatedCounter({ value, suffix }: { value: number; suffix: string }) {
 }
 
 function ContactForm() {
+  const t = useTranslations('contact.form')
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -138,64 +117,55 @@ function ContactForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="grid md:grid-cols-2 gap-6">
-        <div>
-          <input
-            type="text"
-            placeholder="Votre nom"
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            required
-            className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl focus:border-ebmc-turquoise focus:ring-1 focus:ring-ebmc-turquoise outline-none transition placeholder:text-white/40"
-          />
-        </div>
-        <div>
-          <input
-            type="email"
-            placeholder="Votre email"
-            value={formData.email}
-            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-            required
-            className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl focus:border-ebmc-turquoise focus:ring-1 focus:ring-ebmc-turquoise outline-none transition placeholder:text-white/40"
-          />
-        </div>
-      </div>
-      <div>
         <input
           type="text"
-          placeholder="Sujet"
-          value={formData.subject}
-          onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+          placeholder={t('name')}
+          value={formData.name}
+          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+          required
+          className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl focus:border-ebmc-turquoise focus:ring-1 focus:ring-ebmc-turquoise outline-none transition placeholder:text-white/40"
+        />
+        <input
+          type="email"
+          placeholder={t('email')}
+          value={formData.email}
+          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
           required
           className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl focus:border-ebmc-turquoise focus:ring-1 focus:ring-ebmc-turquoise outline-none transition placeholder:text-white/40"
         />
       </div>
-      <div>
-        <textarea
-          placeholder="Votre message"
-          value={formData.message}
-          onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-          required
-          rows={5}
-          className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl focus:border-ebmc-turquoise focus:ring-1 focus:ring-ebmc-turquoise outline-none transition placeholder:text-white/40 resize-none"
-        />
-      </div>
+      <input
+        type="text"
+        placeholder={t('subject')}
+        value={formData.subject}
+        onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+        required
+        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl focus:border-ebmc-turquoise focus:ring-1 focus:ring-ebmc-turquoise outline-none transition placeholder:text-white/40"
+      />
+      <textarea
+        placeholder={t('message')}
+        value={formData.message}
+        onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+        required
+        rows={5}
+        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl focus:border-ebmc-turquoise focus:ring-1 focus:ring-ebmc-turquoise outline-none transition placeholder:text-white/40 resize-none"
+      />
       <ShimmerButton type="submit" className="w-full md:w-auto" disabled={status === 'loading'}>
-        {status === 'loading' ? 'Envoi...' : 'Envoyer le message'}
+        {status === 'loading' ? t('sending') : t('submit')}
         <Send className="w-4 h-4" />
       </ShimmerButton>
       {status === 'success' && (
         <p className="text-green-400 flex items-center gap-2">
-          <CheckCircle className="w-5 h-5" /> Message envoyé avec succès !
+          <CheckCircle className="w-5 h-5" /> {t('success')}
         </p>
       )}
-      {status === 'error' && (
-        <p className="text-red-400">Erreur lors de l&apos;envoi. Veuillez réessayer.</p>
-      )}
+      {status === 'error' && <p className="text-red-400">{t('error')}</p>}
     </form>
   )
 }
 
 export default function Home() {
+  const t = useTranslations()
   const heroRef = useRef<HTMLDivElement>(null)
   const { scrollYProgress } = useScroll({
     target: heroRef,
@@ -204,6 +174,22 @@ export default function Home() {
   const heroOpacity = useTransform(scrollYProgress, [0, 1], [1, 0])
   const heroScale = useTransform(scrollYProgress, [0, 1], [1, 0.8])
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [locale, setLocale] = useState('fr')
+
+  useEffect(() => {
+    const match = document.cookie.match(/locale=([^;]+)/)
+    if (match) setLocale(match[1])
+  }, [])
+
+  const navItems = [
+    { key: 'services', href: '#services' },
+    { key: 'about', href: '#a-propos' },
+    { key: 'careers', href: '/careers' },
+    { key: 'contact', href: '#contact' }
+  ]
+
+  const heroWords = t.raw('hero.words') as string[]
+  const features = t.raw('about.features') as string[]
 
   return (
     <main className="min-h-screen bg-[#0a0a0a] text-white overflow-hidden">
@@ -221,45 +207,75 @@ export default function Home() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.3 }}
-                className="flex items-center gap-3"
               >
-                <Image src="/logo.svg" alt="EBMC GROUP" width={140} height={40} className="h-8 w-auto" />
+                <Link href="/">
+                  <Image src="/logo.PNG" alt="EBMC GROUP" width={140} height={40} className="h-8 w-auto" />
+                </Link>
               </motion.div>
 
               {/* Desktop Nav */}
-              <nav className="hidden md:flex items-center gap-8">
-                {['Services', 'À propos', 'Contact'].map((item, i) => (
-                  <motion.a
-                    key={item}
-                    href={`#${item.toLowerCase().replace(' ', '-').replace('à', 'a')}`}
+              <nav className="hidden lg:flex items-center gap-6">
+                {navItems.map((item, i) => (
+                  <motion.div
+                    key={item.key}
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.4 + i * 0.1 }}
-                    className="text-white/70 hover:text-ebmc-turquoise transition-colors relative group"
                   >
-                    {item}
-                    <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-ebmc-turquoise transition-all group-hover:w-full" />
-                  </motion.a>
+                    {item.href.startsWith('#') ? (
+                      <a
+                        href={item.href}
+                        className="text-white/70 hover:text-ebmc-turquoise transition-colors relative group"
+                      >
+                        {t(`nav.${item.key}`)}
+                        <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-ebmc-turquoise transition-all group-hover:w-full" />
+                      </a>
+                    ) : (
+                      <Link
+                        href={item.href}
+                        className="text-white/70 hover:text-ebmc-turquoise transition-colors relative group"
+                      >
+                        {t(`nav.${item.key}`)}
+                        <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-ebmc-turquoise transition-all group-hover:w-full" />
+                      </Link>
+                    )}
+                  </motion.div>
                 ))}
+
+                <LanguageSwitcher locale={locale} />
+
                 <motion.div
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 0.7 }}
+                  className="flex items-center gap-3"
                 >
-                  <ShimmerButton>
-                    <Sparkles className="w-4 h-4" />
-                    Démarrer un projet
-                  </ShimmerButton>
+                  <Link
+                    href="/login"
+                    className="flex items-center gap-2 px-4 py-2 text-white/70 hover:text-ebmc-turquoise transition"
+                  >
+                    <LogIn className="w-4 h-4" />
+                    {t('nav.login')}
+                  </Link>
+                  <a href="#contact">
+                    <ShimmerButton>
+                      <Sparkles className="w-4 h-4" />
+                      {t('nav.startProject')}
+                    </ShimmerButton>
+                  </a>
                 </motion.div>
               </nav>
 
               {/* Mobile Menu Button */}
-              <button
-                className="md:hidden text-white p-2"
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              >
-                {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-              </button>
+              <div className="flex items-center gap-4 lg:hidden">
+                <LanguageSwitcher locale={locale} />
+                <button
+                  className="text-white p-2"
+                  onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                >
+                  {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+                </button>
+              </div>
             </div>
 
             {/* Mobile Menu */}
@@ -267,18 +283,37 @@ export default function Home() {
               <motion.nav
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
-                className="md:hidden mt-4 pt-4 border-t border-white/10"
+                className="lg:hidden mt-4 pt-4 border-t border-white/10"
               >
-                {['Services', 'À propos', 'Contact'].map((item) => (
-                  <a
-                    key={item}
-                    href={`#${item.toLowerCase().replace(' ', '-').replace('à', 'a')}`}
-                    className="block py-3 text-white/70 hover:text-ebmc-turquoise transition"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    {item}
-                  </a>
+                {navItems.map((item) => (
+                  item.href.startsWith('#') ? (
+                    <a
+                      key={item.key}
+                      href={item.href}
+                      className="block py-3 text-white/70 hover:text-ebmc-turquoise transition"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      {t(`nav.${item.key}`)}
+                    </a>
+                  ) : (
+                    <Link
+                      key={item.key}
+                      href={item.href}
+                      className="block py-3 text-white/70 hover:text-ebmc-turquoise transition"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      {t(`nav.${item.key}`)}
+                    </Link>
+                  )
                 ))}
+                <Link
+                  href="/login"
+                  className="flex items-center gap-2 py-3 text-white/70 hover:text-ebmc-turquoise transition"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <LogIn className="w-4 h-4" />
+                  {t('nav.login')}
+                </Link>
               </motion.nav>
             )}
           </div>
@@ -304,7 +339,7 @@ export default function Home() {
             className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass mb-8"
           >
             <Sparkles className="w-4 h-4 text-ebmc-turquoise" />
-            <span className="text-sm text-white/80">Transformation Digitale & Innovation</span>
+            <span className="text-sm text-white/80">{t('hero.badge')}</span>
           </motion.div>
 
           <motion.h1
@@ -313,9 +348,9 @@ export default function Home() {
             transition={{ duration: 0.8, delay: 0.4 }}
             className="text-5xl md:text-7xl lg:text-8xl font-bold mb-6 leading-tight"
           >
-            Votre partenaire en
+            {t('hero.title')}
             <br />
-            <TypewriterEffect words={['SAP & ERP', 'Cybersécurité', 'Intelligence Artificielle', 'Cloud & DevOps']} />
+            <TypewriterEffect words={heroWords} />
           </motion.h1>
 
           <motion.p
@@ -324,8 +359,7 @@ export default function Home() {
             transition={{ duration: 0.8, delay: 0.6 }}
             className="text-xl md:text-2xl text-white/60 max-w-3xl mx-auto mb-12"
           >
-            EBMC GROUP accompagne les entreprises dans leur évolution numérique
-            avec des solutions innovantes et sur mesure.
+            {t('hero.description')}
           </motion.p>
 
           <motion.div
@@ -334,21 +368,22 @@ export default function Home() {
             transition={{ duration: 0.8, delay: 0.8 }}
             className="flex flex-col sm:flex-row gap-4 justify-center"
           >
-            <ShimmerButton>
-              Découvrir nos services
-              <ArrowRight className="w-4 h-4" />
-            </ShimmerButton>
+            <a href="#services">
+              <ShimmerButton>
+                {t('hero.cta')}
+                <ArrowRight className="w-4 h-4" />
+              </ShimmerButton>
+            </a>
             <a
               href="#contact"
               className="inline-flex items-center justify-center gap-2 px-8 py-3 rounded-full border border-white/20 hover:border-ebmc-turquoise/50 hover:bg-white/5 transition-all"
             >
-              Prendre rendez-vous
+              {t('hero.ctaSecondary')}
               <Zap className="w-4 h-4" />
             </a>
           </motion.div>
         </motion.div>
 
-        {/* Scroll Indicator */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -360,7 +395,7 @@ export default function Home() {
             transition={{ duration: 2, repeat: Infinity }}
             className="flex flex-col items-center gap-2 text-white/40"
           >
-            <span className="text-sm">Scroll</span>
+            <span className="text-sm">{t('hero.scroll')}</span>
             <ChevronDown className="w-5 h-5" />
           </motion.div>
         </motion.div>
@@ -381,7 +416,7 @@ export default function Home() {
                   className="text-center"
                 >
                   <AnimatedCounter value={stat.value} suffix={stat.suffix} />
-                  <div className="text-white/60 mt-2">{stat.label}</div>
+                  <div className="text-white/60 mt-2">{t(`stats.${stat.key}`)}</div>
                 </motion.div>
               ))}
             </div>
@@ -401,13 +436,13 @@ export default function Home() {
           >
             <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass mb-6">
               <Globe className="w-4 h-4 text-ebmc-turquoise" />
-              <span className="text-sm text-white/80">Nos expertises</span>
+              <span className="text-sm text-white/80">{t('services.badge')}</span>
             </span>
             <h2 className="text-4xl md:text-5xl font-bold mb-6">
-              Des solutions <TextGradient>sur mesure</TextGradient>
+              {t('services.title')} <TextGradient>{t('services.titleHighlight')}</TextGradient>
             </h2>
             <p className="text-xl text-white/60 max-w-2xl mx-auto">
-              Nous combinons expertise technique et vision stratégique pour transformer vos défis en opportunités.
+              {t('services.description')}
             </p>
           </motion.div>
 
@@ -424,14 +459,14 @@ export default function Home() {
                   <div className={`inline-flex p-3 rounded-xl bg-gradient-to-r ${service.gradient} mb-6`}>
                     <service.icon className="w-6 h-6 text-white" />
                   </div>
-                  <h3 className="text-2xl font-bold mb-4">{service.title}</h3>
-                  <p className="text-white/60 leading-relaxed" dangerouslySetInnerHTML={{ __html: service.description }} />
+                  <h3 className="text-2xl font-bold mb-4">{t(`services.${service.key}.title`)}</h3>
+                  <p className="text-white/60 leading-relaxed">{t(`services.${service.key}.description`)}</p>
                   <motion.a
                     href="#contact"
                     whileHover={{ x: 5 }}
                     className="inline-flex items-center gap-2 mt-6 text-ebmc-turquoise hover:text-ebmc-turquoise-light transition"
                   >
-                    En savoir plus <ArrowRight className="w-4 h-4" />
+                    {t('services.learnMore')} <ArrowRight className="w-4 h-4" />
                   </motion.a>
                 </SpotlightCard>
               </motion.div>
@@ -453,15 +488,13 @@ export default function Home() {
             >
               <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass mb-6">
                 <Zap className="w-4 h-4 text-ebmc-turquoise" />
-                <span className="text-sm text-white/80">Pourquoi nous choisir</span>
+                <span className="text-sm text-white/80">{t('about.badge')}</span>
               </span>
               <h2 className="text-4xl md:text-5xl font-bold mb-6">
-                L&apos;excellence au service de votre <TextGradient>transformation</TextGradient>
+                {t('about.title')} <TextGradient>{t('about.titleHighlight')}</TextGradient>
               </h2>
               <p className="text-lg text-white/60 mb-8 leading-relaxed">
-                Depuis plus de 15 ans, nous accompagnons les entreprises de toutes tailles
-                dans leur transformation digitale. Notre équipe d&apos;experts certifiés
-                vous garantit des solutions sur mesure et un accompagnement personnalisé.
+                {t('about.description')}
               </p>
               <ul className="space-y-4">
                 {features.map((item, index) => (
@@ -487,7 +520,6 @@ export default function Home() {
               whileInView={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.8 }}
               viewport={{ once: true }}
-              className="relative"
             >
               <GlowingCard>
                 <div className="space-y-8">
@@ -497,7 +529,7 @@ export default function Home() {
                     </div>
                     <div>
                       <div className="text-3xl font-bold text-white">100%</div>
-                      <div className="text-white/60">Sécurité garantie</div>
+                      <div className="text-white/60">{t('about.security')}</div>
                     </div>
                   </div>
                   <div className="h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
@@ -507,7 +539,7 @@ export default function Home() {
                     </div>
                     <div>
                       <div className="text-3xl font-bold text-white">24/7</div>
-                      <div className="text-white/60">Support disponible</div>
+                      <div className="text-white/60">{t('about.support')}</div>
                     </div>
                   </div>
                   <div className="h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
@@ -517,13 +549,34 @@ export default function Home() {
                     </div>
                     <div>
                       <div className="text-3xl font-bold text-white">Global</div>
-                      <div className="text-white/60">Présence internationale</div>
+                      <div className="text-white/60">{t('about.global')}</div>
                     </div>
                   </div>
                 </div>
               </GlowingCard>
             </motion.div>
           </div>
+        </div>
+      </section>
+
+      {/* Careers CTA Section */}
+      <section className="relative py-20 px-4">
+        <div className="max-w-4xl mx-auto">
+          <GlowingCard className="text-center p-12">
+            <Users className="w-16 h-16 text-ebmc-turquoise mx-auto mb-6" />
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              {t('careers.title')} <TextGradient>{t('careers.titleHighlight')}</TextGradient>
+            </h2>
+            <p className="text-white/60 text-lg mb-8 max-w-2xl mx-auto">
+              {t('careers.description')}
+            </p>
+            <Link href="/careers">
+              <ShimmerButton>
+                {t('careers.viewOffers')}
+                <ArrowRight className="w-4 h-4" />
+              </ShimmerButton>
+            </Link>
+          </GlowingCard>
         </div>
       </section>
 
@@ -539,18 +592,17 @@ export default function Home() {
           >
             <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass mb-6">
               <Mail className="w-4 h-4 text-ebmc-turquoise" />
-              <span className="text-sm text-white/80">Contact</span>
+              <span className="text-sm text-white/80">{t('contact.badge')}</span>
             </span>
             <h2 className="text-4xl md:text-5xl font-bold mb-6">
-              Démarrons votre <TextGradient>projet</TextGradient>
+              {t('contact.title')} <TextGradient>{t('contact.titleHighlight')}</TextGradient>
             </h2>
             <p className="text-xl text-white/60 max-w-2xl mx-auto">
-              Discutons de vos besoins et trouvons ensemble la solution idéale pour votre entreprise.
+              {t('contact.description')}
             </p>
           </motion.div>
 
           <div className="grid lg:grid-cols-2 gap-12">
-            {/* Contact Info */}
             <motion.div
               initial={{ opacity: 0, x: -30 }}
               whileInView={{ opacity: 1, x: 0 }}
@@ -559,9 +611,9 @@ export default function Home() {
               className="space-y-8"
             >
               {[
-                { icon: Mail, title: 'Email', value: 'contact@ebmcgroup.eu', href: 'mailto:contact@ebmcgroup.eu' },
-                { icon: Phone, title: 'Téléphone', value: '+33 1 23 45 67 89', href: 'tel:+33123456789' },
-                { icon: MapPin, title: 'Adresse', value: 'Paris, France', href: '#' }
+                { icon: Mail, key: 'email', value: 'contact@ebmc-group.com', href: 'mailto:contact@ebmc-group.com' },
+                { icon: Phone, key: 'phone', value: '+33 1 23 45 67 89', href: 'tel:+33123456789' },
+                { icon: MapPin, key: 'address', value: 'Paris, France', href: '#' }
               ].map((item, index) => (
                 <motion.a
                   key={index}
@@ -577,13 +629,12 @@ export default function Home() {
                     <item.icon className="w-6 h-6 text-white" />
                   </div>
                   <div>
-                    <div className="text-white/60 text-sm">{item.title}</div>
+                    <div className="text-white/60 text-sm">{t(`contact.${item.key}`)}</div>
                     <div className="text-xl font-semibold">{item.value}</div>
                   </div>
                 </motion.a>
               ))}
 
-              {/* Social */}
               <div className="flex gap-4 pt-4">
                 <motion.a
                   href="https://linkedin.com"
@@ -597,7 +648,6 @@ export default function Home() {
               </div>
             </motion.div>
 
-            {/* Contact Form */}
             <motion.div
               initial={{ opacity: 0, x: 30 }}
               whileInView={{ opacity: 1, x: 0 }}
@@ -616,29 +666,34 @@ export default function Home() {
       <footer className="relative py-12 px-4 border-t border-white/10">
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-            <motion.div
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              viewport={{ once: true }}
-              className="flex items-center gap-3"
-            >
-              <Image src="/logo.svg" alt="EBMC GROUP" width={120} height={35} className="h-8 w-auto" />
-            </motion.div>
+            <Link href="/">
+              <Image src="/logo.PNG" alt="EBMC GROUP" width={120} height={35} className="h-8 w-auto" />
+            </Link>
 
             <nav className="flex items-center gap-8">
-              {['Services', 'À propos', 'Contact'].map((item) => (
-                <a
-                  key={item}
-                  href={`#${item.toLowerCase().replace(' ', '-').replace('à', 'a')}`}
-                  className="text-white/60 hover:text-ebmc-turquoise transition text-sm"
-                >
-                  {item}
-                </a>
+              {navItems.map((item) => (
+                item.href.startsWith('#') ? (
+                  <a
+                    key={item.key}
+                    href={item.href}
+                    className="text-white/60 hover:text-ebmc-turquoise transition text-sm"
+                  >
+                    {t(`nav.${item.key}`)}
+                  </a>
+                ) : (
+                  <Link
+                    key={item.key}
+                    href={item.href}
+                    className="text-white/60 hover:text-ebmc-turquoise transition text-sm"
+                  >
+                    {t(`nav.${item.key}`)}
+                  </Link>
+                )
               ))}
             </nav>
 
             <p className="text-white/40 text-sm">
-              © {new Date().getFullYear()} EBMC GROUP. Tous droits réservés.
+              © {new Date().getFullYear()} EBMC GROUP. {t('footer.rights')}
             </p>
           </div>
         </div>

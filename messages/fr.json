@@ -1,0 +1,124 @@
+{
+  "nav": {
+    "services": "Services",
+    "about": "À propos",
+    "careers": "Carrières",
+    "contact": "Contact",
+    "login": "Connexion",
+    "startProject": "Démarrer un projet"
+  },
+  "hero": {
+    "badge": "Transformation Digitale & Innovation",
+    "title": "Votre partenaire en",
+    "words": ["SAP & ERP", "Cybersécurité", "Intelligence Artificielle", "Cloud & DevOps"],
+    "description": "EBMC GROUP accompagne les entreprises dans leur évolution numérique avec des solutions innovantes et sur mesure.",
+    "cta": "Découvrir nos services",
+    "ctaSecondary": "Prendre rendez-vous",
+    "scroll": "Scroll"
+  },
+  "stats": {
+    "years": "Années d'expérience",
+    "projects": "Projets réalisés",
+    "experts": "Experts certifiés",
+    "satisfaction": "Clients satisfaits"
+  },
+  "services": {
+    "badge": "Nos expertises",
+    "title": "Des solutions",
+    "titleHighlight": "sur mesure",
+    "description": "Nous combinons expertise technique et vision stratégique pour transformer vos défis en opportunités.",
+    "learnMore": "En savoir plus",
+    "sap": {
+      "title": "SAP & ERP",
+      "description": "Expertise complète sur les solutions SAP S/4HANA, implémentation et optimisation de vos processus métier."
+    },
+    "security": {
+      "title": "Cybersécurité",
+      "description": "Protection de vos systèmes et données avec des solutions de sécurité avancées et conformité RGPD."
+    },
+    "ai": {
+      "title": "Intelligence Artificielle",
+      "description": "Intégration de solutions IA pour automatiser et optimiser vos opérations business."
+    },
+    "dev": {
+      "title": "Développement",
+      "description": "Création d'applications sur mesure avec les technologies modernes (React, Node.js, Cloud)."
+    }
+  },
+  "about": {
+    "badge": "Pourquoi nous choisir",
+    "title": "L'excellence au service de votre",
+    "titleHighlight": "transformation",
+    "description": "Depuis plus de 15 ans, nous accompagnons les entreprises de toutes tailles dans leur transformation digitale. Notre équipe d'experts certifiés vous garantit des solutions sur mesure et un accompagnement personnalisé.",
+    "features": [
+      "Expertise reconnue en SAP et technologies cloud",
+      "Équipe d'experts certifiés et passionnés",
+      "Accompagnement personnalisé de A à Z",
+      "Solutions innovantes et durables"
+    ],
+    "security": "Sécurité garantie",
+    "support": "Support disponible",
+    "global": "Présence internationale"
+  },
+  "contact": {
+    "badge": "Contact",
+    "title": "Démarrons votre",
+    "titleHighlight": "projet",
+    "description": "Discutons de vos besoins et trouvons ensemble la solution idéale pour votre entreprise.",
+    "email": "Email",
+    "phone": "Téléphone",
+    "address": "Adresse",
+    "form": {
+      "name": "Votre nom",
+      "email": "Votre email",
+      "subject": "Sujet",
+      "message": "Votre message",
+      "submit": "Envoyer le message",
+      "sending": "Envoi...",
+      "success": "Message envoyé avec succès !",
+      "error": "Erreur lors de l'envoi. Veuillez réessayer."
+    }
+  },
+  "careers": {
+    "badge": "Rejoignez-nous",
+    "title": "Construisez votre",
+    "titleHighlight": "avenir",
+    "description": "Rejoignez une équipe passionnée et participez à des projets innovants qui transforment les entreprises.",
+    "whyJoin": "Pourquoi nous rejoindre ?",
+    "benefits": [
+      "Projets innovants avec les dernières technologies",
+      "Formation continue et certifications",
+      "Environnement de travail flexible",
+      "Équipe bienveillante et collaborative",
+      "Évolution de carrière personnalisée",
+      "Rémunération attractive"
+    ],
+    "openPositions": "Postes ouverts",
+    "viewOffers": "Voir les offres",
+    "spontaneous": "Candidature spontanée",
+    "spontaneousDesc": "Aucune offre ne correspond à votre profil ? Envoyez-nous votre candidature spontanée.",
+    "apply": "Postuler"
+  },
+  "jobs": {
+    "badge": "Offres d'emploi",
+    "title": "Nos",
+    "titleHighlight": "opportunités",
+    "description": "Découvrez nos offres d'emploi et rejoignez une équipe dynamique au cœur de la transformation digitale.",
+    "filters": {
+      "all": "Tous",
+      "tech": "Technique",
+      "consulting": "Consulting",
+      "management": "Management"
+    },
+    "location": "Lieu",
+    "type": "Type",
+    "experience": "Expérience",
+    "apply": "Postuler",
+    "details": "Voir le détail",
+    "noJobs": "Aucune offre disponible pour le moment.",
+    "backToList": "Retour aux offres"
+  },
+  "footer": {
+    "rights": "Tous droits réservés."
+  }
+}
