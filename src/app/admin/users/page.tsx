@@ -25,7 +25,7 @@ export default function UsersPage() {
 
   const fetchUsers = async () => {
     try {
-      const res = await fetch('/api/admin/users')
+      const res = await fetch('/api/admin/users', { credentials: 'include' })
       if (res.ok) {
         const data = await res.json()
         setUsers(data.users)
@@ -45,6 +45,7 @@ export default function UsersPage() {
       const res = await fetch('/api/admin/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(formData)
       })
 
@@ -64,7 +65,7 @@ export default function UsersPage() {
     if (!confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?')) return
 
     try {
-      await fetch(`/api/admin/users/${id}`, { method: 'DELETE' })
+      await fetch(`/api/admin/users/${id}`, { method: 'DELETE', credentials: 'include' })
       fetchUsers()
     } catch (error) {
       console.error('Error deleting user:', error)

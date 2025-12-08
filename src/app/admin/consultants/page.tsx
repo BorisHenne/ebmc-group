@@ -54,7 +54,7 @@ export default function ConsultantsPage() {
 
   const fetchConsultants = async () => {
     try {
-      const res = await fetch('/api/admin/consultants')
+      const res = await fetch('/api/admin/consultants', { credentials: 'include' })
       if (res.ok) {
         const data = await res.json()
         setConsultants(data.consultants || [])
@@ -79,6 +79,7 @@ export default function ConsultantsPage() {
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(editingConsultant)
       })
 
@@ -97,7 +98,7 @@ export default function ConsultantsPage() {
     if (!confirm('Êtes-vous sûr de vouloir supprimer ce consultant ?')) return
 
     try {
-      await fetch(`/api/admin/consultants/${id}`, { method: 'DELETE' })
+      await fetch(`/api/admin/consultants/${id}`, { method: 'DELETE', credentials: 'include' })
       fetchConsultants()
     } catch (error) {
       console.error('Error deleting consultant:', error)

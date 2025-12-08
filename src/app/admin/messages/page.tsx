@@ -25,7 +25,7 @@ export default function MessagesPage() {
 
   const fetchMessages = async () => {
     try {
-      const res = await fetch('/api/admin/messages')
+      const res = await fetch('/api/admin/messages', { credentials: 'include' })
       if (res.ok) {
         const data = await res.json()
         setMessages(data.messages)
@@ -41,7 +41,7 @@ export default function MessagesPage() {
     if (!confirm('Êtes-vous sûr de vouloir supprimer ce message ?')) return
 
     try {
-      await fetch(`/api/admin/messages/${id}`, { method: 'DELETE' })
+      await fetch(`/api/admin/messages/${id}`, { method: 'DELETE', credentials: 'include' })
       fetchMessages()
       setSelectedMessage(null)
     } catch (error) {
@@ -54,6 +54,7 @@ export default function MessagesPage() {
       await fetch(`/api/admin/messages/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ read: true })
       })
       fetchMessages()
