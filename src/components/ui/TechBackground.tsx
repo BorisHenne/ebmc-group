@@ -117,17 +117,14 @@ function FloatingDots() {
   )
 }
 
-// Gradient accents
+// Minimal gradient accents
 function GradientOverlay() {
   return (
     <>
-      {/* Top gradient - turquoise accent */}
-      <div className="absolute inset-x-0 top-0 h-[500px] bg-gradient-to-b from-ebmc-turquoise/8 via-ebmc-turquoise/3 to-transparent pointer-events-none" />
-      {/* Bottom fade */}
-      <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-t from-[#0d1117] to-transparent pointer-events-none" />
-      {/* Subtle side glows */}
-      <div className="absolute top-1/3 -left-48 w-96 h-96 bg-ebmc-turquoise/5 rounded-full blur-[150px] pointer-events-none" />
-      <div className="absolute bottom-1/3 -right-48 w-96 h-96 bg-cyan-400/5 rounded-full blur-[150px] pointer-events-none" />
+      {/* Very subtle top vignette */}
+      <div className="absolute inset-x-0 top-0 h-64 bg-gradient-to-b from-black/20 to-transparent pointer-events-none" />
+      {/* Bottom fade for content separation */}
+      <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#0d1117] to-transparent pointer-events-none" />
     </>
   )
 }
