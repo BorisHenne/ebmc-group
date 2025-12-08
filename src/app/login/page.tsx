@@ -92,7 +92,7 @@ export default function LoginPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-white/40 focus:border-ebmc-turquoise focus:ring-1 focus:ring-ebmc-turquoise outline-none transition"
-                    placeholder="admin@ebmc-group.com"
+                    placeholder="admin@ebmcgroup.eu"
                     required
                     autoComplete="email"
                   />
@@ -134,7 +134,7 @@ export default function LoginPage() {
             </form>
 
             <p className="text-center text-white/40 text-sm mt-6">
-              Première connexion ? Utilisez admin@ebmc-group.com / admin123
+              Première connexion ? Utilisez admin@ebmcgroup.eu / admin123
             </p>
           </div>
         </motion.div>
