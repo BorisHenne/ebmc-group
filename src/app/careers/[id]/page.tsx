@@ -287,7 +287,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
           <div className="max-w-7xl mx-auto glass rounded-2xl px-6 py-4">
             <div className="flex justify-between items-center">
               <Link href="/">
-                <Image src="/logo.PNG" alt="EBMC GROUP" width={140} height={40} className="h-8 w-auto" />
+                <Image src="/logo.svg" alt="EBMC GROUP" width={140} height={40} className="h-8 w-auto" />
               </Link>
 
               <nav className="hidden lg:flex items-center gap-6">
@@ -515,7 +515,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col md:flex-row justify-between items-center gap-6">
             <Link href="/">
-              <Image src="/logo.PNG" alt="EBMC GROUP" width={120} height={35} className="h-8 w-auto" />
+              <Image src="/logo.svg" alt="EBMC GROUP" width={120} height={35} className="h-8 w-auto" />
             </Link>
             <p className="text-white/40 text-sm">
               © {new Date().getFullYear()} EBMC GROUP. {t('footer.rights')}

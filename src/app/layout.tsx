@@ -6,6 +6,12 @@ import './globals.css'
 export const metadata: Metadata = {
   title: 'EBMC GROUP - Conseil & Expertise IT',
   description: 'EBMC GROUP - Votre partenaire en transformation digitale, SAP, Cybersécurité et Intelligence Artificielle',
+  icons: {
+    icon: [
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+    ],
+    apple: '/favicon.svg',
+  },
 }
 
 export default async function RootLayout({
@@ -18,6 +24,9 @@ export default async function RootLayout({
 
   return (
     <html lang={locale}>
+      <head>
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+      </head>
       <body className="antialiased">
         <NextIntlClientProvider messages={messages}>
           {children}

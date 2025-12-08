@@ -2,6 +2,7 @@
   "nav": {
     "services": "Services",
     "about": "About",
+    "consultants": "Our Consultants",
     "careers": "Careers",
     "contact": "Contact",
     "login": "Login",
@@ -117,6 +118,26 @@
     "details": "View details",
     "noJobs": "No offers available at the moment.",
     "backToList": "Back to offers"
+  },
+  "consultants": {
+    "badge": "Our Experts",
+    "title": "Discover our",
+    "titleHighlight": "consultants",
+    "description": "A team of certified experts, available to support your digital transformation projects.",
+    "available": "Available",
+    "unavailable": "On mission",
+    "skills": "Skills",
+    "experience": "Experience",
+    "certifications": "Certifications",
+    "contact": "Contact",
+    "filters": {
+      "all": "All",
+      "sap": "SAP",
+      "security": "Cybersecurity",
+      "dev": "Development",
+      "data": "Data & AI"
+    },
+    "noConsultants": "No consultant available at the moment."
   },
   "footer": {
     "rights": "All rights reserved."

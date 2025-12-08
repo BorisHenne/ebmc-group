@@ -2,6 +2,7 @@
   "nav": {
     "services": "Services",
     "about": "À propos",
+    "consultants": "Nos Consultants",
     "careers": "Carrières",
     "contact": "Contact",
     "login": "Connexion",
@@ -117,6 +118,26 @@
     "details": "Voir le détail",
     "noJobs": "Aucune offre disponible pour le moment.",
     "backToList": "Retour aux offres"
+  },
+  "consultants": {
+    "badge": "Nos Experts",
+    "title": "Découvrez nos",
+    "titleHighlight": "consultants",
+    "description": "Une équipe d'experts certifiés, disponibles pour accompagner vos projets de transformation digitale.",
+    "available": "Disponible",
+    "unavailable": "En mission",
+    "skills": "Compétences",
+    "experience": "Expérience",
+    "certifications": "Certifications",
+    "contact": "Contacter",
+    "filters": {
+      "all": "Tous",
+      "sap": "SAP",
+      "security": "Cybersécurité",
+      "dev": "Développement",
+      "data": "Data & IA"
+    },
+    "noConsultants": "Aucun consultant disponible pour le moment."
   },
   "footer": {
     "rights": "Tous droits réservés."

@@ -184,6 +184,7 @@ export default function Home() {
   const navItems = [
     { key: 'services', href: '#services' },
     { key: 'about', href: '#a-propos' },
+    { key: 'consultants', href: '/consultants' },
     { key: 'careers', href: '/careers' },
     { key: 'contact', href: '#contact' }
   ]
@@ -209,7 +210,7 @@ export default function Home() {
                 transition={{ delay: 0.3 }}
               >
                 <Link href="/">
-                  <Image src="/logo.PNG" alt="EBMC GROUP" width={140} height={40} className="h-8 w-auto" />
+                  <Image src="/logo.svg" alt="EBMC GROUP" width={140} height={40} className="h-8 w-auto" />
                 </Link>
               </motion.div>
 
@@ -667,7 +668,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col md:flex-row justify-between items-center gap-6">
             <Link href="/">
-              <Image src="/logo.PNG" alt="EBMC GROUP" width={120} height={35} className="h-8 w-auto" />
+              <Image src="/logo.svg" alt="EBMC GROUP" width={120} height={35} className="h-8 w-auto" />
             </Link>
 
             <nav className="flex items-center gap-8">
