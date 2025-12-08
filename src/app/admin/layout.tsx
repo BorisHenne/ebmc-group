@@ -7,6 +7,8 @@ import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard,
   Users,
+  UserCheck,
+  Briefcase,
   MessageSquare,
   Settings,
   LogOut,
@@ -23,8 +25,10 @@ interface User {
 
 const menuItems = [
   { href: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
-  { href: '/admin/users', icon: Users, label: 'Utilisateurs' },
+  { href: '/admin/jobs', icon: Briefcase, label: 'Offres d\'emploi' },
+  { href: '/admin/consultants', icon: UserCheck, label: 'Consultants' },
   { href: '/admin/messages', icon: MessageSquare, label: 'Messages' },
+  { href: '/admin/users', icon: Users, label: 'Utilisateurs' },
   { href: '/admin/settings', icon: Settings, label: 'Paramètres' },
 ]
 
