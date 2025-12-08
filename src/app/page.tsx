@@ -223,7 +223,7 @@ export default function Home() {
                 transition={{ delay: 0.3 }}
                 className="flex items-center gap-3"
               >
-                <Image src="/logo.png" alt="EBMC GROUP" width={140} height={40} className="h-8 w-auto" />
+                <Image src="/logo.svg" alt="EBMC GROUP" width={140} height={40} className="h-8 w-auto" />
               </motion.div>
 
               {/* Desktop Nav */}
@@ -622,7 +622,7 @@ export default function Home() {
               viewport={{ once: true }}
               className="flex items-center gap-3"
             >
-              <Image src="/logo.png" alt="EBMC GROUP" width={120} height={35} className="h-8 w-auto" />
+              <Image src="/logo.svg" alt="EBMC GROUP" width={120} height={35} className="h-8 w-auto" />
             </motion.div>
 
             <nav className="flex items-center gap-8">
