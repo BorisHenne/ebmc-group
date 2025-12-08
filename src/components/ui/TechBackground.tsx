@@ -2,24 +2,30 @@
 
 import { useEffect, useRef } from 'react'
 
+interface TechBackgroundProps {
+  children?: React.ReactNode
+  variant?: 'dark' | 'light'
+}
+
 // Subtle grid pattern
-function TechGrid() {
+function TechGrid({ light = false }: { light?: boolean }) {
+  const color = light ? 'rgba(45, 181, 181, 0.08)' : 'rgba(45, 181, 181, 0.05)'
   return (
     <div
       className="absolute inset-0 pointer-events-none"
       style={{
         backgroundImage: `
-          linear-gradient(rgba(45, 181, 181, 0.05) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(45, 181, 181, 0.05) 1px, transparent 1px)
+          linear-gradient(${color} 1px, transparent 1px),
+          linear-gradient(90deg, ${color} 1px, transparent 1px)
         `,
-        backgroundSize: '80px 80px',
+        backgroundSize: '60px 60px',
       }}
     />
   )
 }
 
-// Floating dots animation (lighter version)
-function FloatingDots() {
+// Floating dots animation
+function FloatingDots({ light = false }: { light?: boolean }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
@@ -46,14 +52,14 @@ function FloatingDots() {
     }> = []
 
     // Fewer particles for cleaner look
-    for (let i = 0; i < 30; i++) {
+    for (let i = 0; i < 25; i++) {
       particles.push({
         x: Math.random() * canvas.width,
         y: Math.random() * canvas.height,
-        vx: (Math.random() - 0.5) * 0.3,
-        vy: (Math.random() - 0.5) * 0.3,
-        size: Math.random() * 2 + 1,
-        opacity: Math.random() * 0.3 + 0.1,
+        vx: (Math.random() - 0.5) * 0.25,
+        vy: (Math.random() - 0.5) * 0.25,
+        size: Math.random() * 2.5 + 1,
+        opacity: Math.random() * (light ? 0.4 : 0.3) + 0.1,
       })
     }
 
@@ -62,8 +68,8 @@ function FloatingDots() {
     const animate = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height)
 
-      // Draw subtle connections
-      ctx.strokeStyle = 'rgba(45, 181, 181, 0.08)'
+      const connectionColor = light ? 'rgba(45, 181, 181, 0.12)' : 'rgba(45, 181, 181, 0.08)'
+      ctx.strokeStyle = connectionColor
       ctx.lineWidth = 1
 
       for (let i = 0; i < particles.length; i++) {
@@ -72,17 +78,16 @@ function FloatingDots() {
           const dy = particles[i].y - particles[j].y
           const distance = Math.sqrt(dx * dx + dy * dy)
 
-          if (distance < 200) {
+          if (distance < 180) {
             ctx.beginPath()
             ctx.moveTo(particles[i].x, particles[i].y)
             ctx.lineTo(particles[j].x, particles[j].y)
-            ctx.globalAlpha = (1 - distance / 200) * 0.15
+            ctx.globalAlpha = (1 - distance / 180) * (light ? 0.2 : 0.15)
             ctx.stroke()
           }
         }
       }
 
-      // Draw particles
       particles.forEach((p) => {
         ctx.beginPath()
         ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2)
@@ -106,51 +111,96 @@ function FloatingDots() {
       window.removeEventListener('resize', resizeCanvas)
       cancelAnimationFrame(animationId)
     }
-  }, [])
+  }, [light])
 
   return (
     <canvas
       ref={canvasRef}
       className="absolute inset-0 w-full h-full pointer-events-none"
-      style={{ opacity: 0.5 }}
+      style={{ opacity: light ? 0.6 : 0.5 }}
     />
   )
 }
 
-// Minimal gradient accents
-function GradientOverlay() {
+// Gradient orbs for light mode
+function GradientOrbs() {
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      <div className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] rounded-full bg-gradient-to-br from-ebmc-turquoise/20 to-cyan-400/10 blur-3xl" />
+      <div className="absolute bottom-[-20%] left-[-10%] w-[500px] h-[500px] rounded-full bg-gradient-to-tr from-cyan-400/15 to-blue-500/10 blur-3xl" />
+      <div className="absolute top-[40%] left-[30%] w-[300px] h-[300px] rounded-full bg-gradient-to-r from-ebmc-turquoise/10 to-transparent blur-3xl" />
+    </div>
+  )
+}
+
+// Gradient overlays
+function GradientOverlay({ light = false }: { light?: boolean }) {
+  if (light) {
+    return (
+      <>
+        <div className="absolute inset-x-0 top-0 h-48 bg-gradient-to-b from-white/50 to-transparent pointer-events-none" />
+        <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-white/30 to-transparent pointer-events-none" />
+      </>
+    )
+  }
   return (
     <>
-      {/* Very subtle top vignette */}
       <div className="absolute inset-x-0 top-0 h-64 bg-gradient-to-b from-black/20 to-transparent pointer-events-none" />
-      {/* Bottom fade for content separation */}
       <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#0d1117] to-transparent pointer-events-none" />
     </>
   )
 }
 
-export function TechBackground({ children }: { children?: React.ReactNode }) {
+export function TechBackground({ children, variant = 'dark' }: TechBackgroundProps) {
+  const isLight = variant === 'light'
+
   return (
-    <div className="relative min-h-screen bg-[#0d1117]">
+    <div
+      className={`relative min-h-screen ${
+        isLight
+          ? 'bg-gradient-to-br from-slate-50 via-cyan-50/30 to-white'
+          : 'bg-[#0d1117]'
+      }`}
+    >
+      {/* Gradient orbs for light mode */}
+      {isLight && <GradientOrbs />}
+
       {/* Subtle grid */}
-      <TechGrid />
+      <TechGrid light={isLight} />
 
       {/* Floating dots */}
-      <FloatingDots />
+      <FloatingDots light={isLight} />
 
       {/* Gradient overlays */}
-      <GradientOverlay />
+      <GradientOverlay light={isLight} />
 
       {/* Content */}
-      <div className="relative z-10">
-        {children}
-      </div>
+      <div className="relative z-10">{children}</div>
+    </div>
+  )
+}
+
+// Light background for admin/dashboard
+export function LightBackground({ children }: { children?: React.ReactNode }) {
+  return (
+    <div className="relative min-h-screen bg-gradient-to-br from-slate-50 via-cyan-50/20 to-white">
+      <GradientOrbs />
+      <TechGrid light />
+      <div className="relative z-10">{children}</div>
     </div>
   )
 }
 
 // Section wrapper
-export function TechSection({ children, className = '', id }: { children: React.ReactNode; className?: string; id?: string }) {
+export function TechSection({
+  children,
+  className = '',
+  id,
+}: {
+  children: React.ReactNode
+  className?: string
+  id?: string
+}) {
   return (
     <section id={id} className={`relative ${className}`}>
       <div className="relative z-10">{children}</div>
