@@ -1,84 +1,37 @@
 import type { Config } from 'tailwindcss'
 
 const config: Config = {
-  darkMode: ['class'],
+  darkMode: 'class',
   content: [
-    './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
-    './src/components/**/*.{js,ts,jsx,tsx,mdx}',
-    './src/app/**/*.{js,ts,jsx,tsx,mdx}',
-    './src/blocks/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/**/*.{js,ts,jsx,tsx,mdx}',
   ],
   theme: {
-    container: {
-      center: true,
-      padding: '2rem',
-      screens: {
-        '2xl': '1400px',
-      },
-    },
     extend: {
       colors: {
-        border: 'hsl(var(--border))',
-        input: 'hsl(var(--input))',
-        ring: 'hsl(var(--ring))',
-        background: 'hsl(var(--background))',
-        foreground: 'hsl(var(--foreground))',
-        primary: {
-          DEFAULT: 'hsl(var(--primary))',
-          foreground: 'hsl(var(--primary-foreground))',
-        },
-        secondary: {
-          DEFAULT: 'hsl(var(--secondary))',
-          foreground: 'hsl(var(--secondary-foreground))',
-        },
-        destructive: {
-          DEFAULT: 'hsl(var(--destructive))',
-          foreground: 'hsl(var(--destructive-foreground))',
-        },
-        muted: {
-          DEFAULT: 'hsl(var(--muted))',
-          foreground: 'hsl(var(--muted-foreground))',
-        },
-        accent: {
-          DEFAULT: 'hsl(var(--accent))',
-          foreground: 'hsl(var(--accent-foreground))',
-        },
-        popover: {
-          DEFAULT: 'hsl(var(--popover))',
-          foreground: 'hsl(var(--popover-foreground))',
-        },
-        card: {
-          DEFAULT: 'hsl(var(--card))',
-          foreground: 'hsl(var(--card-foreground))',
-        },
-        // EBMC Brand Colors
         ebmc: {
           turquoise: '#2DB5B5',
           'turquoise-dark': '#249292',
-          'turquoise-light': '#33BFBF',
+          'turquoise-light': '#3FCFCF',
           black: '#1C1C1C',
         },
       },
-      borderRadius: {
-        lg: 'var(--radius)',
-        md: 'calc(var(--radius) - 2px)',
-        sm: 'calc(var(--radius) - 4px)',
-      },
-      fontFamily: {
-        sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
+      animation: {
+        'spotlight': 'spotlight 2s ease .75s 1 forwards',
+        'shimmer': 'shimmer 2s linear infinite',
+        'float': 'float 6s ease-in-out infinite',
+        'pulse-glow': 'pulse-glow 2s ease-in-out infinite',
+        'gradient': 'gradient 8s linear infinite',
+        'border-beam': 'border-beam 4s linear infinite',
+        'meteor': 'meteor 5s linear infinite',
       },
       keyframes: {
-        'accordion-down': {
-          from: { height: '0' },
-          to: { height: 'var(--radix-accordion-content-height)' },
-        },
-        'accordion-up': {
-          from: { height: 'var(--radix-accordion-content-height)' },
-          to: { height: '0' },
+        spotlight: {
+          '0%': { opacity: '0', transform: 'translate(-72%, -62%) scale(0.5)' },
+          '100%': { opacity: '1', transform: 'translate(-50%,-40%) scale(1)' },
         },
         shimmer: {
-          '0%': { backgroundPosition: '200% 0' },
-          '100%': { backgroundPosition: '-200% 0' },
+          from: { backgroundPosition: '0 0' },
+          to: { backgroundPosition: '-200% 0' },
         },
         float: {
           '0%, 100%': { transform: 'translateY(0)' },
@@ -88,13 +41,22 @@ const config: Config = {
           '0%, 100%': { boxShadow: '0 0 20px rgba(45, 181, 181, 0.3)' },
           '50%': { boxShadow: '0 0 40px rgba(45, 181, 181, 0.6)' },
         },
+        gradient: {
+          '0%, 100%': { backgroundPosition: '0% 50%' },
+          '50%': { backgroundPosition: '100% 50%' },
+        },
+        'border-beam': {
+          '100%': { offsetDistance: '100%' },
+        },
+        meteor: {
+          '0%': { transform: 'rotate(215deg) translateX(0)', opacity: '1' },
+          '70%': { opacity: '1' },
+          '100%': { transform: 'rotate(215deg) translateX(-500px)', opacity: '0' },
+        },
       },
-      animation: {
-        'accordion-down': 'accordion-down 0.2s ease-out',
-        'accordion-up': 'accordion-up 0.2s ease-out',
-        shimmer: 'shimmer 2s linear infinite',
-        float: 'float 6s ease-in-out infinite',
-        'pulse-glow': 'pulse-glow 2s ease-in-out infinite',
+      backgroundImage: {
+        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
+        'dot-pattern': 'radial-gradient(circle, #2DB5B5 1px, transparent 1px)',
       },
     },
   },

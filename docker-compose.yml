@@ -1,7 +1,4 @@
-version: '3.8'
-
 services:
-  # MongoDB Database
   mongo:
     image: mongo:7
     container_name: ebmc-mongo
@@ -9,18 +6,11 @@ services:
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:-ebmc}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-ebmc_secret}
-      MONGO_INITDB_DATABASE: ebmc
     volumes:
-      - ebmc_mongo_data:/data/db
+      - mongo_data:/data/db
     networks:
       - ebmc-network
-    healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
-  # Payload CMS + Next.js App
   app:
     build:
       context: .
@@ -28,61 +18,18 @@ services:
     container_name: ebmc-app
     restart: unless-stopped
     ports:
-      - "${PORT:-8889}:3000"
+      - "8889:8889"
     environment:
       - NODE_ENV=production
-      - PAYLOAD_SECRET=${PAYLOAD_SECRET}
       - MONGODB_URI=mongodb://${MONGO_USER:-ebmc}:${MONGO_PASSWORD:-ebmc_secret}@mongo:27017/ebmc?authSource=admin
-      - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
-      - SMTP_HOST=${SMTP_HOST}
-      - SMTP_PORT=${SMTP_PORT}
-      - SMTP_SECURE=${SMTP_SECURE}
-      - SMTP_USER=${SMTP_USER}
-      - SMTP_PASSWORD=${SMTP_PASSWORD}
-      - SMTP_FROM=${SMTP_FROM}
-      - CONTACT_EMAIL=${CONTACT_EMAIL}
-      - BOOND_PROD_URL=${BOOND_PROD_URL}
-      - BOOND_PROD_CLIENT_ID=${BOOND_PROD_CLIENT_ID}
-      - BOOND_PROD_USERNAME=${BOOND_PROD_USERNAME}
-      - BOOND_PROD_TOKEN=${BOOND_PROD_TOKEN}
-    volumes:
-      - ebmc_media:/app/media
-    depends_on:
-      mongo:
-        condition: service_healthy
-    networks:
-      - ebmc-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-
-  # Mongo Express (Dev only)
-  mongo-express:
-    image: mongo-express
-    container_name: ebmc-mongo-express
-    restart: unless-stopped
-    ports:
-      - "${MONGO_EXPRESS_PORT:-8081}:8081"
-    environment:
-      ME_CONFIG_MONGODB_ADMINUSERNAME: ${MONGO_USER:-ebmc}
-      ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_PASSWORD:-ebmc_secret}
-      ME_CONFIG_MONGODB_URL: mongodb://${MONGO_USER:-ebmc}:${MONGO_PASSWORD:-ebmc_secret}@mongo:27017/
-      ME_CONFIG_BASICAUTH_USERNAME: ${MONGO_EXPRESS_USER:-admin}
-      ME_CONFIG_BASICAUTH_PASSWORD: ${MONGO_EXPRESS_PASSWORD:-admin}
     depends_on:
       - mongo
     networks:
       - ebmc-network
-    profiles:
-      - dev
 
 networks:
   ebmc-network:
     driver: bridge
 
 volumes:
-  ebmc_mongo_data:
-  ebmc_media:
+  mongo_data:

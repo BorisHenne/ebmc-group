@@ -2,7 +2,7 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main]
   pull_request:
     branches: [main]
 
@@ -10,9 +10,9 @@ env:
   NODE_VERSION: '20'
 
 jobs:
-  # ========== Lint & Type Check ==========
-  lint:
-    name: Lint & Type Check
+  # ========== Lint & Build ==========
+  build:
+    name: Build
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -24,56 +24,20 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Install dependencies
-        run: npm install --legacy-peer-deps
+        run: npm install
 
       - name: Run ESLint
         run: npm run lint
 
-      # - name: Run TypeScript check
-      #   run: npx tsc --noEmit
-
-  # ========== Build ==========
-  build:
-    name: Build
-    runs-on: ubuntu-latest
-    needs: lint
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Install dependencies
-        run: npm install --legacy-peer-deps
-
       - name: Build application
         run: npm run build
-        env:
-          PAYLOAD_SECRET: ${{ secrets.PAYLOAD_SECRET || 'ci-build-secret-not-used' }}
-          MONGODB_URI: ${{ secrets.MONGODB_URI || 'mongodb://localhost:27017/ebmc' }}
-          NEXT_PUBLIC_APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL || 'http://localhost:8889' }}
 
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: build
-          path: |
-            .next/
-            !.next/cache
-          retention-days: 7
-
-  # ========== Deploy to UGOS (Production) via Cloudflare Tunnel ==========
-  deploy-production:
+  # ========== Deploy to Production via Cloudflare Tunnel ==========
+  deploy:
     name: Deploy to Production
     runs-on: ubuntu-latest
     needs: build
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    environment:
-      name: production
-      url: ${{ vars.PRODUCTION_URL }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -89,7 +53,6 @@ jobs:
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
 
-          # Configure SSH to use cloudflared as proxy
           cat >> ~/.ssh/config << EOF
           Host nas-tunnel
             HostName ${{ secrets.CF_TUNNEL_HOSTNAME }}
@@ -99,86 +62,20 @@ jobs:
             StrictHostKeyChecking no
           EOF
 
-      - name: Deploy to NAS via SSH
+      - name: Deploy to NAS
         run: |
           ssh nas-tunnel << 'EOF'
             cd /volume1/docker/ebmc-group
 
-            # Pull latest code from GitHub
-            if [ -d ".git" ]; then
-              git fetch origin main
-              git reset --hard origin/main
-            else
-              git clone https://github.com/${{ github.repository }}.git .
-            fi
+            # Download latest code
+            rm -rf * .[!.]*
+            curl -sL https://github.com/${{ github.repository }}/archive/refs/heads/main.tar.gz | tar -xz --strip-components=1
 
-            # Rebuild and restart containers
+            # Rebuild and restart container
+            docker compose down
             docker compose up -d --build
             echo "Deployment complete!"
           EOF
 
-      - name: Verify deployment
-        run: |
-          sleep 30
-          curl -f ${{ vars.PRODUCTION_URL }}/api/health || echo "Health check skipped"
-
-      - name: Notify on success
-        if: success()
-        run: echo "Deployment successful to production"
-
-      - name: Notify on failure
-        if: failure()
-        run: echo "Deployment failed!"
-
-  # ========== Deploy to Staging ==========
-  deploy-staging:
-    name: Deploy to Staging
-    runs-on: ubuntu-latest
-    needs: build
-    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
-    environment:
-      name: staging
-      url: ${{ vars.STAGING_URL }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Deploy to staging via rsync
-        uses: burnett01/rsync-deployments@6.0.0
-        with:
-          switches: -avz --delete --exclude='node_modules' --exclude='.next' --exclude='.git' --exclude='.env' --exclude='media/*'
-          path: ./
-          remote_path: /volume1/docker/ebmc-staging/
-          remote_host: ${{ secrets.STAGING_SSH_HOST }}
-          remote_user: ${{ secrets.STAGING_SSH_USER }}
-          remote_key: ${{ secrets.STAGING_SSH_PRIVATE_KEY }}
-          remote_port: ${{ secrets.STAGING_SSH_PORT || 22 }}
-
-      - name: Rebuild staging
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.STAGING_SSH_HOST }}
-          username: ${{ secrets.STAGING_SSH_USER }}
-          key: ${{ secrets.STAGING_SSH_PRIVATE_KEY }}
-          port: ${{ secrets.STAGING_SSH_PORT || 22 }}
-          script: |
-            cd /volume1/docker/ebmc-staging
-            sudo docker compose up -d --build
-            echo "Staging deployment complete!"
-
-  # ========== Backup Database (Manual) ==========
-  backup:
-    name: Backup MongoDB
-    runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch'
-    steps:
-      - name: Run backup on NAS
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            cd /volume1/docker/ebmc
-            ./deploy.sh backup
-            echo "Backup complete!"
+      - name: Notify
+        run: echo "Deployment successful!"

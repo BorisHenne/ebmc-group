@@ -4,20 +4,15 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 # Install dependencies
-COPY package.json pnpm-lock.yaml* ./
-RUN corepack enable pnpm && pnpm install --frozen-lockfile
+COPY package.json package-lock.json* ./
+RUN npm install --legacy-peer-deps
 
 # Copy source
 COPY . .
 
-# Generate Payload types
-RUN pnpm payload generate:types || true
-RUN pnpm payload generate:importmap || true
-
 # Build
 ENV NEXT_TELEMETRY_DISABLED=1
-ENV NODE_ENV=production
-RUN pnpm build
+RUN npm run build
 
 # Production stage
 FROM node:20-alpine AS runner
@@ -36,18 +31,11 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 
-# Create media directory
-RUN mkdir -p /app/media && chown -R nextjs:nodejs /app/media
-
 USER nextjs
 
-EXPOSE 3000
+EXPOSE 8889
 
-ENV PORT=3000
+ENV PORT=8889
 ENV HOSTNAME="0.0.0.0"
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:3000/api/health || exit 1
 
 CMD ["node", "server.js"]
