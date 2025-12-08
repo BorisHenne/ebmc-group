@@ -79,8 +79,8 @@ jobs:
           rm /tmp/repo.tar.gz
 
           # Rebuild Docker
-          docker compose down
-          docker compose up -d --build
+          sudo docker compose down
+          sudo docker compose up -d --build
 
           # Wait for app to be ready
           sleep 10
