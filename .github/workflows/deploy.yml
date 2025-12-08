@@ -55,27 +55,24 @@ jobs:
             StrictHostKeyChecking no
           EOF
           chmod 600 ~/.ssh/config
-          cat ~/.ssh/config
 
-      - name: Test SSH connection
-        run: ssh nas echo "SSH connection successful"
-
-      - name: Deploy source code with rsync
-        run: |
-          rsync -avz --delete \
-            --exclude '.git' \
-            --exclude 'node_modules' \
-            --exclude '.next' \
-            --exclude '.env.local' \
-            -e "ssh" \
-            ./ \
-            nas:${{ secrets.DEPLOY_PATH }}/
-
-      - name: Rebuild and restart Docker
+      - name: Deploy via SSH (git pull)
         run: |
           ssh nas << 'EOF'
           cd ${{ secrets.DEPLOY_PATH }}
+
+          # Pull latest code from GitHub
+          if [ -d ".git" ]; then
+            git fetch origin main
+            git reset --hard origin/main
+          else
+            rm -rf * .[!.]*
+            git clone --depth 1 https://github.com/${{ github.repository }}.git .
+          fi
+
+          # Rebuild Docker
           docker compose down
           docker compose up -d --build
+
           echo "Deployment complete!"
           EOF
