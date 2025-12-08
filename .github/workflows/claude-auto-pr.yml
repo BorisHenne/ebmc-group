@@ -1,0 +1,86 @@
+name: Claude Code Auto PR
+
+on:
+  issues:
+    types: [opened, labeled]
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  claude-code:
+    # Déclenche si label "claude" ou commentaire "@claude"
+    if: |
+      contains(github.event.issue.labels.*.name, 'claude') ||
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude'))
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.PAT_TOKEN }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Get task description
+        id: task
+        run: |
+          if [ "${{ github.event_name }}" == "issue_comment" ]; then
+            echo "prompt=${{ github.event.comment.body }}" >> $GITHUB_OUTPUT
+          else
+            echo "prompt=${{ github.event.issue.title }} - ${{ github.event.issue.body }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Run Claude Code
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          claude-code --print "${{ steps.task.outputs.prompt }}" --yes
+
+      - name: Create PR
+        env:
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+        run: |
+          # Config git
+          git config user.name "claude-code[bot]"
+          git config user.email "claude-code[bot]@users.noreply.github.com"
+
+          # Créer branche
+          BRANCH="claude/issue-${{ github.event.issue.number }}"
+          git checkout -b $BRANCH
+
+          # Commit si changements
+          git add -A
+          if git diff --staged --quiet; then
+            echo "Pas de changements"
+            exit 0
+          fi
+
+          git commit -m "feat: résolution issue #${{ github.event.issue.number }}"
+          git push -u origin $BRANCH
+
+          # Créer PR avec auto-merge
+          PR_URL=$(gh pr create \
+            --title "🤖 Fix #${{ github.event.issue.number }}: ${{ github.event.issue.title }}" \
+            --body "Résolution automatique par Claude Code.
+
+          Closes #${{ github.event.issue.number }}" \
+            --label "claude-code")
+
+          # Activer auto-merge
+          gh pr merge --auto --squash "$PR_URL"
+
+          # Commenter l'issue
+          gh issue comment ${{ github.event.issue.number }} --body "✅ PR créée : $PR_URL"
