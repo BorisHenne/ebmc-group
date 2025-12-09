@@ -10,7 +10,8 @@ import {
   Award,
   Briefcase,
   Mail,
-  Star
+  Star,
+  Loader2
 } from 'lucide-react'
 import {
   TextGradient,
@@ -20,103 +21,46 @@ import { TechBackground, TechSection } from '@/components/ui/TechBackground'
 import { Navigation } from '@/components/layout/Navigation'
 import { Footer } from '@/components/layout/Footer'
 
-// Mock data - Ces données peuvent être remplacées par l'API BoondManager
-const consultants = [
-  {
-    id: 1,
-    name: 'Alexandre Martin',
-    title: 'Consultant SAP Senior',
-    titleEn: 'Senior SAP Consultant',
-    location: 'Paris',
-    experience: '12 ans',
-    experienceEn: '12 years',
-    category: 'sap',
-    available: true,
-    skills: ['SAP S/4HANA', 'SAP FI/CO', 'SAP MM', 'ABAP'],
-    certifications: ['SAP S/4HANA Certified', 'PMP'],
-    image: null
-  },
-  {
-    id: 2,
-    name: 'Sophie Dubois',
-    title: 'Experte Cybersécurité',
-    titleEn: 'Cybersecurity Expert',
-    location: 'Lyon',
-    experience: '8 ans',
-    experienceEn: '8 years',
-    category: 'security',
-    available: true,
-    skills: ['Pentest', 'SIEM', 'SOC', 'ISO 27001'],
-    certifications: ['CISSP', 'CEH', 'OSCP'],
-    image: null
-  },
-  {
-    id: 3,
-    name: 'Thomas Bernard',
-    title: 'Architecte Cloud & DevOps',
-    titleEn: 'Cloud & DevOps Architect',
-    location: 'Paris / Remote',
-    experience: '10 ans',
-    experienceEn: '10 years',
-    category: 'dev',
-    available: false,
-    skills: ['AWS', 'Azure', 'Kubernetes', 'Terraform', 'CI/CD'],
-    certifications: ['AWS Solutions Architect', 'Azure Expert'],
-    image: null
-  },
-  {
-    id: 4,
-    name: 'Marie Leroy',
-    title: 'Data Scientist Senior',
-    titleEn: 'Senior Data Scientist',
-    location: 'Paris',
-    experience: '7 ans',
-    experienceEn: '7 years',
-    category: 'data',
-    available: true,
-    skills: ['Python', 'Machine Learning', 'TensorFlow', 'Spark'],
-    certifications: ['Google ML Engineer', 'AWS ML Specialty'],
-    image: null
-  },
-  {
-    id: 5,
-    name: 'Pierre Moreau',
-    title: 'Consultant SAP FI/CO',
-    titleEn: 'SAP FI/CO Consultant',
-    location: 'Nantes',
-    experience: '6 ans',
-    experienceEn: '6 years',
-    category: 'sap',
-    available: true,
-    skills: ['SAP FI', 'SAP CO', 'S/4HANA Finance'],
-    certifications: ['SAP FI Certified'],
-    image: null
-  },
-  {
-    id: 6,
-    name: 'Camille Petit',
-    title: 'Développeuse Full Stack',
-    titleEn: 'Full Stack Developer',
-    location: 'Bordeaux / Remote',
-    experience: '5 ans',
-    experienceEn: '5 years',
-    category: 'dev',
-    available: true,
-    skills: ['React', 'Node.js', 'TypeScript', 'PostgreSQL'],
-    certifications: ['AWS Developer Associate'],
-    image: null
-  }
-]
+interface Consultant {
+  id: string
+  name: string
+  title: string
+  titleEn: string
+  location: string
+  experience: string
+  experienceEn: string
+  category: string
+  available: boolean
+  skills: string[]
+  certifications: string[]
+}
 
 export default function ConsultantsPage() {
   const t = useTranslations()
   const [locale, setLocale] = useState('fr')
   const [filter, setFilter] = useState('all')
+  const [consultants, setConsultants] = useState<Consultant[]>([])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const match = document.cookie.match(/locale=([^;]+)/)
     if (match) setLocale(match[1])
+    fetchConsultants()
   }, [])
+
+  const fetchConsultants = async () => {
+    try {
+      const res = await fetch('/api/consultants')
+      if (res.ok) {
+        const data = await res.json()
+        setConsultants(data.consultants || [])
+      }
+    } catch (error) {
+      console.error('Error fetching consultants:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const filteredConsultants = filter === 'all'
     ? consultants
@@ -175,92 +119,98 @@ export default function ConsultantsPage() {
         {/* Consultants Grid */}
         <TechSection className="py-12 px-4">
           <div className="max-w-7xl mx-auto">
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {filteredConsultants.map((consultant, index) => (
-                <motion.div
-                  key={consultant.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: index * 0.1 }}
-                  viewport={{ once: true }}
-                  whileHover={{ y: -4 }}
-                  className="glass-card p-6 cursor-pointer"
-                >
-                  <div className="flex items-start gap-4 mb-6">
-                    <div className="w-16 h-16 rounded-full bg-gradient-to-r from-ebmc-turquoise to-cyan-400 flex items-center justify-center flex-shrink-0 shadow-lg">
-                      <User className="w-8 h-8 text-white" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-xl font-bold mb-1 truncate text-slate-800">{consultant.name}</h3>
-                      <p className="text-ebmc-turquoise text-sm mb-2 font-medium">
-                        {locale === 'fr' ? consultant.title : consultant.titleEn}
-                      </p>
-                      <div className="flex items-center gap-2 text-slate-500 text-sm">
-                        <MapPin className="w-4 h-4" />
-                        {consultant.location}
+            {loading ? (
+              <div className="flex justify-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin text-ebmc-turquoise" />
+              </div>
+            ) : (
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {filteredConsultants.map((consultant, index) => (
+                  <motion.div
+                    key={consultant.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: index * 0.1 }}
+                    viewport={{ once: true }}
+                    whileHover={{ y: -4 }}
+                    className="glass-card p-6 cursor-pointer"
+                  >
+                    <div className="flex items-start gap-4 mb-6">
+                      <div className="w-16 h-16 rounded-full bg-gradient-to-r from-ebmc-turquoise to-cyan-400 flex items-center justify-center flex-shrink-0 shadow-lg">
+                        <User className="w-8 h-8 text-white" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-xl font-bold mb-1 truncate text-slate-800">{consultant.name}</h3>
+                        <p className="text-ebmc-turquoise text-sm mb-2 font-medium">
+                          {locale === 'fr' ? consultant.title : consultant.titleEn}
+                        </p>
+                        <div className="flex items-center gap-2 text-slate-500 text-sm">
+                          <MapPin className="w-4 h-4" />
+                          {consultant.location}
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Availability Badge */}
-                  <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm mb-4 ${
-                    consultant.available
-                      ? 'bg-green-100 text-green-700'
-                      : 'bg-orange-100 text-orange-700'
-                  }`}>
-                    <span className={`w-2 h-2 rounded-full ${consultant.available ? 'bg-green-500' : 'bg-orange-500'}`} />
-                    {consultant.available ? t('consultants.available') : t('consultants.unavailable')}
-                  </div>
-
-                  {/* Experience */}
-                  <div className="flex items-center gap-2 text-slate-500 text-sm mb-4">
-                    <Briefcase className="w-4 h-4" />
-                    <span>{t('consultants.experience')}: </span>
-                    <span className="text-slate-800 font-medium">{locale === 'fr' ? consultant.experience : consultant.experienceEn}</span>
-                  </div>
-
-                  {/* Skills */}
-                  <div className="mb-4">
-                    <div className="text-sm text-slate-500 mb-2">{t('consultants.skills')}</div>
-                    <div className="flex flex-wrap gap-2">
-                      {consultant.skills.map((skill, i) => (
-                        <span
-                          key={i}
-                          className="px-2 py-1 bg-slate-100 border border-slate-200/60 rounded text-xs text-slate-600 font-medium"
-                        >
-                          {skill}
-                        </span>
-                      ))}
+                    {/* Availability Badge */}
+                    <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm mb-4 ${
+                      consultant.available
+                        ? 'bg-green-100 text-green-700'
+                        : 'bg-orange-100 text-orange-700'
+                    }`}>
+                      <span className={`w-2 h-2 rounded-full ${consultant.available ? 'bg-green-500' : 'bg-orange-500'}`} />
+                      {consultant.available ? t('consultants.available') : t('consultants.unavailable')}
                     </div>
-                  </div>
 
-                  {/* Certifications */}
-                  <div className="mb-6">
-                    <div className="text-sm text-slate-500 mb-2">{t('consultants.certifications')}</div>
-                    <div className="space-y-1">
-                      {consultant.certifications.map((cert, i) => (
-                        <div key={i} className="flex items-center gap-2 text-sm">
-                          <Award className="w-4 h-4 text-ebmc-turquoise" />
-                          <span className="text-slate-600">{cert}</span>
-                        </div>
-                      ))}
+                    {/* Experience */}
+                    <div className="flex items-center gap-2 text-slate-500 text-sm mb-4">
+                      <Briefcase className="w-4 h-4" />
+                      <span>{t('consultants.experience')}: </span>
+                      <span className="text-slate-800 font-medium">{locale === 'fr' ? consultant.experience : consultant.experienceEn}</span>
                     </div>
-                  </div>
 
-                  {/* Contact Button */}
-                  {consultant.available && (
-                    <a href={`mailto:contact@ebmc-group.com?subject=Contact consultant: ${consultant.name}`}>
-                      <ShimmerButton className="w-full">
-                        <Mail className="w-4 h-4" />
-                        {t('consultants.contact')}
-                      </ShimmerButton>
-                    </a>
-                  )}
-                </motion.div>
-              ))}
-            </div>
+                    {/* Skills */}
+                    <div className="mb-4">
+                      <div className="text-sm text-slate-500 mb-2">{t('consultants.skills')}</div>
+                      <div className="flex flex-wrap gap-2">
+                        {consultant.skills.map((skill, i) => (
+                          <span
+                            key={i}
+                            className="px-2 py-1 bg-slate-100 border border-slate-200/60 rounded text-xs text-slate-600 font-medium"
+                          >
+                            {skill}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
 
-            {filteredConsultants.length === 0 && (
+                    {/* Certifications */}
+                    <div className="mb-6">
+                      <div className="text-sm text-slate-500 mb-2">{t('consultants.certifications')}</div>
+                      <div className="space-y-1">
+                        {consultant.certifications.map((cert, i) => (
+                          <div key={i} className="flex items-center gap-2 text-sm">
+                            <Award className="w-4 h-4 text-ebmc-turquoise" />
+                            <span className="text-slate-600">{cert}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Contact Button */}
+                    {consultant.available && (
+                      <a href={`mailto:contact@ebmc-group.com?subject=Contact consultant: ${consultant.name}`}>
+                        <ShimmerButton className="w-full">
+                          <Mail className="w-4 h-4" />
+                          {t('consultants.contact')}
+                        </ShimmerButton>
+                      </a>
+                    )}
+                  </motion.div>
+                ))}
+              </div>
+            )}
+
+            {!loading && filteredConsultants.length === 0 && (
               <div className="text-center py-12 text-slate-500">
                 {t('consultants.noConsultants')}
               </div>

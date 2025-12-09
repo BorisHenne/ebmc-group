@@ -15,7 +15,8 @@ import {
   Heart,
   Rocket,
   Coffee,
-  Globe
+  Globe,
+  Loader2
 } from 'lucide-react'
 import {
   TextGradient,
@@ -25,73 +26,19 @@ import { TechBackground, TechSection } from '@/components/ui/TechBackground'
 import { Navigation } from '@/components/layout/Navigation'
 import { Footer } from '@/components/layout/Footer'
 
-const jobs = [
-  {
-    id: 1,
-    title: 'Consultant SAP S/4HANA Senior',
-    titleEn: 'Senior SAP S/4HANA Consultant',
-    location: 'Paris',
-    type: 'CDI',
-    typeEn: 'Full-time',
-    category: 'consulting',
-    experience: '5+ ans',
-    experienceEn: '5+ years',
-    description: 'Accompagnez nos clients dans leur transformation digitale avec SAP S/4HANA.',
-    descriptionEn: 'Support our clients in their digital transformation with SAP S/4HANA.'
-  },
-  {
-    id: 2,
-    title: 'Ingénieur Cybersécurité',
-    titleEn: 'Cybersecurity Engineer',
-    location: 'Paris / Remote',
-    type: 'CDI',
-    typeEn: 'Full-time',
-    category: 'tech',
-    experience: '3+ ans',
-    experienceEn: '3+ years',
-    description: 'Protégez les systèmes de nos clients avec des solutions de sécurité avancées.',
-    descriptionEn: 'Protect our clients systems with advanced security solutions.'
-  },
-  {
-    id: 3,
-    title: 'Développeur Full Stack React/Node.js',
-    titleEn: 'Full Stack Developer React/Node.js',
-    location: 'Paris / Remote',
-    type: 'CDI',
-    typeEn: 'Full-time',
-    category: 'tech',
-    experience: '2+ ans',
-    experienceEn: '2+ years',
-    description: 'Développez des applications web modernes avec React et Node.js.',
-    descriptionEn: 'Develop modern web applications with React and Node.js.'
-  },
-  {
-    id: 4,
-    title: 'Data Scientist IA/ML',
-    titleEn: 'AI/ML Data Scientist',
-    location: 'Paris',
-    type: 'CDI',
-    typeEn: 'Full-time',
-    category: 'tech',
-    experience: '3+ ans',
-    experienceEn: '3+ years',
-    description: 'Concevez et déployez des modèles de Machine Learning pour nos clients.',
-    descriptionEn: 'Design and deploy Machine Learning models for our clients.'
-  },
-  {
-    id: 5,
-    title: 'Chef de Projet IT',
-    titleEn: 'IT Project Manager',
-    location: 'Paris',
-    type: 'CDI',
-    typeEn: 'Full-time',
-    category: 'management',
-    experience: '5+ ans',
-    experienceEn: '5+ years',
-    description: 'Pilotez des projets de transformation digitale de bout en bout.',
-    descriptionEn: 'Lead digital transformation projects end-to-end.'
-  }
-]
+interface Job {
+  id: string
+  title: string
+  titleEn: string
+  location: string
+  type: string
+  typeEn: string
+  category: string
+  experience: string
+  experienceEn: string
+  description: string
+  descriptionEn: string
+}
 
 const benefits = [
   { icon: Rocket, key: 'tech', gradient: 'from-cyan-500 to-blue-500', bgLight: 'bg-cyan-50' },
@@ -106,11 +53,28 @@ export default function CareersPage() {
   const t = useTranslations()
   const [locale, setLocale] = useState('fr')
   const [filter, setFilter] = useState('all')
+  const [jobs, setJobs] = useState<Job[]>([])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const match = document.cookie.match(/locale=([^;]+)/)
     if (match) setLocale(match[1])
+    fetchJobs()
   }, [])
+
+  const fetchJobs = async () => {
+    try {
+      const res = await fetch('/api/jobs')
+      if (res.ok) {
+        const data = await res.json()
+        setJobs(data.jobs || [])
+      }
+    } catch (error) {
+      console.error('Error fetching jobs:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const benefitTexts = t.raw('careers.benefits') as string[]
 
@@ -215,64 +179,70 @@ export default function CareersPage() {
               </div>
             </motion.div>
 
-            <div className="grid gap-6">
-              {filteredJobs.map((job, index) => (
-                <motion.div
-                  key={job.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: index * 0.1 }}
-                  viewport={{ once: true }}
-                  whileHover={{ y: -4 }}
-                  className="glass-card p-6 cursor-pointer"
-                >
-                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-                    <div className="flex-1">
-                      <div className="flex items-start gap-4">
-                        <div className="p-3 rounded-xl bg-gradient-to-r from-ebmc-turquoise to-cyan-400 shadow-lg">
-                          <Briefcase className="w-6 h-6 text-white" />
-                        </div>
-                        <div>
-                          <h3 className="text-xl font-bold mb-2 text-slate-800">
-                            {locale === 'fr' ? job.title : job.titleEn}
-                          </h3>
-                          <p className="text-slate-500 mb-4">
-                            {locale === 'fr' ? job.description : job.descriptionEn}
-                          </p>
-                          <div className="flex flex-wrap gap-4 text-sm">
-                            <span className="flex items-center gap-2 text-slate-500">
-                              <MapPin className="w-4 h-4" />
-                              {job.location}
-                            </span>
-                            <span className="flex items-center gap-2 text-slate-500">
-                              <Clock className="w-4 h-4" />
-                              {locale === 'fr' ? job.type : job.typeEn}
-                            </span>
-                            <span className="flex items-center gap-2 text-slate-500">
-                              <Users className="w-4 h-4" />
-                              {locale === 'fr' ? job.experience : job.experienceEn}
-                            </span>
+            {loading ? (
+              <div className="flex justify-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin text-ebmc-turquoise" />
+              </div>
+            ) : (
+              <div className="grid gap-6">
+                {filteredJobs.map((job, index) => (
+                  <motion.div
+                    key={job.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: index * 0.1 }}
+                    viewport={{ once: true }}
+                    whileHover={{ y: -4 }}
+                    className="glass-card p-6 cursor-pointer"
+                  >
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                      <div className="flex-1">
+                        <div className="flex items-start gap-4">
+                          <div className="p-3 rounded-xl bg-gradient-to-r from-ebmc-turquoise to-cyan-400 shadow-lg">
+                            <Briefcase className="w-6 h-6 text-white" />
+                          </div>
+                          <div>
+                            <h3 className="text-xl font-bold mb-2 text-slate-800">
+                              {locale === 'fr' ? job.title : job.titleEn}
+                            </h3>
+                            <p className="text-slate-500 mb-4">
+                              {locale === 'fr' ? job.description : job.descriptionEn}
+                            </p>
+                            <div className="flex flex-wrap gap-4 text-sm">
+                              <span className="flex items-center gap-2 text-slate-500">
+                                <MapPin className="w-4 h-4" />
+                                {job.location}
+                              </span>
+                              <span className="flex items-center gap-2 text-slate-500">
+                                <Clock className="w-4 h-4" />
+                                {locale === 'fr' ? job.type : job.typeEn}
+                              </span>
+                              <span className="flex items-center gap-2 text-slate-500">
+                                <Users className="w-4 h-4" />
+                                {locale === 'fr' ? job.experience : job.experienceEn}
+                              </span>
+                            </div>
                           </div>
                         </div>
                       </div>
+                      <div className="flex gap-3">
+                        <Link href={`/careers/${job.id}`}>
+                          <button className="px-6 py-3 rounded-full bg-white/60 border border-slate-200/60 text-slate-600 hover:bg-white hover:border-slate-300 transition font-medium">
+                            {t('jobs.details')}
+                          </button>
+                        </Link>
+                        <ShimmerButton>
+                          {t('jobs.apply')}
+                          <ArrowRight className="w-4 h-4" />
+                        </ShimmerButton>
+                      </div>
                     </div>
-                    <div className="flex gap-3">
-                      <Link href={`/careers/${job.id}`}>
-                        <button className="px-6 py-3 rounded-full bg-white/60 border border-slate-200/60 text-slate-600 hover:bg-white hover:border-slate-300 transition font-medium">
-                          {t('jobs.details')}
-                        </button>
-                      </Link>
-                      <ShimmerButton>
-                        {t('jobs.apply')}
-                        <ArrowRight className="w-4 h-4" />
-                      </ShimmerButton>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
+                  </motion.div>
+                ))}
+              </div>
+            )}
 
-            {filteredJobs.length === 0 && (
+            {!loading && filteredJobs.length === 0 && (
               <div className="text-center py-12 text-slate-500">
                 {t('jobs.noJobs')}
               </div>

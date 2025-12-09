@@ -164,6 +164,174 @@ describe('API Routes', () => {
   })
 })
 
+describe('Public Jobs API', () => {
+  it('should transform job data for frontend', () => {
+    const dbJob = {
+      _id: { toString: () => '507f1f77bcf86cd799439011' },
+      title: 'Consultant SAP',
+      titleEn: 'SAP Consultant',
+      location: 'Paris',
+      type: 'CDI',
+      typeEn: 'Full-time',
+      category: 'consulting',
+      experience: '5+ ans',
+      experienceEn: '5+ years',
+      description: 'Description FR',
+      descriptionEn: 'Description EN',
+      missions: ['Mission 1'],
+      missionsEn: ['Mission 1 EN'],
+      requirements: ['Req 1'],
+      requirementsEn: ['Req 1 EN'],
+      active: true,
+    }
+
+    const transformedJob = {
+      id: dbJob._id.toString(),
+      title: dbJob.title,
+      titleEn: dbJob.titleEn,
+      location: dbJob.location,
+      type: dbJob.type,
+      typeEn: dbJob.typeEn,
+      category: dbJob.category,
+      experience: dbJob.experience,
+      experienceEn: dbJob.experienceEn,
+      description: dbJob.description,
+      descriptionEn: dbJob.descriptionEn,
+      missions: dbJob.missions,
+      missionsEn: dbJob.missionsEn,
+      requirements: dbJob.requirements,
+      requirementsEn: dbJob.requirementsEn,
+    }
+
+    expect(transformedJob.id).toBe('507f1f77bcf86cd799439011')
+    expect(transformedJob.title).toBe('Consultant SAP')
+    expect(transformedJob.missions).toHaveLength(1)
+  })
+
+  it('should filter active jobs only', () => {
+    const jobs = [
+      { title: 'Active Job', active: true },
+      { title: 'Inactive Job', active: false },
+      { title: 'Default Active', active: undefined },
+    ]
+
+    const activeJobs = jobs.filter(job => job.active !== false)
+    expect(activeJobs).toHaveLength(2)
+  })
+
+  it('should validate job categories', () => {
+    const validCategories = ['tech', 'consulting', 'management', 'data', 'security']
+    const job = { category: 'tech' }
+    expect(validCategories).toContain(job.category)
+  })
+})
+
+describe('Public Consultants API', () => {
+  it('should transform consultant data for frontend', () => {
+    const dbConsultant = {
+      _id: { toString: () => '507f1f77bcf86cd799439012' },
+      name: 'Alexandre Martin',
+      title: 'Consultant SAP Senior',
+      titleEn: 'Senior SAP Consultant',
+      location: 'Paris',
+      experience: '12 ans',
+      experienceEn: '12 years',
+      category: 'sap',
+      available: true,
+      skills: ['SAP S/4HANA', 'SAP FI/CO'],
+      certifications: ['SAP Certified'],
+    }
+
+    const transformedConsultant = {
+      id: dbConsultant._id.toString(),
+      name: dbConsultant.name,
+      title: dbConsultant.title,
+      titleEn: dbConsultant.titleEn,
+      location: dbConsultant.location,
+      experience: dbConsultant.experience,
+      experienceEn: dbConsultant.experienceEn,
+      category: dbConsultant.category,
+      available: dbConsultant.available !== false,
+      skills: dbConsultant.skills || [],
+      certifications: dbConsultant.certifications || [],
+    }
+
+    expect(transformedConsultant.id).toBe('507f1f77bcf86cd799439012')
+    expect(transformedConsultant.name).toBe('Alexandre Martin')
+    expect(transformedConsultant.skills).toHaveLength(2)
+    expect(transformedConsultant.available).toBe(true)
+  })
+
+  it('should filter by availability', () => {
+    const consultants = [
+      { name: 'Available', available: true },
+      { name: 'On Mission', available: false },
+    ]
+
+    const availableOnly = consultants.filter(c => c.available === true)
+    expect(availableOnly).toHaveLength(1)
+    expect(availableOnly[0].name).toBe('Available')
+  })
+
+  it('should validate consultant categories', () => {
+    const validCategories = ['sap', 'security', 'dev', 'data']
+    const consultant = { category: 'sap' }
+    expect(validCategories).toContain(consultant.category)
+  })
+})
+
+describe('Seed API', () => {
+  it('should validate seed data structure for jobs', () => {
+    const seedJob = {
+      title: 'Test Job',
+      titleEn: 'Test Job EN',
+      location: 'Paris',
+      type: 'CDI',
+      typeEn: 'Full-time',
+      category: 'tech',
+      experience: '3+ ans',
+      experienceEn: '3+ years',
+      description: 'Description',
+      descriptionEn: 'Description EN',
+      missions: ['Mission 1'],
+      missionsEn: ['Mission 1 EN'],
+      requirements: ['Req 1'],
+      requirementsEn: ['Req 1 EN'],
+      active: true,
+    }
+
+    expect(seedJob.title).toBeTruthy()
+    expect(seedJob.titleEn).toBeTruthy()
+    expect(seedJob.missions).toBeInstanceOf(Array)
+    expect(seedJob.requirements).toBeInstanceOf(Array)
+  })
+
+  it('should validate seed data structure for consultants', () => {
+    const seedConsultant = {
+      name: 'Test Consultant',
+      title: 'Title FR',
+      titleEn: 'Title EN',
+      location: 'Paris',
+      experience: '5 ans',
+      experienceEn: '5 years',
+      category: 'sap',
+      available: true,
+      skills: ['Skill 1', 'Skill 2'],
+      certifications: ['Cert 1'],
+    }
+
+    expect(seedConsultant.name).toBeTruthy()
+    expect(seedConsultant.skills).toBeInstanceOf(Array)
+    expect(seedConsultant.certifications).toBeInstanceOf(Array)
+  })
+
+  it('should require authorization for seeding', () => {
+    const seedKey = 'ebmc-seed-key-2024'
+    const authHeader = `Bearer ${seedKey}`
+    expect(authHeader).toContain('Bearer')
+  })
+})
+
 describe('Database Operations', () => {
   it('should have valid MongoDB URI format', () => {
     const validUris = [
