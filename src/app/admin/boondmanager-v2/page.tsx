@@ -8,12 +8,25 @@ import {
   Phone, Mail, Calendar, Eye, ToggleLeft, ToggleRight,
   Shield, ShieldOff, Download, Upload, Sparkles, AlertTriangle, Info,
   Copy, CheckCircle, XCircle, FileJson, FileSpreadsheet, Trash, ArrowRight,
-  BarChart3, Globe, MapPin
+  BarChart3, Globe, MapPin, Book, ChevronDown, ChevronUp
 } from 'lucide-react'
 
 // Types
 type BoondEnvironment = 'production' | 'sandbox'
-type TabType = 'dashboard' | 'sync' | 'quality' | 'export' | 'candidates' | 'resources' | 'opportunities' | 'companies' | 'contacts' | 'projects'
+type TabType = 'dashboard' | 'dictionary' | 'sync' | 'quality' | 'export' | 'candidates' | 'resources' | 'opportunities' | 'companies' | 'contacts' | 'projects'
+
+interface DictionaryItem {
+  id: number | string
+  value: string
+  color?: string
+  isDefault?: boolean
+  isActive?: boolean
+  order?: number
+}
+
+interface DictionaryData {
+  [key: string]: DictionaryItem[] | unknown
+}
 
 interface BaseEntity {
   id: number
@@ -120,6 +133,9 @@ export default function BoondManagerV2Page() {
   const [items, setItems] = useState<BaseEntity[]>([])
   const [qualityAnalysis, setQualityAnalysis] = useState<QualityAnalysis | null>(null)
   const [syncResult, setSyncResult] = useState<SyncResult | null>(null)
+  const [dictionary, setDictionary] = useState<DictionaryData | null>(null)
+  const [dictionaryLoading, setDictionaryLoading] = useState(false)
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set())
 
   // Operations
   const [syncing, setSyncing] = useState(false)
@@ -137,6 +153,7 @@ export default function BoondManagerV2Page() {
   // Tabs configuration
   const tabs: { id: TabType; label: string; icon: React.ElementType; color: string; section?: string }[] = [
     { id: 'dashboard', label: 'Dashboard', icon: Zap, color: 'from-amber-500 to-orange-500', section: 'overview' },
+    { id: 'dictionary', label: 'Dictionnaire', icon: Book, color: 'from-indigo-500 to-violet-500', section: 'tools' },
     { id: 'sync', label: 'Synchronisation', icon: RefreshCw, color: 'from-cyan-500 to-blue-500', section: 'tools' },
     { id: 'quality', label: 'Qualite donnees', icon: Sparkles, color: 'from-purple-500 to-pink-500', section: 'tools' },
     { id: 'export', label: 'Export', icon: Download, color: 'from-green-500 to-emerald-500', section: 'tools' },
@@ -165,6 +182,11 @@ export default function BoondManagerV2Page() {
         } else {
           throw new Error(data.error || 'Erreur inconnue')
         }
+      } else if (activeTab === 'dictionary') {
+        // Dictionary tab - load dictionary data
+        await fetchDictionary()
+        setLoading(false)
+        return
       } else if (activeTab === 'sync' || activeTab === 'quality' || activeTab === 'export') {
         // These tabs don't auto-load data
         setLoading(false)
@@ -268,6 +290,40 @@ export default function BoondManagerV2Page() {
     } finally {
       setExporting(false)
     }
+  }
+
+  // Fetch dictionary
+  const fetchDictionary = async (refresh = false) => {
+    setDictionaryLoading(true)
+    setError(null)
+
+    try {
+      const res = await fetch(`/api/boondmanager/v2/dictionary?env=${environment}${refresh ? '&refresh=true' : ''}`, { credentials: 'include' })
+      const data = await res.json()
+
+      if (data.success) {
+        setDictionary(data.data?.data?.attributes || null)
+      } else {
+        throw new Error(data.error)
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur de chargement du dictionnaire')
+    } finally {
+      setDictionaryLoading(false)
+    }
+  }
+
+  // Toggle section expansion
+  const toggleSection = (section: string) => {
+    setExpandedSections(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(section)) {
+        newSet.delete(section)
+      } else {
+        newSet.add(section)
+      }
+      return newSet
+    })
   }
 
   // CRUD handlers
@@ -731,6 +787,212 @@ export default function BoondManagerV2Page() {
       </div>
     </div>
   )
+
+  // Render dictionary tab
+  const renderDictionaryTab = () => {
+    // Group dictionary items by category
+    const dictionaryCategories: { name: string; icon: React.ElementType; color: string; keys: string[] }[] = [
+      { name: 'Etats des entites', icon: CheckCircle, color: 'from-green-500 to-emerald-500', keys: ['candidateStates', 'resourceStates', 'opportunityStates', 'projectStates', 'companyStates', 'contactStates', 'positioningStates', 'actionStates'] },
+      { name: 'Types des entites', icon: Target, color: 'from-blue-500 to-indigo-500', keys: ['candidateTypes', 'resourceTypes', 'opportunityTypes', 'projectTypes', 'companyTypes', 'actionTypes'] },
+      { name: 'Modes', icon: Zap, color: 'from-amber-500 to-orange-500', keys: ['opportunityModes', 'projectModes'] },
+      { name: 'References', icon: Book, color: 'from-purple-500 to-pink-500', keys: ['civilities', 'countries', 'currencies', 'languages', 'durationUnits'] },
+      { name: 'Organisation', icon: Building2, color: 'from-cyan-500 to-teal-500', keys: ['agencies', 'poles'] },
+      { name: 'Competences', icon: Briefcase, color: 'from-violet-500 to-purple-500', keys: ['expertises', 'expertiseLevels'] },
+      { name: 'Sources & Origines', icon: Globe, color: 'from-rose-500 to-pink-500', keys: ['origins', 'sources'] },
+    ]
+
+    const formatKey = (key: string): string => {
+      return key
+        .replace(/([A-Z])/g, ' $1')
+        .replace(/^./, str => str.toUpperCase())
+        .replace('States', '(Etats)')
+        .replace('Types', '(Types)')
+        .replace('Modes', '(Modes)')
+    }
+
+    return (
+      <div className="space-y-6">
+        <div className="glass-card p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-4">
+              <div className="p-3 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500">
+                <Book className="w-8 h-8 text-white" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-slate-800 dark:text-white">Dictionnaire BoondManager</h2>
+                <p className="text-slate-500 dark:text-slate-400">Configuration et labels de {environment === 'production' ? 'Production' : 'Sandbox'}</p>
+              </div>
+            </div>
+            <button
+              onClick={() => fetchDictionary(true)}
+              disabled={dictionaryLoading}
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-500 to-violet-500 text-white rounded-xl hover:shadow-lg transition disabled:opacity-50"
+            >
+              {dictionaryLoading ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Chargement...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="w-5 h-5" />
+                  Rafraichir
+                </>
+              )}
+            </button>
+          </div>
+
+          {!dictionary && !dictionaryLoading && (
+            <div className="text-center py-12 text-slate-500 dark:text-slate-400">
+              <Book className="w-12 h-12 mx-auto mb-3 opacity-50" />
+              <p>Cliquez sur Rafraichir pour charger le dictionnaire</p>
+            </div>
+          )}
+
+          {dictionary && (
+            <div className="space-y-4">
+              {dictionaryCategories.map((category) => {
+                const hasData = category.keys.some(key => dictionary[key] && Array.isArray(dictionary[key]) && (dictionary[key] as DictionaryItem[]).length > 0)
+                if (!hasData) return null
+
+                const isExpanded = expandedSections.has(category.name)
+
+                return (
+                  <div key={category.name} className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
+                    <button
+                      onClick={() => toggleSection(category.name)}
+                      className="w-full flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`p-2 rounded-lg bg-gradient-to-r ${category.color}`}>
+                          <category.icon className="w-5 h-5 text-white" />
+                        </div>
+                        <span className="font-semibold text-slate-800 dark:text-white">{category.name}</span>
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+                          {category.keys.filter(key => dictionary[key] && Array.isArray(dictionary[key])).length} sections
+                        </span>
+                      </div>
+                      {isExpanded ? (
+                        <ChevronUp className="w-5 h-5 text-slate-400" />
+                      ) : (
+                        <ChevronDown className="w-5 h-5 text-slate-400" />
+                      )}
+                    </button>
+
+                    {isExpanded && (
+                      <div className="p-4 space-y-4">
+                        {category.keys.map(key => {
+                          const items = dictionary[key]
+                          if (!items || !Array.isArray(items) || items.length === 0) return null
+
+                          return (
+                            <div key={key} className="space-y-2">
+                              <h4 className="text-sm font-medium text-slate-600 dark:text-slate-400">{formatKey(key)}</h4>
+                              <div className="flex flex-wrap gap-2">
+                                {(items as DictionaryItem[]).map((item, index) => (
+                                  <div
+                                    key={`${item.id}-${index}`}
+                                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm"
+                                  >
+                                    {item.color && (
+                                      <span
+                                        className="w-3 h-3 rounded-full"
+                                        style={{ backgroundColor: item.color }}
+                                      />
+                                    )}
+                                    <span className="text-slate-500 dark:text-slate-400 font-mono text-xs">
+                                      {item.id}
+                                    </span>
+                                    <span className="text-slate-800 dark:text-white">
+                                      {item.value}
+                                    </span>
+                                    {item.isDefault && (
+                                      <span className="text-xs px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
+                                        defaut
+                                      </span>
+                                    )}
+                                    {item.isActive === false && (
+                                      <span className="text-xs px-1.5 py-0.5 rounded bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400">
+                                        inactif
+                                      </span>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+
+              {/* Show other uncategorized keys */}
+              {Object.keys(dictionary).filter(key =>
+                !dictionaryCategories.some(cat => cat.keys.includes(key)) &&
+                Array.isArray(dictionary[key]) &&
+                (dictionary[key] as DictionaryItem[]).length > 0
+              ).length > 0 && (
+                <div className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
+                  <button
+                    onClick={() => toggleSection('other')}
+                    className="w-full flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-gradient-to-r from-slate-500 to-gray-500">
+                        <Info className="w-5 h-5 text-white" />
+                      </div>
+                      <span className="font-semibold text-slate-800 dark:text-white">Autres</span>
+                    </div>
+                    {expandedSections.has('other') ? (
+                      <ChevronUp className="w-5 h-5 text-slate-400" />
+                    ) : (
+                      <ChevronDown className="w-5 h-5 text-slate-400" />
+                    )}
+                  </button>
+
+                  {expandedSections.has('other') && (
+                    <div className="p-4 space-y-4">
+                      {Object.keys(dictionary)
+                        .filter(key =>
+                          !dictionaryCategories.some(cat => cat.keys.includes(key)) &&
+                          Array.isArray(dictionary[key]) &&
+                          (dictionary[key] as DictionaryItem[]).length > 0
+                        )
+                        .map(key => {
+                          const items = dictionary[key] as DictionaryItem[]
+                          return (
+                            <div key={key} className="space-y-2">
+                              <h4 className="text-sm font-medium text-slate-600 dark:text-slate-400">{formatKey(key)}</h4>
+                              <div className="flex flex-wrap gap-2">
+                                {items.map((item, index) => (
+                                  <div
+                                    key={`${item.id}-${index}`}
+                                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm"
+                                  >
+                                    <span className="text-slate-500 dark:text-slate-400 font-mono text-xs">
+                                      {item.id}
+                                    </span>
+                                    <span className="text-slate-800 dark:text-white">
+                                      {item.value}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )
+                        })}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
 
   // Render export tab
   const renderExportTab = () => (
@@ -1329,12 +1591,14 @@ export default function BoondManagerV2Page() {
       )}
 
       {/* Content */}
-      {loading && !['sync', 'quality', 'export'].includes(activeTab) ? (
+      {loading && !['dictionary', 'sync', 'quality', 'export'].includes(activeTab) ? (
         <div className="flex justify-center py-12">
           <Loader2 className="w-8 h-8 animate-spin text-ebmc-turquoise" />
         </div>
       ) : activeTab === 'dashboard' ? (
         renderDashboard()
+      ) : activeTab === 'dictionary' ? (
+        renderDictionaryTab()
       ) : activeTab === 'sync' ? (
         renderSyncTab()
       ) : activeTab === 'quality' ? (

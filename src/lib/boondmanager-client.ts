@@ -30,6 +30,57 @@ export interface BoondApiResponse<T> {
   }
 }
 
+// Dictionary item (label/value pair)
+export interface BoondDictionaryItem {
+  id: number | string
+  value: string
+  color?: string
+  isDefault?: boolean
+  isActive?: boolean
+  order?: number
+}
+
+// Application Dictionary - Contains all labels, states, types
+export interface BoondDictionary {
+  data: {
+    attributes: {
+      // Entity states
+      candidateStates?: BoondDictionaryItem[]
+      resourceStates?: BoondDictionaryItem[]
+      opportunityStates?: BoondDictionaryItem[]
+      projectStates?: BoondDictionaryItem[]
+      companyStates?: BoondDictionaryItem[]
+      contactStates?: BoondDictionaryItem[]
+      positioningStates?: BoondDictionaryItem[]
+      actionStates?: BoondDictionaryItem[]
+      // Entity types
+      candidateTypes?: BoondDictionaryItem[]
+      resourceTypes?: BoondDictionaryItem[]
+      opportunityTypes?: BoondDictionaryItem[]
+      projectTypes?: BoondDictionaryItem[]
+      companyTypes?: BoondDictionaryItem[]
+      actionTypes?: BoondDictionaryItem[]
+      // Modes
+      opportunityModes?: BoondDictionaryItem[]
+      projectModes?: BoondDictionaryItem[]
+      // Other dictionaries
+      civilities?: BoondDictionaryItem[]
+      countries?: BoondDictionaryItem[]
+      currencies?: BoondDictionaryItem[]
+      languages?: BoondDictionaryItem[]
+      expertises?: BoondDictionaryItem[]
+      expertiseLevels?: BoondDictionaryItem[]
+      agencies?: BoondDictionaryItem[]
+      poles?: BoondDictionaryItem[]
+      origins?: BoondDictionaryItem[]
+      sources?: BoondDictionaryItem[]
+      durationUnits?: BoondDictionaryItem[]
+      // Custom fields
+      [key: string]: unknown
+    }
+  }
+}
+
 // Resource (Consultant/Employee)
 export interface BoondResource {
   id: number
@@ -461,6 +512,11 @@ export class BoondManagerClient {
 
   async getApplicationSettings(): Promise<BoondApiResponse<Record<string, unknown>>> {
     return this.fetch('/application/settings')
+  }
+
+  // Get application dictionary (all labels, states, types, etc.)
+  async getDictionary(): Promise<BoondDictionary> {
+    return this.fetch('/application/dictionary')
   }
 
   // ==================== CANDIDATES ====================
