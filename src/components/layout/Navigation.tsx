@@ -11,9 +11,11 @@ import { ShimmerButton } from '@/components/ui/aceternity'
 
 interface NavigationProps {
   currentPage?: 'home' | 'consultants' | 'careers' | 'login'
+  variant?: 'dark' | 'light'
 }
 
-export function Navigation({ currentPage = 'home' }: NavigationProps) {
+export function Navigation({ currentPage = 'home', variant = 'dark' }: NavigationProps) {
+  const isLight = variant === 'light'
   const t = useTranslations()
   const [locale, setLocale] = useState('fr')
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -44,7 +46,11 @@ export function Navigation({ currentPage = 'home' }: NavigationProps) {
       className="fixed top-0 left-0 right-0 z-50"
     >
       <div className="mx-4 mt-4">
-        <div className="max-w-7xl mx-auto bg-black/40 backdrop-blur-xl border border-white/10 rounded-2xl px-6 py-4">
+        <div className={`max-w-7xl mx-auto backdrop-blur-xl rounded-2xl px-6 py-4 ${
+          isLight
+            ? 'bg-white/70 border border-slate-200/60 shadow-lg shadow-slate-200/30'
+            : 'bg-black/40 border border-white/10'
+        }`}>
           <div className="flex justify-between items-center">
             {/* Logo */}
             <Link href="/" className="flex-shrink-0">
@@ -58,7 +64,11 @@ export function Navigation({ currentPage = 'home' }: NavigationProps) {
                   key={item.key}
                   href={item.href}
                   className={`text-sm font-medium transition-colors relative group ${
-                    isActive(item.key) ? 'text-ebmc-turquoise' : 'text-white/70 hover:text-white'
+                    isActive(item.key)
+                      ? 'text-ebmc-turquoise'
+                      : isLight
+                      ? 'text-slate-600 hover:text-slate-900'
+                      : 'text-white/70 hover:text-white'
                   }`}
                 >
                   {t(`nav.${item.key}`)}
@@ -74,7 +84,9 @@ export function Navigation({ currentPage = 'home' }: NavigationProps) {
               <LanguageSwitcher locale={locale} />
               <Link
                 href="/login"
-                className="flex items-center gap-2 px-4 py-2 text-sm text-white/70 hover:text-white transition"
+                className={`flex items-center gap-2 px-4 py-2 text-sm transition ${
+                  isLight ? 'text-slate-600 hover:text-slate-900' : 'text-white/70 hover:text-white'
+                }`}
               >
                 <LogIn className="w-4 h-4" />
                 {t('nav.login')}
@@ -91,7 +103,7 @@ export function Navigation({ currentPage = 'home' }: NavigationProps) {
             <div className="flex items-center gap-4 lg:hidden">
               <LanguageSwitcher locale={locale} />
               <button
-                className="text-white p-2"
+                className={`p-2 ${isLight ? 'text-slate-800' : 'text-white'}`}
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               >
                 {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -104,14 +116,20 @@ export function Navigation({ currentPage = 'home' }: NavigationProps) {
             <motion.nav
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
-              className="lg:hidden mt-4 pt-4 border-t border-white/10"
+              className={`lg:hidden mt-4 pt-4 border-t ${
+                isLight ? 'border-slate-200' : 'border-white/10'
+              }`}
             >
               {navItems.map((item) => (
                 <Link
                   key={item.key}
                   href={item.href}
                   className={`block py-3 text-sm ${
-                    isActive(item.key) ? 'text-ebmc-turquoise' : 'text-white/70'
+                    isActive(item.key)
+                      ? 'text-ebmc-turquoise'
+                      : isLight
+                      ? 'text-slate-600'
+                      : 'text-white/70'
                   }`}
                   onClick={() => setMobileMenuOpen(false)}
                 >
@@ -120,7 +138,9 @@ export function Navigation({ currentPage = 'home' }: NavigationProps) {
               ))}
               <Link
                 href="/login"
-                className="flex items-center gap-2 py-3 text-sm text-white/70"
+                className={`flex items-center gap-2 py-3 text-sm ${
+                  isLight ? 'text-slate-600' : 'text-white/70'
+                }`}
                 onClick={() => setMobileMenuOpen(false)}
               >
                 <LogIn className="w-4 h-4" />

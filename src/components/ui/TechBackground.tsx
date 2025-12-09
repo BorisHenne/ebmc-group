@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'react'
 
 interface TechBackgroundProps {
   children?: React.ReactNode
-  variant?: 'dark' | 'light'
+  variant?: 'dark' | 'light' | 'semi-light'
 }
 
 // Subtle grid pattern
@@ -123,23 +123,43 @@ function FloatingDots({ light = false }: { light?: boolean }) {
 }
 
 // Gradient orbs for light mode
-function GradientOrbs() {
+function GradientOrbs({ darker = false }: { darker?: boolean }) {
+  const opacity = darker ? 0.25 : 0.2
+  const opacity2 = darker ? 0.2 : 0.15
+  const opacity3 = darker ? 0.15 : 0.1
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      <div className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] rounded-full bg-gradient-to-br from-ebmc-turquoise/20 to-cyan-400/10 blur-3xl" />
-      <div className="absolute bottom-[-20%] left-[-10%] w-[500px] h-[500px] rounded-full bg-gradient-to-tr from-cyan-400/15 to-blue-500/10 blur-3xl" />
-      <div className="absolute top-[40%] left-[30%] w-[300px] h-[300px] rounded-full bg-gradient-to-r from-ebmc-turquoise/10 to-transparent blur-3xl" />
+      <div
+        className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] rounded-full blur-3xl"
+        style={{ background: `linear-gradient(to bottom right, rgba(43, 163, 173, ${opacity}), rgba(34, 211, 238, ${opacity3}))` }}
+      />
+      <div
+        className="absolute bottom-[-20%] left-[-10%] w-[500px] h-[500px] rounded-full blur-3xl"
+        style={{ background: `linear-gradient(to top right, rgba(34, 211, 238, ${opacity2}), rgba(59, 130, 246, ${opacity3}))` }}
+      />
+      <div
+        className="absolute top-[40%] left-[30%] w-[300px] h-[300px] rounded-full blur-3xl"
+        style={{ background: `linear-gradient(to right, rgba(43, 163, 173, ${opacity3}), transparent)` }}
+      />
     </div>
   )
 }
 
 // Gradient overlays
-function GradientOverlay({ light = false }: { light?: boolean }) {
+function GradientOverlay({ light = false, semiLight = false }: { light?: boolean; semiLight?: boolean }) {
   if (light) {
+    const topOpacity = semiLight ? 0.4 : 0.5
+    const bottomOpacity = semiLight ? 0.2 : 0.3
     return (
       <>
-        <div className="absolute inset-x-0 top-0 h-48 bg-gradient-to-b from-white/50 to-transparent pointer-events-none" />
-        <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-white/30 to-transparent pointer-events-none" />
+        <div
+          className="absolute inset-x-0 top-0 h-48 pointer-events-none"
+          style={{ background: `linear-gradient(to bottom, rgba(255, 255, 255, ${topOpacity}), transparent)` }}
+        />
+        <div
+          className="absolute inset-x-0 bottom-0 h-24 pointer-events-none"
+          style={{ background: `linear-gradient(to top, rgba(255, 255, 255, ${bottomOpacity}), transparent)` }}
+        />
       </>
     )
   }
@@ -152,18 +172,19 @@ function GradientOverlay({ light = false }: { light?: boolean }) {
 }
 
 export function TechBackground({ children, variant = 'dark' }: TechBackgroundProps) {
-  const isLight = variant === 'light'
+  const isLight = variant === 'light' || variant === 'semi-light'
+  const isSemiLight = variant === 'semi-light'
+
+  const bgClass = variant === 'dark'
+    ? 'bg-[#0d1117]'
+    : variant === 'semi-light'
+    ? 'bg-gradient-to-br from-slate-100 via-cyan-50/50 to-slate-50'
+    : 'bg-gradient-to-br from-slate-50 via-cyan-50/30 to-white'
 
   return (
-    <div
-      className={`relative min-h-screen ${
-        isLight
-          ? 'bg-gradient-to-br from-slate-50 via-cyan-50/30 to-white'
-          : 'bg-[#0d1117]'
-      }`}
-    >
-      {/* Gradient orbs for light mode */}
-      {isLight && <GradientOrbs />}
+    <div className={`relative min-h-screen ${bgClass}`}>
+      {/* Gradient orbs for light modes */}
+      {isLight && <GradientOrbs darker={isSemiLight} />}
 
       {/* Subtle grid */}
       <TechGrid light={isLight} />
@@ -172,7 +193,7 @@ export function TechBackground({ children, variant = 'dark' }: TechBackgroundPro
       <FloatingDots light={isLight} />
 
       {/* Gradient overlays */}
-      <GradientOverlay light={isLight} />
+      <GradientOverlay light={isLight} semiLight={isSemiLight} />
 
       {/* Content */}
       <div className="relative z-10">{children}</div>
