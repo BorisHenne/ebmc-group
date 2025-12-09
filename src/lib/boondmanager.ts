@@ -94,7 +94,7 @@ export interface BoondAction {
 }
 
 export interface BoondApiResponse<T> {
-  data: T | T[]
+  data: T
   included?: Array<BoondResource | BoondCandidate | BoondOpportunity>
   meta?: {
     totals?: {
