@@ -198,7 +198,7 @@ export default function ConsultantsPage() {
 
                     {/* Contact Button */}
                     {consultant.available && (
-                      <a href={`mailto:contact@ebmc-group.com?subject=Contact consultant: ${consultant.name}`}>
+                      <a href={`mailto:contact@ebmcgroup.eu?subject=Contact consultant: ${consultant.name}`}>
                         <ShimmerButton className="w-full">
                           <Mail className="w-4 h-4" />
                           {t('consultants.contact')}

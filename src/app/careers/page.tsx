@@ -266,7 +266,7 @@ export default function CareersPage() {
               <p className="text-slate-500 text-lg mb-8 max-w-xl mx-auto">
                 {t('careers.spontaneousDesc')}
               </p>
-              <a href="mailto:careers@ebmc-group.com">
+              <a href="mailto:careers@ebmcgroup.eu">
                 <ShimmerButton>
                   {t('careers.apply')}
                   <ArrowRight className="w-4 h-4" />

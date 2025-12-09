@@ -232,8 +232,8 @@ export default function FreelancePortalPage() {
         <h3 className="font-semibold text-gray-900 mb-2">Besoin d&apos;aide ?</h3>
         <p className="text-gray-600 text-sm">
           Pour toute question concernant vos CRA ou vos absences, contactez votre gestionnaire RH ou envoyez un email à{' '}
-          <a href="mailto:rh@ebmc-group.com" className="text-ebmc-turquoise hover:underline">
-            rh@ebmc-group.com
+          <a href="mailto:rh@ebmcgroup.eu" className="text-ebmc-turquoise hover:underline">
+            rh@ebmcgroup.eu
           </a>
         </p>
       </motion.div>

@@ -551,9 +551,9 @@ export default function Home() {
                 className="space-y-5"
               >
                 {[
-                  { icon: Mail, key: 'email', value: 'contact@ebmc-group.com', href: 'mailto:contact@ebmc-group.com' },
-                  { icon: Phone, key: 'phone', value: '+33 1 23 45 67 89', href: 'tel:+33123456789' },
-                  { icon: MapPin, key: 'address', value: 'Paris, France', href: '#' }
+                  { icon: Mail, key: 'email', value: 'contact@ebmcgroup.eu', href: 'mailto:contact@ebmcgroup.eu' },
+                  { icon: Phone, key: 'phone', value: '+352 26 50 61', href: 'tel:+352265061' },
+                  { icon: MapPin, key: 'address', value: '20 Op Zaemer, 4959 Käerjeng, Luxembourg', href: 'https://maps.google.com/?q=20+Op+Zaemer+4959+Käerjeng+Luxembourg' }
                 ].map((item, index) => (
                   <motion.a
                     key={index}
