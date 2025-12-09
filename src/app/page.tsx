@@ -21,9 +21,7 @@ import {
   Globe,
   ChevronDown,
   Send,
-  Users,
-  Menu,
-  X
+  Users
 } from 'lucide-react'
 import {
   TextGradient,
@@ -31,6 +29,7 @@ import {
   TypewriterEffect
 } from '@/components/ui/aceternity'
 import { TechBackground, TechSection } from '@/components/ui/TechBackground'
+import { Navigation } from '@/components/layout/Navigation'
 
 const services = [
   { icon: Server, key: 'sap', gradient: 'from-ebmc-turquoise to-cyan-500' },
@@ -108,7 +107,7 @@ function ContactForm() {
     }
   }
 
-  const inputClass = "w-full px-4 py-3.5 bg-white/50 border border-slate-200 rounded-xl text-slate-800 placeholder:text-slate-400 focus:border-ebmc-turquoise focus:ring-2 focus:ring-ebmc-turquoise/20 outline-none transition-all"
+  const inputClass = "w-full px-4 py-3.5 bg-white/50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-ebmc-turquoise focus:ring-2 focus:ring-ebmc-turquoise/20 outline-none transition-all"
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
@@ -151,18 +150,17 @@ function ContactForm() {
         <Send className="w-4 h-4" />
       </ShimmerButton>
       {status === 'success' && (
-        <p className="text-emerald-600 flex items-center gap-2">
+        <p className="text-emerald-600 dark:text-emerald-400 flex items-center gap-2">
           <CheckCircle className="w-5 h-5" /> {t('success')}
         </p>
       )}
-      {status === 'error' && <p className="text-red-500">{t('error')}</p>}
+      {status === 'error' && <p className="text-red-500 dark:text-red-400">{t('error')}</p>}
     </form>
   )
 }
 
 export default function Home() {
   const t = useTranslations()
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const heroRef = useRef<HTMLDivElement>(null)
   const { scrollYProgress } = useScroll({
     target: heroRef,
@@ -176,98 +174,9 @@ export default function Home() {
 
   return (
     <TechBackground variant="semi-light">
-      <main className="min-h-screen text-slate-800 overflow-hidden">
+      <main className="min-h-screen text-slate-800 dark:text-slate-100 overflow-hidden">
         {/* Navigation */}
-        <nav className="fixed top-0 left-0 right-0 z-50">
-          <div className="max-w-7xl mx-auto px-4 py-4">
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="glass-card px-4 sm:px-6 py-3"
-            >
-              <div className="flex items-center justify-between">
-                <Link href="/" className="flex items-center">
-                  <Image src="/logo.svg" alt="EBMC GROUP" width={120} height={36} className="h-8 w-auto" />
-                </Link>
-
-                {/* Desktop Nav */}
-                <div className="hidden md:flex items-center gap-8">
-                  <a href="#services" className="text-sm font-medium text-slate-600 hover:text-ebmc-turquoise transition">Services</a>
-                  <Link href="/consultants" className="text-sm font-medium text-slate-600 hover:text-ebmc-turquoise transition">Consultants</Link>
-                  <Link href="/careers" className="text-sm font-medium text-slate-600 hover:text-ebmc-turquoise transition">Carrières</Link>
-                  <a href="#contact" className="text-sm font-medium text-slate-600 hover:text-ebmc-turquoise transition">Contact</a>
-                </div>
-
-                {/* Desktop Login Button */}
-                <div className="hidden md:block">
-                  <Link
-                    href="/login"
-                    className="text-sm font-medium text-slate-600 hover:text-ebmc-turquoise transition px-4 py-2 rounded-lg hover:bg-ebmc-turquoise/5"
-                  >
-                    Connexion
-                  </Link>
-                </div>
-
-                {/* Mobile Menu Button */}
-                <button
-                  className="md:hidden p-2 text-slate-700 hover:text-ebmc-turquoise transition"
-                  onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                  aria-label="Menu"
-                >
-                  {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-                </button>
-              </div>
-
-              {/* Mobile Menu */}
-              {mobileMenuOpen && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="md:hidden mt-4 pt-4 border-t border-slate-200/60"
-                >
-                  <div className="flex flex-col gap-1">
-                    <a
-                      href="#services"
-                      className="py-3 px-2 text-sm font-medium text-slate-600 hover:text-ebmc-turquoise hover:bg-slate-50 rounded-lg transition"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      Services
-                    </a>
-                    <Link
-                      href="/consultants"
-                      className="py-3 px-2 text-sm font-medium text-slate-600 hover:text-ebmc-turquoise hover:bg-slate-50 rounded-lg transition"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      Consultants
-                    </Link>
-                    <Link
-                      href="/careers"
-                      className="py-3 px-2 text-sm font-medium text-slate-600 hover:text-ebmc-turquoise hover:bg-slate-50 rounded-lg transition"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      Carrières
-                    </Link>
-                    <a
-                      href="#contact"
-                      className="py-3 px-2 text-sm font-medium text-slate-600 hover:text-ebmc-turquoise hover:bg-slate-50 rounded-lg transition"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      Contact
-                    </a>
-                    <Link
-                      href="/login"
-                      className="py-3 px-2 text-sm font-medium text-slate-600 hover:text-ebmc-turquoise hover:bg-slate-50 rounded-lg transition"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      Connexion
-                    </Link>
-                  </div>
-                </motion.div>
-              )}
-            </motion.div>
-          </div>
-        </nav>
+        <Navigation currentPage="home" variant="auto" />
 
         {/* Hero Section */}
         <section ref={heroRef} className="relative min-h-screen flex items-center justify-center overflow-hidden pt-24">
@@ -289,7 +198,7 @@ export default function Home() {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.4 }}
-              className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-bold mb-6 leading-tight text-slate-900"
+              className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-bold mb-6 leading-tight text-slate-900 dark:text-white"
             >
               {t('hero.title')}
               <br />
@@ -300,7 +209,7 @@ export default function Home() {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.6 }}
-              className="text-lg md:text-xl text-slate-500 max-w-3xl mx-auto mb-12"
+              className="text-lg md:text-xl text-slate-500 dark:text-slate-400 max-w-3xl mx-auto mb-12"
             >
               {t('hero.description')}
             </motion.p>
@@ -319,7 +228,7 @@ export default function Home() {
               </a>
               <a
                 href="#contact"
-                className="inline-flex items-center justify-center gap-2 px-8 py-3 rounded-full border-2 border-slate-200 text-slate-700 hover:border-ebmc-turquoise hover:text-ebmc-turquoise transition-all font-medium"
+                className="inline-flex items-center justify-center gap-2 px-8 py-3 rounded-full border-2 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-ebmc-turquoise hover:text-ebmc-turquoise transition-all font-medium"
               >
                 {t('hero.ctaSecondary')}
                 <Zap className="w-4 h-4" />
@@ -364,7 +273,7 @@ export default function Home() {
                     className="text-center"
                   >
                     <AnimatedCounter value={stat.value} suffix={stat.suffix} />
-                    <div className="text-slate-500 mt-2 text-sm md:text-base">{t(`stats.${stat.key}`)}</div>
+                    <div className="text-slate-500 dark:text-slate-400 mt-2 text-sm md:text-base">{t(`stats.${stat.key}`)}</div>
                   </motion.div>
                 ))}
               </div>
@@ -386,10 +295,10 @@ export default function Home() {
                 <Globe className="w-4 h-4 text-ebmc-turquoise" />
                 <span className="text-sm font-medium text-ebmc-turquoise">{t('services.badge')}</span>
               </div>
-              <h2 className="text-3xl md:text-5xl font-bold mb-6 text-slate-900">
+              <h2 className="text-3xl md:text-5xl font-bold mb-6 text-slate-900 dark:text-white">
                 {t('services.title')} <TextGradient animate={false}>{t('services.titleHighlight')}</TextGradient>
               </h2>
-              <p className="text-lg text-slate-500 max-w-2xl mx-auto">
+              <p className="text-lg text-slate-500 dark:text-slate-400 max-w-2xl mx-auto">
                 {t('services.description')}
               </p>
             </motion.div>
@@ -408,8 +317,8 @@ export default function Home() {
                   <div className={`inline-flex p-3 rounded-xl bg-gradient-to-r ${service.gradient} mb-6 group-hover:scale-110 transition-transform shadow-lg`}>
                     <service.icon className="w-6 h-6 text-white" />
                   </div>
-                  <h3 className="text-xl font-bold mb-3 text-slate-800">{t(`services.${service.key}.title`)}</h3>
-                  <p className="text-slate-500 leading-relaxed mb-4">{t(`services.${service.key}.description`)}</p>
+                  <h3 className="text-xl font-bold mb-3 text-slate-800 dark:text-white">{t(`services.${service.key}.title`)}</h3>
+                  <p className="text-slate-500 dark:text-slate-400 leading-relaxed mb-4">{t(`services.${service.key}.description`)}</p>
                   <a
                     href="#contact"
                     className="inline-flex items-center gap-2 text-ebmc-turquoise hover:text-ebmc-turquoise-dark font-medium transition group-hover:gap-3"
@@ -436,10 +345,10 @@ export default function Home() {
                   <Zap className="w-4 h-4 text-ebmc-turquoise" />
                   <span className="text-sm font-medium text-ebmc-turquoise">{t('about.badge')}</span>
                 </div>
-                <h2 className="text-3xl md:text-5xl font-bold mb-6 text-slate-900">
+                <h2 className="text-3xl md:text-5xl font-bold mb-6 text-slate-900 dark:text-white">
                   {t('about.title')} <TextGradient animate={false}>{t('about.titleHighlight')}</TextGradient>
                 </h2>
-                <p className="text-lg text-slate-500 mb-8 leading-relaxed">
+                <p className="text-lg text-slate-500 dark:text-slate-400 mb-8 leading-relaxed">
                   {t('about.description')}
                 </p>
                 <ul className="space-y-4">
@@ -455,7 +364,7 @@ export default function Home() {
                       <div className="p-1 rounded-full bg-ebmc-turquoise/20 mt-0.5">
                         <CheckCircle className="w-4 h-4 text-ebmc-turquoise" />
                       </div>
-                      <span className="text-slate-600">{item}</span>
+                      <span className="text-slate-600 dark:text-slate-300">{item}</span>
                     </motion.li>
                   ))}
                 </ul>
@@ -479,11 +388,11 @@ export default function Home() {
                           <item.icon className="w-7 h-7 text-white" />
                         </div>
                         <div>
-                          <div className="text-3xl font-bold text-slate-800">{item.value}</div>
-                          <div className="text-slate-500">{item.label}</div>
+                          <div className="text-3xl font-bold text-slate-800 dark:text-white">{item.value}</div>
+                          <div className="text-slate-500 dark:text-slate-400">{item.label}</div>
                         </div>
                       </div>
-                      {index < 2 && <div className="h-px bg-slate-200/60 mt-6" />}
+                      {index < 2 && <div className="h-px bg-slate-200/60 dark:bg-slate-700/60 mt-6" />}
                     </div>
                   ))}
                 </div>
@@ -504,10 +413,10 @@ export default function Home() {
               <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-gradient-to-r from-ebmc-turquoise to-cyan-500 flex items-center justify-center shadow-lg">
                 <Users className="w-8 h-8 text-white" />
               </div>
-              <h2 className="text-2xl md:text-4xl font-bold mb-4 text-slate-900">
+              <h2 className="text-2xl md:text-4xl font-bold mb-4 text-slate-900 dark:text-white">
                 {t('careers.title')} <TextGradient animate={false}>{t('careers.titleHighlight')}</TextGradient>
               </h2>
-              <p className="text-slate-500 text-lg mb-8 max-w-2xl mx-auto">
+              <p className="text-slate-500 dark:text-slate-400 text-lg mb-8 max-w-2xl mx-auto">
                 {t('careers.description')}
               </p>
               <Link href="/careers">
@@ -534,10 +443,10 @@ export default function Home() {
                 <Mail className="w-4 h-4 text-ebmc-turquoise" />
                 <span className="text-sm font-medium text-ebmc-turquoise">{t('contact.badge')}</span>
               </div>
-              <h2 className="text-3xl md:text-5xl font-bold mb-6 text-slate-900">
+              <h2 className="text-3xl md:text-5xl font-bold mb-6 text-slate-900 dark:text-white">
                 {t('contact.title')} <TextGradient animate={false}>{t('contact.titleHighlight')}</TextGradient>
               </h2>
-              <p className="text-lg text-slate-500 max-w-2xl mx-auto">
+              <p className="text-lg text-slate-500 dark:text-slate-400 max-w-2xl mx-auto">
                 {t('contact.description')}
               </p>
             </motion.div>
@@ -569,8 +478,8 @@ export default function Home() {
                       <item.icon className="w-5 h-5 text-white" />
                     </div>
                     <div>
-                      <div className="text-slate-500 text-sm">{t(`contact.${item.key}`)}</div>
-                      <div className="text-lg font-semibold text-slate-800">{item.value}</div>
+                      <div className="text-slate-500 dark:text-slate-400 text-sm">{t(`contact.${item.key}`)}</div>
+                      <div className="text-lg font-semibold text-slate-800 dark:text-white">{item.value}</div>
                     </div>
                   </motion.a>
                 ))}
@@ -583,7 +492,7 @@ export default function Home() {
                     whileHover={{ scale: 1.1, y: -3 }}
                     className="p-4 glass-card rounded-xl hover:bg-ebmc-turquoise/10 transition"
                   >
-                    <Linkedin className="w-5 h-5 text-slate-600" />
+                    <Linkedin className="w-5 h-5 text-slate-600 dark:text-slate-400" />
                   </motion.a>
                 </div>
               </motion.div>
@@ -603,18 +512,18 @@ export default function Home() {
         </TechSection>
 
         {/* Footer */}
-        <footer className="py-12 px-4 border-t border-slate-200/60">
+        <footer className="py-12 px-4 border-t border-slate-200/60 dark:border-slate-700/60">
           <div className="max-w-7xl mx-auto">
             <div className="flex flex-col md:flex-row items-center justify-between gap-6">
               <Link href="/">
                 <Image src="/logo.svg" alt="EBMC GROUP" width={100} height={30} className="h-7 w-auto" />
               </Link>
-              <div className="flex items-center gap-6 text-sm text-slate-500">
+              <div className="flex items-center gap-6 text-sm text-slate-500 dark:text-slate-400">
                 <Link href="/careers" className="hover:text-ebmc-turquoise transition">Carrières</Link>
                 <a href="#contact" className="hover:text-ebmc-turquoise transition">Contact</a>
                 <Link href="/login" className="hover:text-ebmc-turquoise transition">Connexion</Link>
               </div>
-              <p className="text-sm text-slate-400">
+              <p className="text-sm text-slate-400 dark:text-slate-500">
                 © {new Date().getFullYear()} EBMC GROUP. Tous droits réservés.
               </p>
             </div>

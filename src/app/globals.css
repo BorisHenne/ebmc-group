@@ -12,22 +12,37 @@
     --accent: 35 138 147;
   }
 
+  .dark {
+    --background: 15 23 42;
+    --foreground: 248 250 252;
+  }
+
   body {
     @apply antialiased;
     font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     background: linear-gradient(135deg, #f8fafc 0%, #f0fdfa 50%, #ecfeff 100%);
     min-height: 100vh;
+    @apply transition-colors duration-300;
+  }
+
+  .dark body,
+  html.dark body {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
   }
 
   ::selection {
     @apply bg-ebmc-turquoise/30 text-slate-900;
+  }
+
+  .dark ::selection {
+    @apply bg-ebmc-turquoise/30 text-white;
   }
 }
 
 @layer components {
   /* Glass Card - Premium glassmorphism */
   .glass-card {
-    @apply relative overflow-hidden;
+    @apply relative overflow-hidden transition-colors duration-300;
     background: rgba(255, 255, 255, 0.7);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
@@ -37,6 +52,15 @@
       0 4px 24px -1px rgba(0, 0, 0, 0.05),
       0 2px 8px -1px rgba(0, 0, 0, 0.03),
       inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  }
+
+  .dark .glass-card {
+    background: rgba(30, 41, 59, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow:
+      0 4px 24px -1px rgba(0, 0, 0, 0.3),
+      0 2px 8px -1px rgba(0, 0, 0, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
   }
 
   .glass-card::before {
@@ -49,6 +73,14 @@
       rgba(255, 255, 255, 0.1) 100%
     );
     pointer-events: none;
+  }
+
+  .dark .glass-card::before {
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.05) 0%,
+      rgba(255, 255, 255, 0.02) 100%
+    );
   }
 
   /* Glass Card Dark - For dark sections */
@@ -72,6 +104,11 @@
     border: 1px solid rgba(255, 255, 255, 0.5);
   }
 
+  .dark .glass {
+    background: rgba(30, 41, 59, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
   /* Button with gradient */
   .btn-primary {
     @apply relative inline-flex items-center justify-center gap-2 px-6 py-3 overflow-hidden font-medium text-white transition-all duration-300 rounded-full;
@@ -91,6 +128,10 @@
   /* Input field */
   .input-field {
     @apply w-full px-4 py-3.5 bg-white/60 border border-slate-200 rounded-xl text-slate-800 placeholder:text-slate-400 transition-all duration-200;
+  }
+
+  .dark .input-field {
+    @apply bg-slate-800/60 border-slate-700 text-slate-100 placeholder:text-slate-500;
   }
 
   .input-field:focus {
@@ -249,6 +290,10 @@ html {
 
 ::-webkit-scrollbar-track {
   background: #f1f5f9;
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: #1e293b;
 }
 
 ::-webkit-scrollbar-thumb {

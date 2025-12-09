@@ -126,8 +126,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
     const role = user.role as RoleType
 
-    // Freelance users only see freelance portal
-    if (role === 'freelance') {
+    // Freelance and Consultant CDI users see freelance portal
+    if (role === 'freelance' || role === 'consultant') {
       return freelanceMenuSections
     }
 
@@ -162,7 +162,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       // Redirect users to their role-specific dashboard
       const role = data.user.role
-      if (role === 'freelance' && !pathname.startsWith('/admin/freelance')) {
+      // Freelance and Consultant CDI go to freelance portal
+      if ((role === 'freelance' || role === 'consultant') && !pathname.startsWith('/admin/freelance')) {
         router.push('/admin/freelance')
       } else if (role === 'sourceur' && pathname === '/admin') {
         router.push('/admin/sourceur')
@@ -222,7 +223,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <div className="h-full m-4 glass-card rounded-2xl flex flex-col overflow-hidden">
       {/* Logo */}
       <div className="p-6 border-b border-slate-200/50">
-        <Link href={user?.role === 'freelance' ? '/admin/freelance' : '/admin'} className="flex items-center gap-3">
+        <Link href={(user?.role === 'freelance' || user?.role === 'consultant') ? '/admin/freelance' : '/admin'} className="flex items-center gap-3">
           <Image
             src="/logo.svg"
             alt="EBMC GROUP"

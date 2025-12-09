@@ -8,14 +8,19 @@ import { useTranslations } from 'next-intl'
 import { LogIn, Menu, X, Sparkles } from 'lucide-react'
 import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 import { ShimmerButton } from '@/components/ui/aceternity'
+import { ThemeToggleCompact } from '@/components/ThemeToggle'
+import { useTheme } from '@/components/ThemeProvider'
 
 interface NavigationProps {
   currentPage?: 'home' | 'consultants' | 'careers' | 'login'
-  variant?: 'dark' | 'light'
+  variant?: 'dark' | 'light' | 'auto'
 }
 
-export function Navigation({ currentPage = 'home', variant = 'dark' }: NavigationProps) {
-  const isLight = variant === 'light'
+export function Navigation({ currentPage = 'home', variant = 'auto' }: NavigationProps) {
+  const { resolvedTheme } = useTheme()
+  // Auto variant uses the current theme, otherwise respect the explicit variant
+  const effectiveVariant = variant === 'auto' ? (resolvedTheme === 'dark' ? 'dark' : 'light') : variant
+  const isLight = effectiveVariant === 'light'
   const t = useTranslations()
   const [locale, setLocale] = useState('fr')
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -81,7 +86,8 @@ export function Navigation({ currentPage = 'home', variant = 'dark' }: Navigatio
 
             {/* Right side */}
             <div className="hidden lg:flex items-center gap-4">
-              <LanguageSwitcher locale={locale} variant={variant} />
+              <ThemeToggleCompact variant={effectiveVariant} />
+              <LanguageSwitcher locale={locale} variant={effectiveVariant} />
               <Link
                 href="/login"
                 className={`flex items-center gap-2 px-4 py-2 text-sm transition ${
@@ -100,8 +106,9 @@ export function Navigation({ currentPage = 'home', variant = 'dark' }: Navigatio
             </div>
 
             {/* Mobile menu button */}
-            <div className="flex items-center gap-4 lg:hidden">
-              <LanguageSwitcher locale={locale} variant={variant} />
+            <div className="flex items-center gap-3 lg:hidden">
+              <ThemeToggleCompact variant={effectiveVariant} />
+              <LanguageSwitcher locale={locale} variant={effectiveVariant} />
               <button
                 className={`p-2 ${isLight ? 'text-slate-800' : 'text-white'}`}
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
