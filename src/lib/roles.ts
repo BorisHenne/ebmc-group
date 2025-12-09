@@ -5,6 +5,9 @@ export type RoleType = 'admin' | 'sourceur' | 'commercial' | 'freelance' | 'user
 export interface RolePermissions {
   // Dashboard access
   dashboard: boolean
+  // Role-specific dashboards
+  sourceurDashboard: boolean
+  commercialDashboard: boolean
   // Admin modules
   jobs: boolean
   consultants: boolean
@@ -29,6 +32,8 @@ export interface RolePermissions {
 export const ROLE_PERMISSIONS: Record<RoleType, RolePermissions> = {
   admin: {
     dashboard: true,
+    sourceurDashboard: true,
+    commercialDashboard: true,
     jobs: true,
     consultants: true,
     messages: true,
@@ -40,17 +45,19 @@ export const ROLE_PERMISSIONS: Record<RoleType, RolePermissions> = {
     docs: true,
     settings: true,
     freelancePortal: false,
-    scraper: true, // Admin can use CV scraper
+    scraper: true,
     canAssignJobs: true,
     canAssignConsultants: true,
     viewAllData: true,
     viewAssignedOnly: false,
   },
   sourceur: {
-    dashboard: true,
+    dashboard: false, // Sourceur uses their specific dashboard
+    sourceurDashboard: true,
+    commercialDashboard: false,
     jobs: false,
-    consultants: true, // Access to candidates/consultants
-    messages: true, // Access to leads/messages
+    consultants: true,
+    messages: true,
     users: false,
     roles: false,
     webhooks: false,
@@ -59,16 +66,18 @@ export const ROLE_PERMISSIONS: Record<RoleType, RolePermissions> = {
     docs: true,
     settings: false,
     freelancePortal: false,
-    scraper: true, // Sourceur can use CV scraper - main sourcing tool
+    scraper: true,
     canAssignJobs: false,
     canAssignConsultants: false,
-    viewAllData: true,
-    viewAssignedOnly: false,
+    viewAllData: false,
+    viewAssignedOnly: true,
   },
   commercial: {
-    dashboard: true,
-    jobs: true, // Access to assigned jobs
-    consultants: true, // Access to assigned consultants
+    dashboard: false, // Commercial uses their specific dashboard
+    sourceurDashboard: false,
+    commercialDashboard: true,
+    jobs: true,
+    consultants: true,
     messages: false,
     users: false,
     roles: false,
@@ -78,14 +87,16 @@ export const ROLE_PERMISSIONS: Record<RoleType, RolePermissions> = {
     docs: true,
     settings: false,
     freelancePortal: false,
-    scraper: false, // Commercial doesn't need scraper
+    scraper: false,
     canAssignJobs: false,
     canAssignConsultants: false,
     viewAllData: false,
-    viewAssignedOnly: true, // Only see assigned data
+    viewAssignedOnly: true,
   },
   freelance: {
     dashboard: false,
+    sourceurDashboard: false,
+    commercialDashboard: false,
     jobs: false,
     consultants: false,
     messages: false,
@@ -96,7 +107,7 @@ export const ROLE_PERMISSIONS: Record<RoleType, RolePermissions> = {
     demoData: false,
     docs: false,
     settings: false,
-    freelancePortal: true, // Only access to freelance portal
+    freelancePortal: true,
     scraper: false,
     canAssignJobs: false,
     canAssignConsultants: false,
@@ -105,6 +116,8 @@ export const ROLE_PERMISSIONS: Record<RoleType, RolePermissions> = {
   },
   user: {
     dashboard: true,
+    sourceurDashboard: false,
+    commercialDashboard: false,
     jobs: true,
     consultants: true,
     messages: true,
