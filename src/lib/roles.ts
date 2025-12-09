@@ -25,6 +25,7 @@ export interface RolePermissions {
   freelancePortal: boolean
   scraper: boolean // CV scraper for sourcing
   boondManager: boolean // BoondManager CRUD
+  boondManagerAdmin: boolean // BoondManager Admin (Prod/Sandbox)
   // Data access
   canAssignJobs: boolean
   canAssignConsultants: boolean
@@ -51,6 +52,7 @@ export const ROLE_PERMISSIONS: Record<RoleType, RolePermissions> = {
     freelancePortal: false,
     scraper: true,
     boondManager: true,
+    boondManagerAdmin: true,
     canAssignJobs: true,
     canAssignConsultants: true,
     viewAllData: true,
@@ -74,6 +76,7 @@ export const ROLE_PERMISSIONS: Record<RoleType, RolePermissions> = {
     freelancePortal: false,
     scraper: true,
     boondManager: true,
+    boondManagerAdmin: false,
     canAssignJobs: false,
     canAssignConsultants: false,
     viewAllData: false,
@@ -97,6 +100,7 @@ export const ROLE_PERMISSIONS: Record<RoleType, RolePermissions> = {
     freelancePortal: false,
     scraper: false,
     boondManager: true,
+    boondManagerAdmin: false,
     canAssignJobs: false,
     canAssignConsultants: false,
     viewAllData: false,
@@ -122,6 +126,7 @@ export const ROLE_PERMISSIONS: Record<RoleType, RolePermissions> = {
     freelancePortal: true, // Acces au portail CRA/absences
     scraper: false,
     boondManager: false,
+    boondManagerAdmin: false,
     canAssignJobs: false,
     canAssignConsultants: false,
     viewAllData: false,
@@ -145,6 +150,7 @@ export const ROLE_PERMISSIONS: Record<RoleType, RolePermissions> = {
     freelancePortal: true,
     scraper: false,
     boondManager: false,
+    boondManagerAdmin: false,
     canAssignJobs: false,
     canAssignConsultants: false,
     viewAllData: false,
