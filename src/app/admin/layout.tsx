@@ -51,30 +51,65 @@ interface MenuItem {
   permission: keyof RolePermissions
 }
 
-// All possible menu items
-const allMenuItems: MenuItem[] = [
-  { href: '/admin', icon: LayoutDashboard, label: 'Dashboard', color: 'from-ebmc-turquoise to-cyan-500', permission: 'dashboard' },
-  { href: '/admin/sourceur', icon: Target, label: 'Dashboard Sourceur', color: 'from-purple-500 to-pink-500', permission: 'sourceurDashboard' },
-  { href: '/admin/commercial', icon: BarChart3, label: 'Dashboard Commercial', color: 'from-blue-500 to-indigo-500', permission: 'commercialDashboard' },
-  { href: '/admin/recrutement', icon: Kanban, label: 'Parcours recrutement', color: 'from-indigo-500 to-violet-500', permission: 'sourceurDashboard' },
-  { href: '/admin/scraper', icon: Search, label: 'Recherche CVs', color: 'from-indigo-500 to-purple-500', permission: 'scraper' },
-  { href: '/admin/jobs', icon: Briefcase, label: 'Offres d\'emploi', color: 'from-blue-500 to-indigo-500', permission: 'jobs' },
-  { href: '/admin/consultants', icon: UserCheck, label: 'Consultants', color: 'from-purple-500 to-pink-500', permission: 'consultants' },
-  { href: '/admin/messages', icon: MessageSquare, label: 'Messages', color: 'from-green-500 to-emerald-500', permission: 'messages' },
-  { href: '/admin/users', icon: Users, label: 'Utilisateurs', color: 'from-orange-500 to-amber-500', permission: 'users' },
-  { href: '/admin/roles', icon: Shield, label: 'Rôles', color: 'from-red-500 to-rose-500', permission: 'roles' },
-  { href: '/admin/webhooks', icon: Webhook, label: 'Webhooks', color: 'from-violet-500 to-purple-500', permission: 'webhooks' },
-  { href: '/admin/api-tokens', icon: Key, label: 'Tokens API', color: 'from-yellow-500 to-orange-500', permission: 'apiTokens' },
-  { href: '/admin/demo-data', icon: Database, label: 'Donnees demo', color: 'from-emerald-500 to-teal-500', permission: 'demoData' },
-  { href: '/admin/docs', icon: BookOpen, label: 'Documentation', color: 'from-teal-500 to-cyan-500', permission: 'docs' },
-  { href: '/admin/settings', icon: Settings, label: 'Parametres', color: 'from-slate-500 to-slate-600', permission: 'settings' },
+interface MenuSection {
+  title: string
+  items: MenuItem[]
+}
+
+// Menu organized by sections
+const menuSections: MenuSection[] = [
+  {
+    title: 'Tableau de bord',
+    items: [
+      { href: '/admin', icon: LayoutDashboard, label: 'Dashboard', color: 'from-ebmc-turquoise to-cyan-500', permission: 'dashboard' },
+      { href: '/admin/sourceur', icon: Target, label: 'Mon espace', color: 'from-purple-500 to-pink-500', permission: 'sourceurDashboard' },
+      { href: '/admin/commercial', icon: BarChart3, label: 'Mon espace', color: 'from-blue-500 to-indigo-500', permission: 'commercialDashboard' },
+    ]
+  },
+  {
+    title: 'Recrutement',
+    items: [
+      { href: '/admin/recrutement', icon: Kanban, label: 'Parcours candidats', color: 'from-indigo-500 to-violet-500', permission: 'recruitment' },
+      { href: '/admin/scraper', icon: Search, label: 'Recherche CVs', color: 'from-cyan-500 to-blue-500', permission: 'scraper' },
+    ]
+  },
+  {
+    title: 'Donnees',
+    items: [
+      { href: '/admin/jobs', icon: Briefcase, label: 'Offres', color: 'from-blue-500 to-indigo-500', permission: 'jobs' },
+      { href: '/admin/consultants', icon: UserCheck, label: 'Consultants', color: 'from-purple-500 to-pink-500', permission: 'consultants' },
+      { href: '/admin/messages', icon: MessageSquare, label: 'Messages', color: 'from-green-500 to-emerald-500', permission: 'messages' },
+    ]
+  },
+  {
+    title: 'Administration',
+    items: [
+      { href: '/admin/users', icon: Users, label: 'Utilisateurs', color: 'from-orange-500 to-amber-500', permission: 'users' },
+      { href: '/admin/roles', icon: Shield, label: 'Roles', color: 'from-red-500 to-rose-500', permission: 'roles' },
+      { href: '/admin/webhooks', icon: Webhook, label: 'Webhooks', color: 'from-violet-500 to-purple-500', permission: 'webhooks' },
+      { href: '/admin/api-tokens', icon: Key, label: 'Tokens API', color: 'from-yellow-500 to-orange-500', permission: 'apiTokens' },
+      { href: '/admin/demo-data', icon: Database, label: 'Donnees demo', color: 'from-emerald-500 to-teal-500', permission: 'demoData' },
+      { href: '/admin/settings', icon: Settings, label: 'Parametres', color: 'from-slate-500 to-slate-600', permission: 'settings' },
+    ]
+  },
+  {
+    title: 'Aide',
+    items: [
+      { href: '/admin/docs', icon: BookOpen, label: 'Documentation', color: 'from-teal-500 to-cyan-500', permission: 'docs' },
+    ]
+  }
 ]
 
-// Freelance portal menu items
-const freelanceMenuItems: MenuItem[] = [
-  { href: '/admin/freelance', icon: LayoutDashboard, label: 'Mon espace', color: 'from-green-500 to-emerald-500', permission: 'freelancePortal' },
-  { href: '/admin/freelance/timesheets', icon: Clock, label: 'Mes CRA', color: 'from-blue-500 to-indigo-500', permission: 'freelancePortal' },
-  { href: '/admin/freelance/absences', icon: Calendar, label: 'Mes absences', color: 'from-purple-500 to-pink-500', permission: 'freelancePortal' },
+// Freelance portal menu sections
+const freelanceMenuSections: MenuSection[] = [
+  {
+    title: 'Mon espace',
+    items: [
+      { href: '/admin/freelance', icon: LayoutDashboard, label: 'Tableau de bord', color: 'from-green-500 to-emerald-500', permission: 'freelancePortal' },
+      { href: '/admin/freelance/timesheets', icon: Clock, label: 'Mes CRA', color: 'from-blue-500 to-indigo-500', permission: 'freelancePortal' },
+      { href: '/admin/freelance/absences', icon: Calendar, label: 'Mes absences', color: 'from-purple-500 to-pink-500', permission: 'freelancePortal' },
+    ]
+  }
 ]
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -85,19 +120,24 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
 
-  // Filter menu items based on user role
-  const menuItems = useMemo(() => {
+  // Filter menu sections based on user role
+  const filteredMenuSections = useMemo(() => {
     if (!user) return []
 
     const role = user.role as RoleType
 
     // Freelance users only see freelance portal
     if (role === 'freelance') {
-      return freelanceMenuItems
+      return freelanceMenuSections
     }
 
     // Other users see filtered menu based on permissions
-    return allMenuItems.filter(item => hasPermission(role, item.permission))
+    return menuSections
+      .map(section => ({
+        ...section,
+        items: section.items.filter(item => hasPermission(role, item.permission))
+      }))
+      .filter(section => section.items.length > 0)
   }, [user])
 
   // Handle resize to detect mobile
@@ -175,7 +215,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     )
   }
 
-  const renderSidebar = (mobile = false) => (
+  const renderSidebar = (mobile = false) => {
+    let itemIndex = 0
+
+    return (
     <div className="h-full m-4 glass-card rounded-2xl flex flex-col overflow-hidden">
       {/* Logo */}
       <div className="p-6 border-b border-slate-200/50">
@@ -190,41 +233,53 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </Link>
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-1.5 overflow-y-auto">
-        {menuItems.map((item, index) => {
-          const isActive = pathname === item.href || (item.href !== '/admin' && item.href !== '/admin/freelance' && pathname.startsWith(item.href))
-          return (
-            <motion.div
-              key={item.href}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: index * 0.05 }}
-            >
-              <Link
-                href={item.href}
-                onClick={mobile ? () => setSidebarOpen(false) : undefined}
-                className={`group flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
-                  isActive
-                    ? 'bg-gradient-to-r ' + item.color + ' text-white shadow-lg shadow-ebmc-turquoise/20'
-                    : 'text-slate-600 hover:bg-white/50 hover:text-slate-900'
-                }`}
-              >
-                <div className={`p-1.5 rounded-lg ${
-                  isActive
-                    ? 'bg-white/20'
-                    : 'bg-gradient-to-r ' + item.color + ' bg-clip-padding'
-                }`}>
-                  <item.icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-white'}`} />
-                </div>
-                <span className="font-medium text-sm">{item.label}</span>
-                {isActive && (
-                  <ChevronRight className="w-4 h-4 ml-auto" />
-                )}
-              </Link>
-            </motion.div>
-          )
-        })}
+      {/* Navigation with sections */}
+      <nav className="flex-1 p-4 overflow-y-auto">
+        {filteredMenuSections.map((section, sectionIndex) => (
+          <div key={section.title} className={sectionIndex > 0 ? 'mt-6' : ''}>
+            {/* Section title */}
+            <h3 className="px-4 mb-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+              {section.title}
+            </h3>
+            {/* Section items */}
+            <div className="space-y-1">
+              {section.items.map((item) => {
+                const isActive = pathname === item.href || (item.href !== '/admin' && item.href !== '/admin/freelance' && pathname.startsWith(item.href))
+                const currentIndex = itemIndex++
+                return (
+                  <motion.div
+                    key={item.href}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: currentIndex * 0.03 }}
+                  >
+                    <Link
+                      href={item.href}
+                      onClick={mobile ? () => setSidebarOpen(false) : undefined}
+                      className={`group flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 ${
+                        isActive
+                          ? 'bg-gradient-to-r ' + item.color + ' text-white shadow-lg shadow-ebmc-turquoise/20'
+                          : 'text-slate-600 hover:bg-white/50 hover:text-slate-900'
+                      }`}
+                    >
+                      <div className={`p-1.5 rounded-lg ${
+                        isActive
+                          ? 'bg-white/20'
+                          : 'bg-gradient-to-r ' + item.color + ' bg-clip-padding'
+                      }`}>
+                        <item.icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-white'}`} />
+                      </div>
+                      <span className="font-medium text-sm">{item.label}</span>
+                      {isActive && (
+                        <ChevronRight className="w-4 h-4 ml-auto" />
+                      )}
+                    </Link>
+                  </motion.div>
+                )
+              })}
+            </div>
+          </div>
+        ))}
       </nav>
 
       {/* User & Logout */}
@@ -247,11 +302,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           className="flex items-center gap-3 w-full px-4 py-3 text-slate-600 hover:bg-red-50 hover:text-red-600 rounded-xl transition-all group"
         >
           <LogOut className="w-5 h-5 group-hover:rotate-12 transition-transform" />
-          <span className="font-medium text-sm">Déconnexion</span>
+          <span className="font-medium text-sm">Deconnexion</span>
         </button>
       </div>
     </div>
-  )
+    )
+  }
 
   return (
     <LightBackground>
