@@ -200,10 +200,11 @@ export default function Home() {
 
                 {/* Desktop Login Button */}
                 <div className="hidden md:block">
-                  <Link href="/login">
-                    <ShimmerButton className="text-sm py-2 px-5">
-                      Connexion
-                    </ShimmerButton>
+                  <Link
+                    href="/login"
+                    className="text-sm font-medium text-slate-600 hover:text-ebmc-turquoise transition px-4 py-2 rounded-lg hover:bg-ebmc-turquoise/5"
+                  >
+                    Connexion
                   </Link>
                 </div>
 
@@ -254,13 +255,13 @@ export default function Home() {
                     >
                       Contact
                     </a>
-                    <div className="pt-3 mt-2 border-t border-slate-200/60">
-                      <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
-                        <ShimmerButton className="text-sm py-2 px-5 w-full justify-center">
-                          Connexion
-                        </ShimmerButton>
-                      </Link>
-                    </div>
+                    <Link
+                      href="/login"
+                      className="py-3 px-2 text-sm font-medium text-slate-600 hover:text-ebmc-turquoise hover:bg-slate-50 rounded-lg transition"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      Connexion
+                    </Link>
                   </div>
                 </motion.div>
               )}

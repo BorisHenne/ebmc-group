@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Lock, Mail, AlertCircle, Loader2, ArrowLeft, Sparkles, Building2, ExternalLink } from 'lucide-react'
+import { Lock, Mail, AlertCircle, Loader2, ArrowLeft, Sparkles, Building2, ExternalLink, Users } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { TechBackground } from '@/components/ui/TechBackground'
@@ -11,12 +11,20 @@ import { ShimmerButton, TextGradient } from '@/components/ui/aceternity'
 
 type AuthMode = 'standard' | 'boondmanager'
 
+// Demo users for testing
+const demoUsers = [
+  { email: 'admin@ebmc-group.com', password: 'admin123', role: 'Admin', color: 'from-red-500 to-rose-500' },
+  { email: 'sourceur@ebmc-group.com', password: 'sourceur123', role: 'Sourceur', color: 'from-purple-500 to-indigo-500' },
+  { email: 'commercial@ebmc-group.com', password: 'commercial123', role: 'Commercial', color: 'from-blue-500 to-cyan-500' },
+  { email: 'freelance@ebmc-group.com', password: 'freelance123', role: 'Freelance', color: 'from-green-500 to-emerald-500' },
+  { email: 'user@ebmc-group.com', password: 'user123', role: 'User', color: 'from-slate-500 to-slate-600' },
+]
+
 export default function LoginPage() {
   const router = useRouter()
-  const [authMode, setAuthMode] = useState<AuthMode>('standard')
+  const [authMode, setAuthMode] = useState<AuthMode>('boondmanager')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [subdomain, setSubdomain] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -58,7 +66,7 @@ export default function LoginPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ email, password, subdomain })
+        body: JSON.stringify({ email, password, subdomain: 'ui' })
       })
 
       const data = await res.json()
@@ -79,13 +87,19 @@ export default function LoginPage() {
   const resetForm = () => {
     setEmail('')
     setPassword('')
-    setSubdomain('')
     setError('')
   }
 
   const switchMode = (mode: AuthMode) => {
     resetForm()
     setAuthMode(mode)
+  }
+
+  const fillDemoCredentials = (demoEmail: string, demoPassword: string) => {
+    setAuthMode('standard')
+    setEmail(demoEmail)
+    setPassword(demoPassword)
+    setError('')
   }
 
   return (
@@ -259,26 +273,6 @@ export default function LoginPage() {
 
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Sous-domaine BoondManager
-                    </label>
-                    <div className="relative group">
-                      <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-ebmc-turquoise transition-colors" />
-                      <input
-                        type="text"
-                        value={subdomain}
-                        onChange={(e) => setSubdomain(e.target.value)}
-                        className="w-full pl-12 pr-4 py-3.5 bg-white/50 border border-slate-200 rounded-xl text-slate-800 placeholder:text-slate-400 focus:border-ebmc-turquoise focus:ring-2 focus:ring-ebmc-turquoise/20 outline-none transition-all"
-                        placeholder="votre-entreprise"
-                        required
-                      />
-                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-slate-400">
-                        .boondmanager.com
-                      </span>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
                       Email BoondManager
                     </label>
                     <div className="relative group">
@@ -347,18 +341,43 @@ export default function LoginPage() {
               )}
             </AnimatePresence>
 
-            {/* Footer hint */}
-            <div className="mt-8 pt-6 border-t border-slate-200/60 text-center">
-              {authMode === 'standard' ? (
-                <p className="text-slate-400 text-xs">
-                  Première connexion ? Utilisez <span className="text-slate-600">admin@ebmc-group.com</span>
-                </p>
-              ) : (
+            {/* Demo Users Section - only shown in standard mode */}
+            {authMode === 'standard' && (
+              <div className="mt-8 pt-6 border-t border-slate-200/60">
+                <div className="flex items-center gap-2 mb-4">
+                  <Users className="w-4 h-4 text-slate-400" />
+                  <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">Comptes de test</span>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {demoUsers.map((user) => (
+                    <button
+                      key={user.email}
+                      onClick={() => fillDemoCredentials(user.email, user.password)}
+                      className="group p-2.5 rounded-lg bg-slate-50 hover:bg-white border border-slate-100 hover:border-slate-200 transition-all text-left"
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className={`w-6 h-6 rounded-full bg-gradient-to-r ${user.color} flex items-center justify-center`}>
+                          <span className="text-white text-xs font-bold">{user.role.charAt(0)}</span>
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-medium text-slate-700 truncate">{user.role}</p>
+                          <p className="text-[10px] text-slate-400 truncate">{user.email.split('@')[0]}</p>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* BoondManager hint */}
+            {authMode === 'boondmanager' && (
+              <div className="mt-8 pt-6 border-t border-slate-200/60 text-center">
                 <p className="text-slate-400 text-xs">
                   Activez l&apos;API REST dans votre profil BoondManager
                 </p>
-              )}
-            </div>
+              </div>
+            )}
           </motion.div>
 
           {/* Decorative elements */}
