@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import {
@@ -13,7 +13,6 @@ import {
   ArrowDownRight,
   Target,
   Euro,
-  Calendar,
   Clock,
   Search,
   Building2,
@@ -33,9 +32,17 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  ResponsiveContainer,
-  Legend
+  ResponsiveContainer
 } from 'recharts'
+import {
+  generateDemoCandidates,
+  getCandidateCountsByStatus,
+  getAverageTJM,
+  STATUS_LABELS,
+  STATUS_COLORS,
+  SAP_MODULES,
+  CandidateStatus
+} from '@/types/candidate'
 
 // Types for dashboard data
 interface TeamMember {
@@ -84,23 +91,7 @@ const monthlyData = [
   { month: 'Déc', candidats: 54, embauches: 11, opportunites: 15 },
 ]
 
-const pipelineData = [
-  { name: 'À qualifier', value: 45, color: '#94a3b8' },
-  { name: 'Qualifié', value: 32, color: '#06b6d4' },
-  { name: 'En cours', value: 28, color: '#8b5cf6' },
-  { name: 'Entretien', value: 18, color: '#f59e0b' },
-  { name: 'Proposition', value: 12, color: '#3b82f6' },
-  { name: 'Embauché', value: 8, color: '#10b981' },
-]
-
-const moduleStats = [
-  { module: 'SAP FI CO', candidates: 45, placements: 12 },
-  { module: 'SAP SD', candidates: 38, placements: 9 },
-  { module: 'SAP MM', candidates: 32, placements: 8 },
-  { module: 'SAP PP', candidates: 25, placements: 6 },
-  { module: 'SAP ABAP', candidates: 28, placements: 7 },
-  { module: 'S/4HANA', candidates: 22, placements: 5 },
-]
+// Pipeline data will be computed from shared candidates
 
 // Demo team members
 const sourceurs: TeamMember[] = [
@@ -118,20 +109,63 @@ const commerciaux: TeamMember[] = [
 ]
 
 export default function AdminDashboard() {
-  const [stats, setStats] = useState<DashboardStats>({
-    totalCandidates: 524,
-    candidatesThisMonth: 78,
-    candidatesGrowth: 12.5,
-    totalConsultants: 89,
-    consultantsActive: 72,
-    totalOpportunities: 143,
-    opportunitiesWon: 55,
-    conversionRate: 38.5,
-    avgTJM: 685,
-    totalRevenue: 2699000,
-    revenueGrowth: 18.3,
-  })
   const [loading, setLoading] = useState(true)
+
+  // Use same seed (42) as recruitment page for consistency
+  const candidates = useMemo(() => generateDemoCandidates(24, 42), [])
+  const statusCounts = useMemo(() => getCandidateCountsByStatus(candidates), [candidates])
+  const avgTJM = useMemo(() => getAverageTJM(candidates), [candidates])
+
+  // Compute pipeline data from real candidates
+  const pipelineData = useMemo(() => {
+    const statuses: CandidateStatus[] = ['a_qualifier', 'qualifie', 'en_cours', 'entretien', 'proposition', 'embauche']
+    return statuses.map(status => ({
+      name: STATUS_LABELS[status],
+      value: statusCounts[status],
+      color: STATUS_COLORS[status]
+    }))
+  }, [statusCounts])
+
+  // Compute module stats from real candidates
+  const moduleStats = useMemo(() => {
+    const moduleCounts: Record<string, { candidates: number; placements: number }> = {}
+
+    candidates.forEach(c => {
+      c.modules.forEach(mod => {
+        if (!moduleCounts[mod]) {
+          moduleCounts[mod] = { candidates: 0, placements: 0 }
+        }
+        moduleCounts[mod].candidates++
+        if (c.status === 'embauche') {
+          moduleCounts[mod].placements++
+        }
+      })
+    })
+
+    return Object.entries(moduleCounts)
+      .map(([module, data]) => ({ module, ...data }))
+      .sort((a, b) => b.candidates - a.candidates)
+      .slice(0, 6)
+  }, [candidates])
+
+  // Compute stats from real candidates
+  const stats = useMemo<DashboardStats>(() => ({
+    totalCandidates: candidates.length,
+    candidatesThisMonth: candidates.filter(c => {
+      const createdAt = new Date(c.createdAt)
+      const now = new Date()
+      return createdAt.getMonth() === now.getMonth() && createdAt.getFullYear() === now.getFullYear()
+    }).length,
+    candidatesGrowth: 12.5,
+    totalConsultants: statusCounts.embauche,
+    consultantsActive: statusCounts.embauche,
+    totalOpportunities: statusCounts.proposition + statusCounts.entretien + statusCounts.en_cours,
+    opportunitiesWon: statusCounts.embauche,
+    conversionRate: candidates.length > 0 ? Math.round((statusCounts.embauche / candidates.length) * 100 * 10) / 10 : 0,
+    avgTJM,
+    totalRevenue: statusCounts.embauche * avgTJM * 220, // Approximate yearly revenue
+    revenueGrowth: 18.3,
+  }), [candidates, statusCounts, avgTJM])
 
   useEffect(() => {
     // Simulate loading

@@ -127,3 +127,114 @@ export const STATUS_COLORS: Record<CandidateStatus, string> = {
   proposition: '#3b82f6',
   embauche: '#10b981'
 }
+
+// Seeded random for consistent demo data
+function seededRandom(seed: number) {
+  const x = Math.sin(seed++) * 10000
+  return x - Math.floor(x)
+}
+
+// Generate demo candidates with BoondManager structure - shared across app
+export function generateDemoCandidates(count: number = 24, seed: number = 42): Candidate[] {
+  const firstNames = ['Jean', 'Marie', 'Pierre', 'Sophie', 'Thomas', 'Julie', 'Nicolas', 'Emma', 'Lucas', 'Léa', 'Hugo', 'Chloé', 'Alexandre', 'Camille', 'Maxime', 'Sarah', 'Antoine', 'Laura', 'Mathieu', 'Clara']
+  const lastNames = ['Martin', 'Bernard', 'Dubois', 'Thomas', 'Robert', 'Richard', 'Petit', 'Durand', 'Leroy', 'Moreau', 'Simon', 'Laurent', 'Lefebvre', 'Michel', 'Garcia', 'Roux', 'Vincent', 'Fournier', 'Morel', 'Girard']
+  const cities = ['Paris', 'Lyon', 'Marseille', 'Toulouse', 'Nantes', 'Bordeaux', 'Lille', 'Nice', 'Strasbourg', 'Luxembourg']
+  const sources = ['LinkedIn', 'Indeed', 'Site Web', 'Cooptation', 'CVthèque', 'JobBoard', 'Réseau', 'Salon']
+  const statuses: CandidateStatus[] = ['a_qualifier', 'qualifie', 'en_cours', 'entretien', 'proposition', 'embauche']
+
+  let currentSeed = seed
+
+  return Array.from({ length: count }, (_, i) => {
+    const getRandom = () => {
+      currentSeed++
+      return seededRandom(currentSeed)
+    }
+
+    const firstName = firstNames[Math.floor(getRandom() * firstNames.length)]
+    const lastName = lastNames[Math.floor(getRandom() * lastNames.length)]
+    const status = statuses[Math.floor(getRandom() * statuses.length)]
+    const yearsExp = Math.floor(getRandom() * 15) + 2
+    const city = cities[Math.floor(getRandom() * cities.length)]
+
+    // Determine seniority based on years
+    const seniority: Seniority = yearsExp < 3 ? 'Junior' : yearsExp < 6 ? 'Confirmé' : yearsExp < 10 ? 'Senior' : 'Expert'
+
+    // Random modules (1-3)
+    const numModules = Math.floor(getRandom() * 3) + 1
+    const shuffledModules = [...SAP_MODULES].sort(() => getRandom() - 0.5)
+    const modules = shuffledModules.slice(0, numModules)
+
+    // Random sub-modules (1-4)
+    const numSubModules = Math.floor(getRandom() * 4) + 1
+    const shuffledSubModules = [...SAP_SUB_MODULES].sort(() => getRandom() - 0.5)
+    const subModules = shuffledSubModules.slice(0, numSubModules)
+
+    // TJM based on seniority
+    const baseTjm = seniority === 'Junior' ? 400 : seniority === 'Confirmé' ? 550 : seniority === 'Senior' ? 700 : 850
+    const tjmVariation = Math.floor(getRandom() * 100)
+
+    return {
+      id: `candidate-${i + 1}`,
+      firstName,
+      lastName,
+      email: `${firstName.toLowerCase()}.${lastName.toLowerCase()}@example.com`,
+      phone: `+33 6 ${Math.floor(getRandom() * 90 + 10)} ${Math.floor(getRandom() * 90 + 10)} ${Math.floor(getRandom() * 90 + 10)} ${Math.floor(getRandom() * 90 + 10)}`,
+      title: JOB_FAMILIES[Math.floor(getRandom() * JOB_FAMILIES.length)],
+      jobFamily: JOB_FAMILIES[Math.floor(getRandom() * JOB_FAMILIES.length)],
+      modules: modules as Candidate['modules'],
+      subModules: subModules as Candidate['subModules'],
+      experience: {
+        years: yearsExp,
+        seniority
+      },
+      certifications: getRandom() > 0.5 ? ['SAP S/4HANA Finance', 'SAP Activate'].slice(0, Math.floor(getRandom() * 2) + 1) : [],
+      availability: {
+        isAvailable: getRandom() > 0.3,
+        availableIn: ['Immédiat', '1 mois', '2 mois', '3 mois'][Math.floor(getRandom() * 4)]
+      },
+      location: {
+        city,
+        country: city === 'Luxembourg' ? 'Luxembourg' : 'France'
+      },
+      mobility: [['Locale', 'IDF', 'France'][Math.floor(getRandom() * 3)]] as Candidate['mobility'],
+      remoteWork: getRandom() > 0.4,
+      dailyRate: {
+        min: baseTjm,
+        max: baseTjm + tjmVariation + 100,
+        target: baseTjm + tjmVariation,
+        currency: 'EUR'
+      },
+      languages: ['Français', ...(getRandom() > 0.3 ? ['Anglais'] : [])] as Candidate['languages'],
+      status,
+      source: sources[Math.floor(getRandom() * sources.length)],
+      createdAt: new Date(Date.now() - Math.floor(getRandom() * 30) * 24 * 60 * 60 * 1000).toISOString(),
+      lastActivity: new Date(Date.now() - Math.floor(getRandom() * 7) * 24 * 60 * 60 * 1000).toISOString(),
+    } as Candidate
+  })
+}
+
+// Get counts by status
+export function getCandidateCountsByStatus(candidates: Candidate[]): Record<CandidateStatus, number> {
+  const counts: Record<CandidateStatus, number> = {
+    a_qualifier: 0,
+    qualifie: 0,
+    en_cours: 0,
+    entretien: 0,
+    proposition: 0,
+    embauche: 0
+  }
+
+  candidates.forEach(c => {
+    counts[c.status]++
+  })
+
+  return counts
+}
+
+// Get average TJM
+export function getAverageTJM(candidates: Candidate[]): number {
+  const withTjm = candidates.filter(c => c.dailyRate?.target)
+  if (withTjm.length === 0) return 0
+  const total = withTjm.reduce((sum, c) => sum + (c.dailyRate?.target || 0), 0)
+  return Math.round(total / withTjm.length)
+}
