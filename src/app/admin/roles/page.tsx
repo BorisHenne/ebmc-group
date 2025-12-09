@@ -49,12 +49,12 @@ const PERMISSION_GROUPS = [
   {
     id: 'integration',
     label: 'Intégrations',
-    permissions: ['webhooks', 'apiTokens', 'boondManager', 'scraper', 'demoData', 'docs']
+    permissions: ['webhooks', 'apiTokens', 'boondManager', 'boondManagerAdmin', 'scraper', 'demoData', 'docs']
   },
   {
     id: 'portal',
     label: 'Portail Consultant',
-    permissions: ['consultantPortal']
+    permissions: ['freelancePortal', 'consultantPortal']
   },
   {
     id: 'data_access',
@@ -81,9 +81,11 @@ const PERMISSION_LABELS: Record<keyof RolePermissions, string> = {
   demoData: 'Données de démo',
   docs: 'Documentation',
   settings: 'Paramètres',
+  freelancePortal: 'Portail Freelance',
   consultantPortal: 'Portail Consultant/Freelance',
   scraper: 'Scraper CV',
   boondManager: 'BoondManager',
+  boondManagerAdmin: 'BoondManager Admin (Prod/Sandbox)',
   canAssignJobs: 'Assigner des offres',
   canAssignConsultants: 'Assigner des consultants',
   canManageContracts: 'Gérer les contrats',

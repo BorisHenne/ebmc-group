@@ -230,3 +230,181 @@ describe('Role Labels and Colors', () => {
     expect(def.icon).toBeTruthy()
   })
 })
+
+describe('Portal Permissions', () => {
+  describe('consultantPortal permission', () => {
+    test('consultant_cdi should have consultantPortal access', () => {
+      expect(hasPermission('consultant_cdi', 'consultantPortal')).toBe(true)
+    })
+
+    test('freelance should have consultantPortal access', () => {
+      expect(hasPermission('freelance', 'consultantPortal')).toBe(true)
+    })
+
+    test('candidat should NOT have consultantPortal access', () => {
+      expect(hasPermission('candidat', 'consultantPortal')).toBe(false)
+    })
+
+    test('admin should NOT have consultantPortal access (admin uses main dashboard)', () => {
+      expect(hasPermission('admin', 'consultantPortal')).toBe(false)
+    })
+
+    test('bureau roles should NOT have consultantPortal access', () => {
+      expect(hasPermission('commercial', 'consultantPortal')).toBe(false)
+      expect(hasPermission('sourceur', 'consultantPortal')).toBe(false)
+      expect(hasPermission('rh', 'consultantPortal')).toBe(false)
+    })
+  })
+
+  describe('freelancePortal permission', () => {
+    test('consultant_cdi should have freelancePortal access', () => {
+      expect(hasPermission('consultant_cdi', 'freelancePortal')).toBe(true)
+    })
+
+    test('freelance should have freelancePortal access', () => {
+      expect(hasPermission('freelance', 'freelancePortal')).toBe(true)
+    })
+
+    test('candidat should NOT have freelancePortal access', () => {
+      expect(hasPermission('candidat', 'freelancePortal')).toBe(false)
+    })
+
+    test('bureau roles should NOT have freelancePortal access', () => {
+      expect(hasPermission('admin', 'freelancePortal')).toBe(false)
+      expect(hasPermission('commercial', 'freelancePortal')).toBe(false)
+      expect(hasPermission('sourceur', 'freelancePortal')).toBe(false)
+      expect(hasPermission('rh', 'freelancePortal')).toBe(false)
+    })
+  })
+
+  describe('consultantPortal and freelancePortal should be equivalent for terrain roles', () => {
+    test('consultant_cdi should have same access for both portals', () => {
+      expect(hasPermission('consultant_cdi', 'consultantPortal')).toBe(
+        hasPermission('consultant_cdi', 'freelancePortal')
+      )
+    })
+
+    test('freelance should have same access for both portals', () => {
+      expect(hasPermission('freelance', 'consultantPortal')).toBe(
+        hasPermission('freelance', 'freelancePortal')
+      )
+    })
+  })
+})
+
+describe('BoondManager Permissions', () => {
+  describe('boondManager permission', () => {
+    test('admin should have boondManager access', () => {
+      expect(hasPermission('admin', 'boondManager')).toBe(true)
+    })
+
+    test('commercial should have boondManager access', () => {
+      expect(hasPermission('commercial', 'boondManager')).toBe(true)
+    })
+
+    test('sourceur should have boondManager access', () => {
+      expect(hasPermission('sourceur', 'boondManager')).toBe(true)
+    })
+
+    test('rh should have boondManager access', () => {
+      expect(hasPermission('rh', 'boondManager')).toBe(true)
+    })
+
+    test('terrain roles should NOT have boondManager access', () => {
+      expect(hasPermission('consultant_cdi', 'boondManager')).toBe(false)
+      expect(hasPermission('freelance', 'boondManager')).toBe(false)
+      expect(hasPermission('candidat', 'boondManager')).toBe(false)
+    })
+  })
+
+  describe('boondManagerAdmin permission', () => {
+    test('only admin should have boondManagerAdmin access', () => {
+      expect(hasPermission('admin', 'boondManagerAdmin')).toBe(true)
+    })
+
+    test('commercial should NOT have boondManagerAdmin access', () => {
+      expect(hasPermission('commercial', 'boondManagerAdmin')).toBe(false)
+    })
+
+    test('sourceur should NOT have boondManagerAdmin access', () => {
+      expect(hasPermission('sourceur', 'boondManagerAdmin')).toBe(false)
+    })
+
+    test('rh should NOT have boondManagerAdmin access', () => {
+      expect(hasPermission('rh', 'boondManagerAdmin')).toBe(false)
+    })
+
+    test('terrain roles should NOT have boondManagerAdmin access', () => {
+      expect(hasPermission('consultant_cdi', 'boondManagerAdmin')).toBe(false)
+      expect(hasPermission('freelance', 'boondManagerAdmin')).toBe(false)
+      expect(hasPermission('candidat', 'boondManagerAdmin')).toBe(false)
+    })
+  })
+})
+
+describe('Scraper Permissions', () => {
+  test('admin should have scraper access', () => {
+    expect(hasPermission('admin', 'scraper')).toBe(true)
+  })
+
+  test('sourceur should have scraper access', () => {
+    expect(hasPermission('sourceur', 'scraper')).toBe(true)
+  })
+
+  test('commercial should NOT have scraper access', () => {
+    expect(hasPermission('commercial', 'scraper')).toBe(false)
+  })
+
+  test('rh should NOT have scraper access', () => {
+    expect(hasPermission('rh', 'scraper')).toBe(false)
+  })
+
+  test('terrain roles should NOT have scraper access', () => {
+    expect(hasPermission('consultant_cdi', 'scraper')).toBe(false)
+    expect(hasPermission('freelance', 'scraper')).toBe(false)
+    expect(hasPermission('candidat', 'scraper')).toBe(false)
+  })
+})
+
+describe('All Permissions Exist in RolePermissions', () => {
+  const allPermissions = [
+    'dashboard',
+    'sourceurDashboard',
+    'commercialDashboard',
+    'rhDashboard',
+    'recruitment',
+    'jobs',
+    'consultants',
+    'candidates',
+    'messages',
+    'users',
+    'roles',
+    'webhooks',
+    'apiTokens',
+    'demoData',
+    'docs',
+    'settings',
+    'freelancePortal',
+    'consultantPortal',
+    'scraper',
+    'boondManager',
+    'boondManagerAdmin',
+    'canAssignJobs',
+    'canAssignConsultants',
+    'canManageContracts',
+    'viewAllData',
+    'viewAssignedOnly',
+  ] as const
+
+  test.each(allPermissions)('%s permission should exist in admin permissions', (permission) => {
+    const adminPerms = ROLE_PERMISSIONS.admin
+    expect(permission in adminPerms).toBe(true)
+  })
+
+  test('all permissions should be defined as boolean', () => {
+    const adminPerms = ROLE_PERMISSIONS.admin
+    allPermissions.forEach(permission => {
+      expect(typeof adminPerms[permission]).toBe('boolean')
+    })
+  })
+})

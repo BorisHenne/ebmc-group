@@ -153,9 +153,11 @@ export interface RolePermissions {
 
   // Special modules
   freelancePortal: boolean
+  consultantPortal: boolean // Alias for freelancePortal (consultant CDI)
   scraper: boolean // CV scraper for sourcing
   boondManager: boolean // BoondManager CRUD
   boondManagerAdmin: boolean // BoondManager Admin (Prod/Sandbox)
+
   // Data access
   canAssignJobs: boolean
   canAssignConsultants: boolean
@@ -182,6 +184,7 @@ export const ROLE_PERMISSIONS: Record<RoleType, RolePermissions> = {
     demoData: true,
     docs: true,
     settings: true,
+    freelancePortal: false,
     consultantPortal: false,
     scraper: true,
     boondManager: true,
@@ -209,9 +212,11 @@ export const ROLE_PERMISSIONS: Record<RoleType, RolePermissions> = {
     demoData: false,
     docs: true,
     settings: false,
+    freelancePortal: false,
     consultantPortal: false,
     scraper: false,
     boondManager: true,
+    boondManagerAdmin: false,
     canAssignJobs: false,
     canAssignConsultants: false,
     canManageContracts: false,
@@ -235,6 +240,7 @@ export const ROLE_PERMISSIONS: Record<RoleType, RolePermissions> = {
     demoData: false,
     docs: true,
     settings: false,
+    freelancePortal: false,
     consultantPortal: false,
     scraper: true,
     boondManager: true,
@@ -262,6 +268,7 @@ export const ROLE_PERMISSIONS: Record<RoleType, RolePermissions> = {
     demoData: false,
     docs: true,
     settings: false,
+    freelancePortal: false,
     consultantPortal: false,
     scraper: false,
     boondManager: true,
@@ -289,6 +296,7 @@ export const ROLE_PERMISSIONS: Record<RoleType, RolePermissions> = {
     demoData: false,
     docs: false,
     settings: false,
+    freelancePortal: true,
     consultantPortal: true,
     scraper: false,
     boondManager: false,
@@ -316,6 +324,7 @@ export const ROLE_PERMISSIONS: Record<RoleType, RolePermissions> = {
     demoData: false,
     docs: false,
     settings: false,
+    freelancePortal: true,
     consultantPortal: true,
     scraper: false,
     boondManager: false,
@@ -343,9 +352,11 @@ export const ROLE_PERMISSIONS: Record<RoleType, RolePermissions> = {
     demoData: false,
     docs: false,
     settings: false,
-    consultantPortal: false, // Candidates don't have portal access until hired
+    freelancePortal: false,
+    consultantPortal: false,
     scraper: false,
     boondManager: false,
+    boondManagerAdmin: false,
     canAssignJobs: false,
     canAssignConsultants: false,
     canManageContracts: false,

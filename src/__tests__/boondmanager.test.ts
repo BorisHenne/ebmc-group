@@ -566,3 +566,294 @@ describe('State Mappings', () => {
     expect(COMPANY_STATES[1]).toBe('Client')
   })
 })
+
+// ==================== DICTIONARY API TESTS ====================
+
+describe('Dictionary API', () => {
+  beforeEach(() => {
+    mockFetch.mockReset()
+  })
+
+  afterEach(() => {
+    vi.clearAllMocks()
+  })
+
+  const mockDictionaryResponse = {
+    data: {
+      attributes: {
+        candidateStates: [
+          { id: 0, value: 'Nouveau', color: '#999999', isDefault: true, isActive: true },
+          { id: 1, value: 'A contacter', color: '#3498db', isActive: true },
+          { id: 6, value: 'Embauche', color: '#27ae60', isActive: true },
+          { id: 7, value: 'Refuse', color: '#e74c3c', isActive: true },
+        ],
+        resourceStates: [
+          { id: 1, value: 'Disponible', color: '#27ae60', isActive: true },
+          { id: 2, value: 'En mission', color: '#3498db', isActive: true },
+          { id: 3, value: 'Parti', color: '#e74c3c', isActive: false },
+        ],
+        opportunityStates: [
+          { id: 0, value: 'En cours', color: '#f39c12' },
+          { id: 1, value: 'Gagnee', color: '#27ae60' },
+          { id: 2, value: 'Perdue', color: '#e74c3c' },
+        ],
+        companyTypes: [
+          { id: 1, value: 'Client' },
+          { id: 2, value: 'Fournisseur' },
+          { id: 3, value: 'Partenaire' },
+        ],
+        projectTypes: [
+          { id: 1, value: 'Regie' },
+          { id: 2, value: 'Forfait' },
+        ],
+        activityAreas: [
+          { id: 1, value: 'IT / Digital' },
+          { id: 2, value: 'Banque / Finance' },
+          { id: 3, value: 'Industrie' },
+        ],
+      }
+    }
+  }
+
+  describe('getDictionary', () => {
+    it('should fetch dictionary from API', async () => {
+      const { BoondManagerClient } = await import('@/lib/boondmanager-client')
+      const client = new BoondManagerClient('sandbox')
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        text: () => Promise.resolve(JSON.stringify(mockDictionaryResponse)),
+      })
+
+      const dictionary = await client.getDictionary()
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining('/application/dictionary'),
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            Authorization: expect.stringMatching(/^Basic /),
+            Accept: 'application/json',
+          }),
+        })
+      )
+
+      expect(dictionary.data.attributes.candidateStates).toBeDefined()
+      expect(dictionary.data.attributes.candidateStates).toHaveLength(4)
+    })
+
+    it('should include candidate states with proper structure', async () => {
+      const { BoondManagerClient } = await import('@/lib/boondmanager-client')
+      const client = new BoondManagerClient('sandbox')
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        text: () => Promise.resolve(JSON.stringify(mockDictionaryResponse)),
+      })
+
+      const dictionary = await client.getDictionary()
+      const candidateStates = dictionary.data.attributes.candidateStates
+
+      expect(candidateStates?.[0]).toEqual({
+        id: 0,
+        value: 'Nouveau',
+        color: '#999999',
+        isDefault: true,
+        isActive: true,
+      })
+    })
+
+    it('should include resource states', async () => {
+      const { BoondManagerClient } = await import('@/lib/boondmanager-client')
+      const client = new BoondManagerClient('sandbox')
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        text: () => Promise.resolve(JSON.stringify(mockDictionaryResponse)),
+      })
+
+      const dictionary = await client.getDictionary()
+      const resourceStates = dictionary.data.attributes.resourceStates
+
+      expect(resourceStates).toHaveLength(3)
+      expect(resourceStates?.[0].value).toBe('Disponible')
+    })
+
+    it('should include opportunity states', async () => {
+      const { BoondManagerClient } = await import('@/lib/boondmanager-client')
+      const client = new BoondManagerClient('sandbox')
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        text: () => Promise.resolve(JSON.stringify(mockDictionaryResponse)),
+      })
+
+      const dictionary = await client.getDictionary()
+      const opportunityStates = dictionary.data.attributes.opportunityStates
+
+      expect(opportunityStates).toHaveLength(3)
+      expect(opportunityStates?.find(s => s.value === 'Gagnee')).toBeDefined()
+    })
+
+    it('should include company types', async () => {
+      const { BoondManagerClient } = await import('@/lib/boondmanager-client')
+      const client = new BoondManagerClient('sandbox')
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        text: () => Promise.resolve(JSON.stringify(mockDictionaryResponse)),
+      })
+
+      const dictionary = await client.getDictionary()
+      const companyTypes = dictionary.data.attributes.companyTypes
+
+      expect(companyTypes).toHaveLength(3)
+      expect(companyTypes?.[0].value).toBe('Client')
+    })
+
+    it('should include activity areas', async () => {
+      const { BoondManagerClient } = await import('@/lib/boondmanager-client')
+      const client = new BoondManagerClient('sandbox')
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        text: () => Promise.resolve(JSON.stringify(mockDictionaryResponse)),
+      })
+
+      const dictionary = await client.getDictionary()
+      const activityAreas = dictionary.data.attributes.activityAreas
+
+      expect(activityAreas).toHaveLength(3)
+      expect(activityAreas?.find(a => a.value === 'IT / Digital')).toBeDefined()
+    })
+
+    it('should handle API errors gracefully', async () => {
+      const { BoondManagerClient } = await import('@/lib/boondmanager-client')
+      const client = new BoondManagerClient('sandbox')
+
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        text: () => Promise.resolve('Internal Server Error'),
+      })
+
+      await expect(client.getDictionary()).rejects.toThrow('500')
+    })
+
+    it('should work with production environment (read-only)', async () => {
+      const { BoondManagerClient } = await import('@/lib/boondmanager-client')
+      const client = new BoondManagerClient('production')
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        text: () => Promise.resolve(JSON.stringify(mockDictionaryResponse)),
+      })
+
+      // Dictionary fetch should work in production (read-only operation)
+      const dictionary = await client.getDictionary()
+      expect(dictionary.data.attributes.candidateStates).toBeDefined()
+    })
+  })
+
+  describe('Dictionary Data Structure', () => {
+    it('should have optional fields for dictionary items', async () => {
+      const { BoondManagerClient } = await import('@/lib/boondmanager-client')
+      const client = new BoondManagerClient('sandbox')
+
+      const minimalDictionary = {
+        data: {
+          attributes: {
+            candidateStates: [
+              { id: 0, value: 'Test' }, // Only required fields
+            ],
+          }
+        }
+      }
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        text: () => Promise.resolve(JSON.stringify(minimalDictionary)),
+      })
+
+      const dictionary = await client.getDictionary()
+      const state = dictionary.data.attributes.candidateStates?.[0]
+
+      expect(state?.id).toBe(0)
+      expect(state?.value).toBe('Test')
+      expect(state?.color).toBeUndefined()
+      expect(state?.isDefault).toBeUndefined()
+    })
+
+    it('should handle empty dictionary attributes', async () => {
+      const { BoondManagerClient } = await import('@/lib/boondmanager-client')
+      const client = new BoondManagerClient('sandbox')
+
+      const emptyDictionary = {
+        data: {
+          attributes: {}
+        }
+      }
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        text: () => Promise.resolve(JSON.stringify(emptyDictionary)),
+      })
+
+      const dictionary = await client.getDictionary()
+      expect(dictionary.data.attributes.candidateStates).toBeUndefined()
+      expect(dictionary.data.attributes.resourceStates).toBeUndefined()
+    })
+  })
+})
+
+// ==================== ENVIRONMENT SWITCHING TESTS ====================
+
+describe('Environment Switching', () => {
+  beforeEach(() => {
+    mockFetch.mockReset()
+  })
+
+  it('should track environment correctly for sandbox', async () => {
+    const { BoondManagerClient } = await import('@/lib/boondmanager-client')
+    const sandboxClient = new BoondManagerClient('sandbox')
+    expect(sandboxClient.getEnvironment()).toBe('sandbox')
+  })
+
+  it('should track environment correctly for production', async () => {
+    const { BoondManagerClient } = await import('@/lib/boondmanager-client')
+    const prodClient = new BoondManagerClient('production')
+    expect(prodClient.getEnvironment()).toBe('production')
+  })
+
+  it('should preserve environment across multiple calls', async () => {
+    const { BoondManagerClient } = await import('@/lib/boondmanager-client')
+    const client = new BoondManagerClient('sandbox')
+
+    mockFetch.mockResolvedValue({
+      ok: true,
+      text: () => Promise.resolve(JSON.stringify({ data: [] })),
+    })
+
+    await client.getCandidates()
+    await client.getResources()
+    await client.getCompanies()
+
+    expect(client.getEnvironment()).toBe('sandbox')
+    expect(mockFetch).toHaveBeenCalledTimes(3)
+  })
+
+  it('should allow reads in both environments', async () => {
+    const { BoondManagerClient } = await import('@/lib/boondmanager-client')
+
+    mockFetch.mockResolvedValue({
+      ok: true,
+      text: () => Promise.resolve(JSON.stringify({ data: [] })),
+    })
+
+    const sandboxClient = new BoondManagerClient('sandbox')
+    const prodClient = new BoondManagerClient('production')
+
+    // Both should allow reads
+    await expect(sandboxClient.getCandidates()).resolves.toBeDefined()
+    await expect(prodClient.getCandidates()).resolves.toBeDefined()
+  })
+})
