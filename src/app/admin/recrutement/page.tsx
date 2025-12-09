@@ -27,12 +27,9 @@ import {
   CandidateStatus,
   STATUS_LABELS,
   STATUS_COLORS,
-  SAP_MODULES,
-  SAP_SUB_MODULES,
-  JOB_FAMILIES,
-  LANGUAGES,
   getInitials,
-  getFullName
+  getFullName,
+  generateDemoCandidates
 } from '@/types/candidate'
 
 // Recruitment stages - each stage is a column
@@ -55,76 +52,6 @@ interface KanbanColumn {
   darkBorder: string
   headerBg: string
   candidates: Candidate[]
-}
-
-// Generate demo candidates with BoondManager structure
-function generateDemoCandidates(): Candidate[] {
-  const firstNames = ['Jean', 'Marie', 'Pierre', 'Sophie', 'Thomas', 'Julie', 'Nicolas', 'Emma', 'Lucas', 'Léa', 'Hugo', 'Chloé', 'Alexandre', 'Camille', 'Maxime', 'Sarah', 'Antoine', 'Laura', 'Mathieu', 'Clara']
-  const lastNames = ['Martin', 'Bernard', 'Dubois', 'Thomas', 'Robert', 'Richard', 'Petit', 'Durand', 'Leroy', 'Moreau', 'Simon', 'Laurent', 'Lefebvre', 'Michel', 'Garcia', 'Roux', 'Vincent', 'Fournier', 'Morel', 'Girard']
-  const cities = ['Paris', 'Lyon', 'Marseille', 'Toulouse', 'Nantes', 'Bordeaux', 'Lille', 'Nice', 'Strasbourg', 'Luxembourg']
-  const sources = ['LinkedIn', 'Indeed', 'Site Web', 'Cooptation', 'CVthèque', 'JobBoard', 'Réseau', 'Salon']
-  const statuses: CandidateStatus[] = ['a_qualifier', 'qualifie', 'en_cours', 'entretien', 'proposition', 'embauche']
-
-  return Array.from({ length: 24 }, (_, i) => {
-    const firstName = firstNames[Math.floor(Math.random() * firstNames.length)]
-    const lastName = lastNames[Math.floor(Math.random() * lastNames.length)]
-    const status = statuses[Math.floor(Math.random() * statuses.length)]
-    const yearsExp = Math.floor(Math.random() * 15) + 2
-    const city = cities[Math.floor(Math.random() * cities.length)]
-
-    // Determine seniority based on years
-    const seniority = yearsExp < 3 ? 'Junior' : yearsExp < 6 ? 'Confirmé' : yearsExp < 10 ? 'Senior' : 'Expert'
-
-    // Random modules (1-3)
-    const numModules = Math.floor(Math.random() * 3) + 1
-    const modules = [...SAP_MODULES].sort(() => Math.random() - 0.5).slice(0, numModules)
-
-    // Random sub-modules (1-4)
-    const numSubModules = Math.floor(Math.random() * 4) + 1
-    const subModules = [...SAP_SUB_MODULES].sort(() => Math.random() - 0.5).slice(0, numSubModules)
-
-    // TJM based on seniority
-    const baseTjm = seniority === 'Junior' ? 400 : seniority === 'Confirmé' ? 550 : seniority === 'Senior' ? 700 : 850
-    const tjmVariation = Math.floor(Math.random() * 100)
-
-    return {
-      id: `candidate-${i + 1}`,
-      firstName,
-      lastName,
-      email: `${firstName.toLowerCase()}.${lastName.toLowerCase()}@example.com`,
-      phone: `+33 6 ${Math.floor(Math.random() * 90 + 10)} ${Math.floor(Math.random() * 90 + 10)} ${Math.floor(Math.random() * 90 + 10)} ${Math.floor(Math.random() * 90 + 10)}`,
-      title: JOB_FAMILIES[Math.floor(Math.random() * JOB_FAMILIES.length)],
-      jobFamily: JOB_FAMILIES[Math.floor(Math.random() * JOB_FAMILIES.length)],
-      modules: modules as Candidate['modules'],
-      subModules: subModules as Candidate['subModules'],
-      experience: {
-        years: yearsExp,
-        seniority
-      },
-      certifications: Math.random() > 0.5 ? ['SAP S/4HANA Finance', 'SAP Activate'].slice(0, Math.floor(Math.random() * 2) + 1) : [],
-      availability: {
-        isAvailable: Math.random() > 0.3,
-        availableIn: ['Immédiat', '1 mois', '2 mois', '3 mois'][Math.floor(Math.random() * 4)]
-      },
-      location: {
-        city,
-        country: city === 'Luxembourg' ? 'Luxembourg' : 'France'
-      },
-      mobility: [['Locale', 'IDF', 'France'][Math.floor(Math.random() * 3)]] as Candidate['mobility'],
-      remoteWork: Math.random() > 0.4,
-      dailyRate: {
-        min: baseTjm,
-        max: baseTjm + tjmVariation + 100,
-        target: baseTjm + tjmVariation,
-        currency: 'EUR'
-      },
-      languages: ['Français', ...(Math.random() > 0.3 ? ['Anglais'] : [])] as Candidate['languages'],
-      status,
-      source: sources[Math.floor(Math.random() * sources.length)],
-      createdAt: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
-      lastActivity: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString(),
-    } as Candidate
-  })
 }
 
 export default function RecrutementPage() {
