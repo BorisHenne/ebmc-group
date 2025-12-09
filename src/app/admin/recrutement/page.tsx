@@ -23,12 +23,12 @@ import Link from 'next/link'
 
 // Recruitment stages - each stage is a column
 const RECRUITMENT_STAGES = [
-  { id: 'a_qualifier', name: 'À qualifier', color: '#94a3b8', bgColor: 'bg-slate-100' },
-  { id: 'qualifie', name: 'Qualifié', color: '#06b6d4', bgColor: 'bg-cyan-100' },
-  { id: 'en_cours', name: 'En cours', color: '#8b5cf6', bgColor: 'bg-purple-100' },
-  { id: 'entretien', name: 'Entretien', color: '#f59e0b', bgColor: 'bg-amber-100' },
-  { id: 'proposition', name: 'Proposition', color: '#3b82f6', bgColor: 'bg-blue-100' },
-  { id: 'embauche', name: 'Embauché', color: '#10b981', bgColor: 'bg-green-100' },
+  { id: 'a_qualifier', name: 'À qualifier', color: '#94a3b8', lightBg: 'bg-slate-50', darkBg: 'dark:bg-slate-800/50', lightBorder: 'border-slate-300', darkBorder: 'dark:border-slate-600', headerBg: 'from-slate-100 to-slate-50 dark:from-slate-700 dark:to-slate-800' },
+  { id: 'qualifie', name: 'Qualifié', color: '#06b6d4', lightBg: 'bg-cyan-50/50', darkBg: 'dark:bg-cyan-900/20', lightBorder: 'border-cyan-200', darkBorder: 'dark:border-cyan-800', headerBg: 'from-cyan-100 to-cyan-50 dark:from-cyan-900/40 dark:to-cyan-900/20' },
+  { id: 'en_cours', name: 'En cours', color: '#8b5cf6', lightBg: 'bg-purple-50/50', darkBg: 'dark:bg-purple-900/20', lightBorder: 'border-purple-200', darkBorder: 'dark:border-purple-800', headerBg: 'from-purple-100 to-purple-50 dark:from-purple-900/40 dark:to-purple-900/20' },
+  { id: 'entretien', name: 'Entretien', color: '#f59e0b', lightBg: 'bg-amber-50/50', darkBg: 'dark:bg-amber-900/20', lightBorder: 'border-amber-200', darkBorder: 'dark:border-amber-700', headerBg: 'from-amber-100 to-amber-50 dark:from-amber-900/40 dark:to-amber-900/20' },
+  { id: 'proposition', name: 'Proposition', color: '#3b82f6', lightBg: 'bg-blue-50/50', darkBg: 'dark:bg-blue-900/20', lightBorder: 'border-blue-200', darkBorder: 'dark:border-blue-800', headerBg: 'from-blue-100 to-blue-50 dark:from-blue-900/40 dark:to-blue-900/20' },
+  { id: 'embauche', name: 'Embauché', color: '#10b981', lightBg: 'bg-emerald-50/50', darkBg: 'dark:bg-emerald-900/20', lightBorder: 'border-emerald-200', darkBorder: 'dark:border-emerald-800', headerBg: 'from-emerald-100 to-emerald-50 dark:from-emerald-900/40 dark:to-emerald-900/20' },
 ]
 
 interface Candidate {
@@ -50,7 +50,11 @@ interface KanbanColumn {
   id: string
   name: string
   color: string
-  bgColor: string
+  lightBg: string
+  darkBg: string
+  lightBorder: string
+  darkBorder: string
+  headerBg: string
   candidates: Candidate[]
 }
 
@@ -239,13 +243,13 @@ export default function RecrutementPage() {
             key={col.id}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-slate-700"
+            className={`rounded-xl p-4 shadow-sm border-l-4 ${col.lightBg} ${col.darkBg} border ${col.lightBorder} ${col.darkBorder}`}
+            style={{ borderLeftColor: col.color }}
           >
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: col.color }} />
+            <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium text-gray-600 dark:text-gray-300">{col.name}</span>
             </div>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">{col.candidates.length}</p>
+            <p className="text-2xl font-bold" style={{ color: col.color }}>{col.candidates.length}</p>
           </motion.div>
         ))}
       </div>
@@ -257,22 +261,22 @@ export default function RecrutementPage() {
             {columns.map(column => (
               <div
                 key={column.id}
-                className="w-80 flex-shrink-0 flex flex-col bg-gray-50 dark:bg-slate-800 rounded-xl"
+                className={`w-80 flex-shrink-0 flex flex-col rounded-xl border-t-4 overflow-hidden ${column.lightBg} ${column.darkBg} ${column.lightBorder} ${column.darkBorder} border`}
+                style={{ borderTopColor: column.color }}
               >
                 {/* Column Header */}
-                <div className="p-4 border-b border-gray-200 dark:border-slate-700">
+                <div className={`p-4 bg-gradient-to-b ${column.headerBg}`}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <div
-                        className="w-3 h-3 rounded-full"
-                        style={{ backgroundColor: column.color }}
-                      />
                       <h3 className="font-semibold text-gray-900 dark:text-white">{column.name}</h3>
-                      <span className="px-2 py-0.5 bg-gray-200 dark:bg-slate-700 text-gray-600 dark:text-gray-300 rounded-full text-xs font-medium">
+                      <span
+                        className="px-2 py-0.5 rounded-full text-xs font-medium text-white"
+                        style={{ backgroundColor: column.color }}
+                      >
                         {filterCandidates(column.candidates).length}
                       </span>
                     </div>
-                    <button className="p-1 hover:bg-gray-200 dark:hover:bg-slate-600 rounded transition">
+                    <button className="p-1 hover:bg-white/50 dark:hover:bg-slate-600 rounded transition">
                       <Plus className="w-4 h-4 text-gray-500 dark:text-gray-400" />
                     </button>
                   </div>
@@ -285,7 +289,7 @@ export default function RecrutementPage() {
                       ref={provided.innerRef}
                       {...provided.droppableProps}
                       className={`flex-1 p-2 space-y-2 overflow-y-auto min-h-[200px] transition-colors ${
-                        snapshot.isDraggingOver ? 'bg-gray-100 dark:bg-slate-700' : ''
+                        snapshot.isDraggingOver ? 'bg-white/50 dark:bg-white/5' : ''
                       }`}
                     >
                       {filterCandidates(column.candidates).map((candidate, index) => (
