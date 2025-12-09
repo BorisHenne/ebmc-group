@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { motion } from 'framer-motion'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -24,13 +24,7 @@ export function Navigation({ currentPage = 'home', variant = 'auto' }: Navigatio
     : variant
   const isLight = effectiveVariant === 'light'
   const t = useTranslations()
-  const [locale, setLocale] = useState('fr')
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-
-  useEffect(() => {
-    const match = document.cookie.match(/locale=([^;]+)/)
-    if (match) setLocale(match[1])
-  }, [])
 
   const navItems = [
     { key: 'services', href: '/#services', isAnchor: true },
@@ -95,7 +89,7 @@ export function Navigation({ currentPage = 'home', variant = 'auto' }: Navigatio
             {/* Right side */}
             <div className="hidden lg:flex items-center gap-4">
               <ThemeToggleCompact variant={effectiveVariant} />
-              <LanguageSwitcher locale={locale} variant={effectiveVariant} />
+              <LanguageSwitcher variant={effectiveVariant} />
               <Link
                 href="/login"
                 className={`flex items-center gap-2 px-4 py-2 text-sm transition ${
@@ -110,7 +104,7 @@ export function Navigation({ currentPage = 'home', variant = 'auto' }: Navigatio
             {/* Mobile menu button */}
             <div className="flex items-center gap-3 lg:hidden">
               <ThemeToggleCompact variant={effectiveVariant} />
-              <LanguageSwitcher locale={locale} variant={effectiveVariant} />
+              <LanguageSwitcher variant={effectiveVariant} />
               <button
                 className={`p-2 ${isLight ? 'text-slate-800' : 'text-white'}`}
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}

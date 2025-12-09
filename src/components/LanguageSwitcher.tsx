@@ -6,16 +6,22 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Globe, ChevronDown } from 'lucide-react'
 
 interface LanguageSwitcherProps {
-  locale: string
   variant?: 'dark' | 'light'
 }
 
-export function LanguageSwitcher({ locale, variant = 'dark' }: LanguageSwitcherProps) {
+export function LanguageSwitcher({ variant = 'dark' }: LanguageSwitcherProps) {
   const [isPending, startTransition] = useTransition()
   const [isOpen, setIsOpen] = useState(false)
+  const [currentLocale, setCurrentLocale] = useState('fr')
   const router = useRouter()
   const dropdownRef = useRef<HTMLDivElement>(null)
   const isLight = variant === 'light'
+
+  // Read locale from cookie on mount
+  useEffect(() => {
+    const match = document.cookie.match(/locale=([^;]+)/)
+    if (match) setCurrentLocale(match[1])
+  }, [])
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -32,11 +38,15 @@ export function LanguageSwitcher({ locale, variant = 'dark' }: LanguageSwitcherP
   }, [isOpen])
 
   const switchLocale = (newLocale: string) => {
-    if (newLocale === locale) {
+    if (newLocale === currentLocale) {
       setIsOpen(false)
       return
     }
+
+    // Update local state immediately for instant UI feedback
+    setCurrentLocale(newLocale)
     setIsOpen(false)
+
     startTransition(() => {
       document.cookie = `locale=${newLocale};path=/;max-age=31536000`
       router.refresh()
@@ -48,7 +58,7 @@ export function LanguageSwitcher({ locale, variant = 'dark' }: LanguageSwitcherP
     { code: 'en', label: 'EN', fullLabel: 'English' },
   ]
 
-  const currentLang = languages.find(l => l.code === locale) || languages[0]
+  const currentLang = languages.find(l => l.code === currentLocale) || languages[0]
 
   return (
     <div className="relative" ref={dropdownRef}>
@@ -85,7 +95,7 @@ export function LanguageSwitcher({ locale, variant = 'dark' }: LanguageSwitcherP
                 onClick={() => switchLocale(lang.code)}
                 disabled={isPending}
                 className={`w-full text-left px-3 py-1.5 text-xs font-medium transition-colors ${
-                  locale === lang.code
+                  currentLocale === lang.code
                     ? isLight
                       ? 'bg-ebmc-turquoise/10 text-ebmc-turquoise'
                       : 'bg-ebmc-turquoise/20 text-ebmc-turquoise'

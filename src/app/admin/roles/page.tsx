@@ -13,13 +13,18 @@ interface Role {
 }
 
 const availablePermissions = [
-  { value: '*', label: 'Toutes les permissions' },
-  { value: 'read', label: 'Lecture' },
-  { value: 'write', label: 'Écriture' },
-  { value: 'delete', label: 'Suppression' },
+  { value: '*', label: 'Toutes les permissions (Admin)' },
+  { value: 'dashboard:view', label: 'Voir le tableau de bord' },
+  { value: 'candidates:view', label: 'Voir les candidats' },
+  { value: 'candidates:manage', label: 'Gérer les candidats' },
+  { value: 'recruitment:manage', label: 'Gérer le recrutement (Kanban)' },
+  { value: 'freelance:portal', label: 'Accès portail Freelance' },
+  { value: 'freelance:timesheets', label: 'Gérer ses CRA' },
+  { value: 'commercial:view', label: 'Voir les opportunités commerciales' },
+  { value: 'commercial:manage', label: 'Gérer les opportunités' },
   { value: 'users:manage', label: 'Gérer les utilisateurs' },
   { value: 'roles:manage', label: 'Gérer les rôles' },
-  { value: 'webhooks:manage', label: 'Gérer les webhooks' },
+  { value: 'settings:manage', label: 'Gérer les paramètres' },
   { value: 'api:manage', label: 'Gérer les tokens API' },
 ]
 
@@ -100,8 +105,10 @@ export default function RolesPage() {
     <div>
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Rôles</h1>
-          <p className="text-gray-600 dark:text-gray-300 mt-2">Gérez les rôles et permissions</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Rôles utilisateurs</h1>
+          <p className="text-gray-600 dark:text-gray-300 mt-2">
+            Gérez les rôles et permissions des utilisateurs (Admin, Sourceur, Commercial, Freelance)
+          </p>
         </div>
         <button
           onClick={() => setEditingRole({ name: '', label: '', permissions: [] })}

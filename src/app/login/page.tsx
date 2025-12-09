@@ -12,13 +12,13 @@ import { useTheme } from '@/components/ThemeProvider'
 
 type AuthMode = 'standard' | 'boondmanager'
 
-// Demo users for testing
+// Demo users for testing - these are USER ROLES, not candidate statuses
+// A consultant/freelance is a recruited candidate, they access the freelance portal
 const demoUsers = [
   { email: 'admin@ebmc-group.com', password: 'admin123', role: 'Admin', color: 'from-red-500 to-rose-500' },
   { email: 'sourceur@ebmc-group.com', password: 'sourceur123', role: 'Sourceur', color: 'from-purple-500 to-indigo-500' },
   { email: 'commercial@ebmc-group.com', password: 'commercial123', role: 'Commercial', color: 'from-blue-500 to-cyan-500' },
   { email: 'freelance@ebmc-group.com', password: 'freelance123', role: 'Freelance', color: 'from-green-500 to-emerald-500' },
-  { email: 'consultant@ebmc-group.com', password: 'consultant123', role: 'Consultant', color: 'from-teal-500 to-cyan-500' },
 ]
 
 export default function LoginPage() {
