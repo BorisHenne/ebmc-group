@@ -1,9 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
-  User,
+  UserCheck,
   Plus,
   Edit,
   Trash2,
@@ -12,10 +12,11 @@ import {
   MapPin,
   Award,
   Save,
-  UserCheck,
   Search,
   Filter,
-  XCircle
+  XCircle,
+  Briefcase,
+  AlertCircle
 } from 'lucide-react'
 
 interface UserAccount {
@@ -56,19 +57,33 @@ const emptyConsultant: Omit<Consultant, '_id' | 'createdAt'> = {
   assignedTo: ''
 }
 
+const CATEGORY_COLORS: Record<string, string> = {
+  sap: 'from-blue-500 to-indigo-500',
+  security: 'from-red-500 to-rose-500',
+  dev: 'from-green-500 to-emerald-500',
+  data: 'from-purple-500 to-violet-500'
+}
+
+const CATEGORY_LABELS: Record<string, string> = {
+  sap: 'SAP',
+  security: 'Sécurité',
+  dev: 'Développement',
+  data: 'Data'
+}
+
 export default function ConsultantsPage() {
   const [consultants, setConsultants] = useState<Consultant[]>([])
   const [loading, setLoading] = useState(true)
+  const [showModal, setShowModal] = useState(false)
   const [editingConsultant, setEditingConsultant] = useState<Partial<Consultant> | null>(null)
   const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
   const [commerciaux, setCommerciaux] = useState<UserAccount[]>([])
 
   // Search and filters
   const [searchTerm, setSearchTerm] = useState('')
   const [filterCategory, setFilterCategory] = useState<string>('all')
   const [filterAvailability, setFilterAvailability] = useState<string>('all')
-  const [filterAssigned, setFilterAssigned] = useState<string>('all')
-  const [showFilters, setShowFilters] = useState(false)
 
   useEffect(() => {
     fetchConsultants()
@@ -104,9 +119,28 @@ export default function ConsultantsPage() {
     }
   }
 
+  const openCreateModal = () => {
+    setEditingConsultant(emptyConsultant)
+    setError('')
+    setShowModal(true)
+  }
+
+  const openEditModal = (consultant: Consultant) => {
+    setEditingConsultant(consultant)
+    setError('')
+    setShowModal(true)
+  }
+
+  const closeModal = () => {
+    setShowModal(false)
+    setEditingConsultant(null)
+    setError('')
+  }
+
   const handleSave = async () => {
     if (!editingConsultant) return
     setSaving(true)
+    setError('')
 
     try {
       const method = editingConsultant._id ? 'PUT' : 'POST'
@@ -121,25 +155,44 @@ export default function ConsultantsPage() {
         body: JSON.stringify(editingConsultant)
       })
 
-      if (res.ok) {
-        fetchConsultants()
-        setEditingConsultant(null)
+      const data = await res.json()
+
+      if (!res.ok) {
+        setError(data.error || 'Une erreur est survenue')
+        setSaving(false)
+        return
       }
+
+      closeModal()
+      fetchConsultants()
     } catch (error) {
       console.error('Error saving consultant:', error)
+      setError('Erreur de connexion au serveur')
     } finally {
       setSaving(false)
     }
   }
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer ce consultant ?')) return
+  const handleDelete = async (consultant: Consultant) => {
+    if (!confirm(`Êtes-vous sûr de vouloir supprimer le consultant "${consultant.name}" ?`)) return
 
     try {
-      await fetch(`/api/admin/consultants/${id}`, { method: 'DELETE', credentials: 'include' })
+      const res = await fetch(`/api/admin/consultants/${consultant._id}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        alert(data.error || 'Erreur lors de la suppression')
+        return
+      }
+
       fetchConsultants()
     } catch (error) {
       console.error('Error deleting consultant:', error)
+      alert('Erreur de connexion au serveur')
     }
   }
 
@@ -168,7 +221,6 @@ export default function ConsultantsPage() {
 
   // Filter consultants
   const filteredConsultants = consultants.filter(consultant => {
-    // Search filter
     const searchLower = searchTerm.toLowerCase()
     const matchesSearch = !searchTerm ||
       consultant.name.toLowerCase().includes(searchLower) ||
@@ -178,59 +230,55 @@ export default function ConsultantsPage() {
       consultant.skills?.some(s => s.toLowerCase().includes(searchLower)) ||
       consultant.certifications?.some(c => c.toLowerCase().includes(searchLower))
 
-    // Category filter
     const matchesCategory = filterCategory === 'all' || consultant.category === filterCategory
 
-    // Availability filter
     const matchesAvailability = filterAvailability === 'all' ||
       (filterAvailability === 'available' && consultant.available) ||
       (filterAvailability === 'mission' && !consultant.available)
 
-    // Assigned filter
-    const matchesAssigned = filterAssigned === 'all' ||
-      (filterAssigned === 'unassigned' && !consultant.assignedTo) ||
-      (filterAssigned !== 'unassigned' && consultant.assignedTo === filterAssigned)
-
-    return matchesSearch && matchesCategory && matchesAvailability && matchesAssigned
+    return matchesSearch && matchesCategory && matchesAvailability
   })
 
-  const clearFilters = () => {
-    setSearchTerm('')
-    setFilterCategory('all')
-    setFilterAvailability('all')
-    setFilterAssigned('all')
+  const getCategoryBadgeClass = (category: string) => {
+    const colors = CATEGORY_COLORS[category] || 'from-slate-500 to-slate-600'
+    return `bg-gradient-to-r ${colors} text-white`
   }
-
-  const hasActiveFilters = searchTerm || filterCategory !== 'all' || filterAvailability !== 'all' || filterAssigned !== 'all'
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-8">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Consultants</h1>
-          <p className="text-gray-600 dark:text-gray-300 mt-2">Gérez les consultants disponibles</p>
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl">
+              <UserCheck className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">Consultants</h1>
+              <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">{consultants.length} consultant{consultants.length > 1 ? 's' : ''} au total</p>
+            </div>
+          </div>
         </div>
         <button
-          onClick={() => setEditingConsultant(emptyConsultant)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+          onClick={openCreateModal}
+          className="flex items-center justify-center gap-2 bg-gradient-to-r from-ebmc-turquoise to-cyan-500 text-white px-5 py-2.5 rounded-xl hover:shadow-lg hover:shadow-ebmc-turquoise/25 transition-all font-medium"
         >
           <Plus className="w-5 h-5" />
           Nouveau consultant
         </button>
       </div>
 
-      {/* Search and Filters */}
-      <div className="mb-6 space-y-4">
-        {/* Search Bar */}
-        <div className="flex gap-3">
+      {/* Filters */}
+      <div className="glass-card p-4 mb-6">
+        <div className="flex flex-col md:flex-row gap-4">
           <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500" />
             <input
               type="text"
-              placeholder="Rechercher par nom, titre, compétences, certifications..."
+              placeholder="Rechercher par nom, titre, compétences..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition text-gray-900 dark:text-white"
+              className="w-full pl-10 pr-4 py-2.5 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-800 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
             />
             {searchTerm && (
               <button
@@ -241,409 +289,394 @@ export default function ConsultantsPage() {
               </button>
             )}
           </div>
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className={`flex items-center gap-2 px-4 py-3 rounded-xl border transition ${
-              showFilters || hasActiveFilters
-                ? 'bg-ebmc-turquoise text-white border-ebmc-turquoise'
-                : 'bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-slate-700 hover:border-ebmc-turquoise'
-            }`}
+          <select
+            value={filterCategory}
+            onChange={(e) => setFilterCategory(e.target.value)}
+            className="px-4 py-2.5 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-800 text-gray-900 dark:text-white"
           >
-            <Filter className="w-5 h-5" />
-            Filtres
-            {hasActiveFilters && (
-              <span className="w-2 h-2 bg-white rounded-full"></span>
-            )}
-          </button>
+            <option value="all">Toutes catégories</option>
+            {Object.entries(CATEGORY_LABELS).map(([key, label]) => (
+              <option key={key} value={key}>{label}</option>
+            ))}
+          </select>
+          <select
+            value={filterAvailability}
+            onChange={(e) => setFilterAvailability(e.target.value)}
+            className="px-4 py-2.5 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-800 text-gray-900 dark:text-white"
+          >
+            <option value="all">Tous statuts</option>
+            <option value="available">Disponibles</option>
+            <option value="mission">En mission</option>
+          </select>
         </div>
-
-        {/* Filter Options */}
-        {showFilters && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="bg-white dark:bg-slate-800 rounded-xl p-4 border border-gray-200 dark:border-slate-700 shadow-sm"
-          >
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Category Filter */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Catégorie
-                </label>
-                <select
-                  value={filterCategory}
-                  onChange={(e) => setFilterCategory(e.target.value)}
-                  className="w-full px-3 py-2 bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-ebmc-turquoise/20"
-                >
-                  <option value="all">Toutes les catégories</option>
-                  <option value="sap">SAP</option>
-                  <option value="security">Sécurité</option>
-                  <option value="dev">Développement</option>
-                  <option value="data">Data</option>
-                </select>
-              </div>
-
-              {/* Availability Filter */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Disponibilité
-                </label>
-                <select
-                  value={filterAvailability}
-                  onChange={(e) => setFilterAvailability(e.target.value)}
-                  className="w-full px-3 py-2 bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-ebmc-turquoise/20"
-                >
-                  <option value="all">Tous</option>
-                  <option value="available">Disponibles</option>
-                  <option value="mission">En mission</option>
-                </select>
-              </div>
-
-              {/* Assigned Filter */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Commercial assigné
-                </label>
-                <select
-                  value={filterAssigned}
-                  onChange={(e) => setFilterAssigned(e.target.value)}
-                  className="w-full px-3 py-2 bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-ebmc-turquoise/20"
-                >
-                  <option value="all">Tous</option>
-                  <option value="unassigned">Non assignés</option>
-                  {commerciaux.map(user => (
-                    <option key={user._id} value={user._id}>
-                      {user.name || user.email}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            {hasActiveFilters && (
-              <div className="mt-4 flex justify-end">
-                <button
-                  onClick={clearFilters}
-                  className="text-sm text-ebmc-turquoise hover:underline flex items-center gap-1"
-                >
-                  <XCircle className="w-4 h-4" />
-                  Effacer tous les filtres
-                </button>
-              </div>
-            )}
-          </motion.div>
-        )}
-
-        {/* Results count */}
-        {(searchTerm || hasActiveFilters) && (
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            {filteredConsultants.length} résultat{filteredConsultants.length !== 1 ? 's' : ''} trouvé{filteredConsultants.length !== 1 ? 's' : ''}
-          </p>
-        )}
       </div>
 
-      {/* Consultants List */}
-      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm overflow-hidden">
+      {/* Consultants Table */}
+      <div className="glass-card overflow-hidden">
         {loading ? (
           <div className="flex justify-center py-12">
-            <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+            <Loader2 className="w-8 h-8 animate-spin text-ebmc-turquoise" />
           </div>
         ) : filteredConsultants.length === 0 ? (
-          <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-            <User className="w-12 h-12 mx-auto mb-4 opacity-50" />
-            {hasActiveFilters ? 'Aucun consultant ne correspond aux critères' : 'Aucun consultant'}
+          <div className="text-center py-12">
+            <UserCheck className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+            <p className="text-gray-500 dark:text-gray-400">
+              {searchTerm || filterCategory !== 'all' || filterAvailability !== 'all'
+                ? 'Aucun consultant ne correspond aux critères'
+                : 'Aucun consultant trouvé'}
+            </p>
           </div>
         ) : (
-          <div className="divide-y divide-gray-100 dark:divide-slate-700">
-            {filteredConsultants.map((consultant) => (
-              <motion.div
-                key={consultant._id}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="p-6 hover:bg-gray-50 dark:hover:bg-slate-700"
-              >
-                <div className="flex justify-between items-start">
-                  <div className="flex gap-4">
-                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-full flex items-center justify-center">
-                      <User className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50/80 dark:bg-slate-800/80 border-b border-gray-100 dark:border-slate-700">
+                <tr>
+                  <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Consultant</th>
+                  <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Localisation</th>
+                  <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Catégorie</th>
+                  <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Statut</th>
+                  <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Compétences</th>
+                  <th className="text-right px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
+                {filteredConsultants.map((consultant, index) => (
+                  <motion.tr
+                    key={consultant._id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.03 }}
+                    className="hover:bg-gray-50/50 dark:hover:bg-slate-700/50 transition"
+                  >
+                    <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <span className="font-medium text-gray-900 dark:text-white">{consultant.name}</span>
-                        <span className={`px-2 py-0.5 text-xs rounded-full ${
-                          consultant.available
-                            ? 'bg-green-100 text-green-700'
-                            : 'bg-orange-100 text-orange-700'
-                        }`}>
-                          {consultant.available ? 'Disponible' : 'En mission'}
-                        </span>
-                        <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">
-                          {consultant.category.toUpperCase()}
-                        </span>
-                      </div>
-                      <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">{consultant.title}</p>
-                      <div className="flex gap-4 mt-2 text-sm text-gray-500 dark:text-gray-400">
-                        <span className="flex items-center gap-1">
-                          <MapPin className="w-4 h-4" />
-                          {consultant.location}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Award className="w-4 h-4" />
-                          {consultant.certifications?.length || 0} certifications
-                        </span>
-                        {consultant.assignedTo && (
-                          <span className="flex items-center gap-1 text-purple-600">
-                            <UserCheck className="w-4 h-4" />
-                            {consultant.assignedToName || 'Assigné'}
+                        <div className={`w-10 h-10 rounded-full bg-gradient-to-r ${CATEGORY_COLORS[consultant.category] || 'from-slate-500 to-slate-600'} flex items-center justify-center`}>
+                          <span className="text-white font-bold text-sm">
+                            {consultant.name?.charAt(0).toUpperCase()}
                           </span>
-                        )}
+                        </div>
+                        <div>
+                          <span className="font-medium text-gray-900 dark:text-white block">{consultant.name}</span>
+                          <span className="text-sm text-gray-500 dark:text-gray-400">{consultant.title}</span>
+                        </div>
                       </div>
-                      <div className="flex flex-wrap gap-1 mt-2">
-                        {consultant.skills?.slice(0, 4).map((skill, i) => (
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
+                        <MapPin className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                        {consultant.location}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ${getCategoryBadgeClass(consultant.category)}`}>
+                        <Briefcase className="w-3 h-3" />
+                        {CATEGORY_LABELS[consultant.category] || consultant.category.toUpperCase()}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                        consultant.available
+                          ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                          : 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400'
+                      }`}>
+                        {consultant.available ? 'Disponible' : 'En mission'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-wrap gap-1 max-w-xs">
+                        {consultant.skills?.slice(0, 3).map((skill, i) => (
                           <span key={i} className="px-2 py-0.5 bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 text-xs rounded">
                             {skill}
                           </span>
                         ))}
-                        {(consultant.skills?.length || 0) > 4 && (
-                          <span className="text-xs text-gray-400 dark:text-gray-500">+{consultant.skills.length - 4}</span>
+                        {(consultant.skills?.length || 0) > 3 && (
+                          <span className="px-2 py-0.5 text-xs text-gray-400 dark:text-gray-500">+{consultant.skills.length - 3}</span>
                         )}
                       </div>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setEditingConsultant(consultant)}
-                      className="p-2 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg"
-                    >
-                      <Edit className="w-5 h-5" />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(consultant._id)}
-                      className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex justify-end gap-2">
+                        <button
+                          onClick={() => openEditModal(consultant)}
+                          className="p-2 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition"
+                          title="Modifier"
+                        >
+                          <Edit className="w-5 h-5" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(consultant)}
+                          className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition"
+                          title="Supprimer"
+                        >
+                          <Trash2 className="w-5 h-5" />
+                        </button>
+                      </div>
+                    </td>
+                  </motion.tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>
 
-      {/* Edit Modal */}
-      {editingConsultant && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white dark:bg-slate-800 rounded-xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col"
-          >
-            <div className="flex justify-between items-center p-6 border-b border-gray-200 dark:border-slate-700">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                {editingConsultant._id ? 'Modifier le consultant' : 'Nouveau consultant'}
-              </h2>
-              <button onClick={() => setEditingConsultant(null)}>
-                <X className="w-6 h-6 text-gray-400 dark:text-gray-500 hover:text-gray-600" />
-              </button>
-            </div>
-
-            <div className="p-6 overflow-y-auto flex-1 space-y-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nom</label>
-                <input
-                  type="text"
-                  value={editingConsultant.name || ''}
-                  onChange={(e) => updateField('name', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500"
-                />
+      {/* Create/Edit Modal */}
+      <AnimatePresence>
+        {showModal && editingConsultant && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col"
+            >
+              {/* Modal Header */}
+              <div className="flex justify-between items-center p-6 border-b border-gray-100 dark:border-slate-700">
+                <div className="flex items-center gap-3">
+                  <div className={`p-2 rounded-xl bg-gradient-to-r ${editingConsultant._id ? 'from-blue-500 to-indigo-500' : 'from-ebmc-turquoise to-cyan-500'}`}>
+                    {editingConsultant._id ? <Edit className="w-5 h-5 text-white" /> : <Plus className="w-5 h-5 text-white" />}
+                  </div>
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                    {editingConsultant._id ? 'Modifier le consultant' : 'Nouveau consultant'}
+                  </h2>
+                </div>
+                <button
+                  onClick={closeModal}
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition"
+                >
+                  <X className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+                </button>
               </div>
 
-              <div className="grid md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Titre (FR)</label>
-                  <input
-                    type="text"
-                    value={editingConsultant.title || ''}
-                    onChange={(e) => updateField('title', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500"
-                    placeholder="Consultant SAP Senior"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Title (EN)</label>
-                  <input
-                    type="text"
-                    value={editingConsultant.titleEn || ''}
-                    onChange={(e) => updateField('titleEn', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500"
-                    placeholder="Senior SAP Consultant"
-                  />
-                </div>
-              </div>
-
-              <div className="grid md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Localisation</label>
-                  <input
-                    type="text"
-                    value={editingConsultant.location || ''}
-                    onChange={(e) => updateField('location', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500"
-                    placeholder="Paris"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Catégorie</label>
-                  <select
-                    value={editingConsultant.category || 'sap'}
-                    onChange={(e) => updateField('category', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500"
+              {/* Modal Body */}
+              <div className="p-6 overflow-y-auto flex-1 space-y-5">
+                {/* Error Alert */}
+                {error && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex items-center gap-3 p-4 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 rounded-xl text-red-600 dark:text-red-400"
                   >
-                    <option value="sap">SAP</option>
-                    <option value="security">Sécurité</option>
-                    <option value="dev">Développement</option>
-                    <option value="data">Data</option>
-                  </select>
-                </div>
+                    <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                    <span className="text-sm">{error}</span>
+                  </motion.div>
+                )}
+
+                {/* Name */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    <span className="flex items-center gap-1">
-                      <UserCheck className="w-4 h-4 text-purple-500" />
-                      Commercial assigné
-                    </span>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Nom complet
                   </label>
-                  <select
-                    value={editingConsultant.assignedTo || ''}
-                    onChange={(e) => {
-                      const selectedUser = commerciaux.find(u => u._id === e.target.value)
-                      updateField('assignedTo', e.target.value)
-                      updateField('assignedToName', selectedUser?.name || selectedUser?.email || '')
-                    }}
-                    className="w-full px-3 py-2 border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-purple-500"
+                  <input
+                    type="text"
+                    value={editingConsultant.name || ''}
+                    onChange={(e) => updateField('name', e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
+                    placeholder="Jean Dupont"
+                  />
+                </div>
+
+                {/* Titles */}
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Titre (FR)</label>
+                    <input
+                      type="text"
+                      value={editingConsultant.title || ''}
+                      onChange={(e) => updateField('title', e.target.value)}
+                      className="w-full px-4 py-3 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
+                      placeholder="Consultant SAP Senior"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Title (EN)</label>
+                    <input
+                      type="text"
+                      value={editingConsultant.titleEn || ''}
+                      onChange={(e) => updateField('titleEn', e.target.value)}
+                      className="w-full px-4 py-3 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
+                      placeholder="Senior SAP Consultant"
+                    />
+                  </div>
+                </div>
+
+                {/* Location, Category, Assigned */}
+                <div className="grid md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Localisation</label>
+                    <input
+                      type="text"
+                      value={editingConsultant.location || ''}
+                      onChange={(e) => updateField('location', e.target.value)}
+                      className="w-full px-4 py-3 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
+                      placeholder="Paris"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Catégorie</label>
+                    <select
+                      value={editingConsultant.category || 'sap'}
+                      onChange={(e) => updateField('category', e.target.value)}
+                      className="w-full px-4 py-3 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
+                    >
+                      {Object.entries(CATEGORY_LABELS).map(([key, label]) => (
+                        <option key={key} value={key}>{label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Commercial assigné
+                    </label>
+                    <select
+                      value={editingConsultant.assignedTo || ''}
+                      onChange={(e) => {
+                        const selectedUser = commerciaux.find(u => u._id === e.target.value)
+                        updateField('assignedTo', e.target.value)
+                        updateField('assignedToName', selectedUser?.name || selectedUser?.email || '')
+                      }}
+                      className="w-full px-4 py-3 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
+                    >
+                      <option value="">Non assigné</option>
+                      {commerciaux.map(user => (
+                        <option key={user._id} value={user._id}>
+                          {user.name || user.email}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Experience */}
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Expérience (FR)</label>
+                    <input
+                      type="text"
+                      value={editingConsultant.experience || ''}
+                      onChange={(e) => updateField('experience', e.target.value)}
+                      className="w-full px-4 py-3 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
+                      placeholder="10 ans"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Experience (EN)</label>
+                    <input
+                      type="text"
+                      value={editingConsultant.experienceEn || ''}
+                      onChange={(e) => updateField('experienceEn', e.target.value)}
+                      className="w-full px-4 py-3 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
+                      placeholder="10 years"
+                    />
+                  </div>
+                </div>
+
+                {/* Skills */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Compétences</label>
+                  {(editingConsultant.skills || ['']).map((s, i) => (
+                    <div key={i} className="flex gap-2 mb-2">
+                      <input
+                        type="text"
+                        value={s}
+                        onChange={(e) => updateArrayField('skills', i, e.target.value)}
+                        className="flex-1 px-4 py-3 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
+                        placeholder="SAP S/4HANA, React, Python..."
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeArrayItem('skills', i)}
+                        className="px-3 py-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => addArrayItem('skills')}
+                    className="text-ebmc-turquoise text-sm font-medium hover:underline"
                   >
-                    <option value="">Non assigné</option>
-                    {commerciaux.map(user => (
-                      <option key={user._id} value={user._id}>
-                        {user.name || user.email}
-                      </option>
-                    ))}
-                  </select>
+                    + Ajouter une compétence
+                  </button>
+                </div>
+
+                {/* Certifications */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Certifications</label>
+                  {(editingConsultant.certifications || ['']).map((c, i) => (
+                    <div key={i} className="flex gap-2 mb-2">
+                      <input
+                        type="text"
+                        value={c}
+                        onChange={(e) => updateArrayField('certifications', i, e.target.value)}
+                        className="flex-1 px-4 py-3 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
+                        placeholder="AWS Solutions Architect, PMP..."
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeArrayItem('certifications', i)}
+                        className="px-3 py-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => addArrayItem('certifications')}
+                    className="text-ebmc-turquoise text-sm font-medium hover:underline"
+                  >
+                    + Ajouter une certification
+                  </button>
+                </div>
+
+                {/* Available toggle */}
+                <div className="flex items-center gap-3 p-4 bg-gray-50 dark:bg-slate-700/50 rounded-xl">
+                  <input
+                    type="checkbox"
+                    id="available"
+                    checked={editingConsultant.available !== false}
+                    onChange={(e) => updateField('available', e.target.checked)}
+                    className="w-5 h-5 text-ebmc-turquoise rounded border-gray-300 focus:ring-ebmc-turquoise"
+                  />
+                  <label htmlFor="available" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Disponible pour mission
+                  </label>
                 </div>
               </div>
 
-              <div className="grid md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Expérience (FR)</label>
-                  <input
-                    type="text"
-                    value={editingConsultant.experience || ''}
-                    onChange={(e) => updateField('experience', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500"
-                    placeholder="10 ans"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Experience (EN)</label>
-                  <input
-                    type="text"
-                    value={editingConsultant.experienceEn || ''}
-                    onChange={(e) => updateField('experienceEn', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500"
-                    placeholder="10 years"
-                  />
-                </div>
-              </div>
-
-              {/* Skills */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Compétences</label>
-                {(editingConsultant.skills || ['']).map((s, i) => (
-                  <div key={i} className="flex gap-2 mb-2">
-                    <input
-                      type="text"
-                      value={s}
-                      onChange={(e) => updateArrayField('skills', i, e.target.value)}
-                      className="flex-1 px-3 py-2 border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500"
-                      placeholder="SAP S/4HANA, React, Python..."
-                    />
-                    <button
-                      onClick={() => removeArrayItem('skills', i)}
-                      className="px-3 py-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
+              {/* Modal Footer */}
+              <div className="flex gap-3 p-6 border-t border-gray-100 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-800/50">
                 <button
-                  onClick={() => addArrayItem('skills')}
-                  className="text-blue-600 text-sm hover:underline"
+                  type="button"
+                  onClick={closeModal}
+                  className="flex-1 px-4 py-3 border border-gray-200 dark:border-slate-700 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-700 transition font-medium"
                 >
-                  + Ajouter une compétence
+                  Annuler
+                </button>
+                <button
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-ebmc-turquoise to-cyan-500 text-white px-4 py-3 rounded-xl hover:shadow-lg hover:shadow-ebmc-turquoise/25 transition disabled:opacity-50 font-medium"
+                >
+                  {saving ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      {editingConsultant._id ? 'Mise à jour...' : 'Création...'}
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-5 h-5" />
+                      {editingConsultant._id ? 'Mettre à jour' : 'Créer'}
+                    </>
+                  )}
                 </button>
               </div>
-
-              {/* Certifications */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Certifications</label>
-                {(editingConsultant.certifications || ['']).map((c, i) => (
-                  <div key={i} className="flex gap-2 mb-2">
-                    <input
-                      type="text"
-                      value={c}
-                      onChange={(e) => updateArrayField('certifications', i, e.target.value)}
-                      className="flex-1 px-3 py-2 border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500"
-                      placeholder="AWS Solutions Architect, PMP..."
-                    />
-                    <button
-                      onClick={() => removeArrayItem('certifications', i)}
-                      className="px-3 py-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
-                <button
-                  onClick={() => addArrayItem('certifications')}
-                  className="text-blue-600 text-sm hover:underline"
-                >
-                  + Ajouter une certification
-                </button>
-              </div>
-
-              {/* Available toggle */}
-              <div className="flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  id="available"
-                  checked={editingConsultant.available !== false}
-                  onChange={(e) => updateField('available', e.target.checked)}
-                  className="w-4 h-4 text-blue-600 rounded"
-                />
-                <label htmlFor="available" className="text-sm text-gray-700 dark:text-gray-300">Disponible pour mission</label>
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-3 p-6 border-t border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800">
-              <button
-                onClick={() => setEditingConsultant(null)}
-                className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-600 rounded-lg transition"
-              >
-                Annuler
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
-              >
-                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                Enregistrer
-              </button>
-            </div>
-          </motion.div>
-        </div>
-      )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
