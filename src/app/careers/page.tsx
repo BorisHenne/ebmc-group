@@ -83,7 +83,7 @@ export default function CareersPage() {
     : jobs.filter(job => job.category === filter)
 
   return (
-    <TechBackground variant="auto">
+    <TechBackground variant="semi-light">
       <main className="min-h-screen text-slate-800 dark:text-slate-100 overflow-hidden">
         <Navigation currentPage="careers" variant="auto" />
 

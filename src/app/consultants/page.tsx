@@ -67,7 +67,7 @@ export default function ConsultantsPage() {
     : consultants.filter(c => c.category === filter)
 
   return (
-    <TechBackground variant="auto">
+    <TechBackground variant="semi-light">
       <main className="min-h-screen text-slate-800 dark:text-slate-100 overflow-hidden">
         <Navigation currentPage="consultants" variant="auto" />
 
