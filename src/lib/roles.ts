@@ -1,6 +1,6 @@
 // Role-based access control configuration
 
-export type RoleType = 'admin' | 'sourceur' | 'commercial' | 'freelance' | 'user'
+export type RoleType = 'admin' | 'sourceur' | 'commercial' | 'consultant' | 'freelance' | 'user'
 
 export interface RolePermissions {
   // Dashboard access
@@ -98,6 +98,30 @@ export const ROLE_PERMISSIONS: Record<RoleType, RolePermissions> = {
     viewAllData: false,
     viewAssignedOnly: true,
   },
+  consultant: {
+    // Consultant CDI interne - memes droits que freelance
+    // Se connecte exclusivement via BoondManager
+    dashboard: false,
+    sourceurDashboard: false,
+    commercialDashboard: false,
+    recruitment: false,
+    jobs: false,
+    consultants: false,
+    messages: false,
+    users: false,
+    roles: false,
+    webhooks: false,
+    apiTokens: false,
+    demoData: false,
+    docs: false,
+    settings: false,
+    freelancePortal: true, // Acces au portail CRA/absences
+    scraper: false,
+    canAssignJobs: false,
+    canAssignConsultants: false,
+    viewAllData: false,
+    viewAssignedOnly: false,
+  },
   freelance: {
     dashboard: false,
     sourceurDashboard: false,
@@ -148,22 +172,25 @@ export const ROLE_LABELS: Record<RoleType, string> = {
   admin: 'Administrateur',
   sourceur: 'Sourceur',
   commercial: 'Commercial',
+  consultant: 'Consultant CDI',
   freelance: 'Freelance',
   user: 'Utilisateur',
 }
 
 export const ROLE_DESCRIPTIONS: Record<RoleType, string> = {
-  admin: 'Accès complet à toutes les fonctionnalités',
-  sourceur: 'Accès aux consultants/candidats et aux leads',
-  commercial: 'Accès aux offres et consultants qui lui sont assignés',
-  freelance: 'Accès au portail freelance (timesheets et absences)',
-  user: 'Accès lecture aux données principales',
+  admin: 'Acces complet a toutes les fonctionnalites',
+  sourceur: 'Acces aux consultants/candidats et aux leads',
+  commercial: 'Acces aux offres et consultants qui lui sont assignes',
+  consultant: 'Consultant CDI - Acces au portail CRA et absences',
+  freelance: 'Freelance - Acces au portail CRA et absences',
+  user: 'Acces lecture aux donnees principales',
 }
 
 export const ROLE_COLORS: Record<RoleType, string> = {
   admin: 'from-red-500 to-rose-500',
   sourceur: 'from-purple-500 to-pink-500',
   commercial: 'from-blue-500 to-indigo-500',
+  consultant: 'from-teal-500 to-cyan-500',
   freelance: 'from-green-500 to-emerald-500',
   user: 'from-slate-500 to-slate-600',
 }
