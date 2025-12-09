@@ -110,14 +110,14 @@ const menuSections: MenuSection[] = [
   }
 ]
 
-// Freelance portal menu sections
+// Freelance/Consultant portal menu sections
 const freelanceMenuSections: MenuSection[] = [
   {
     title: 'Mon espace',
     items: [
-      { href: '/admin/freelance', icon: LayoutDashboard, label: 'Tableau de bord', color: 'from-green-500 to-emerald-500', permission: 'freelancePortal' },
-      { href: '/admin/freelance/timesheets', icon: Clock, label: 'Mes CRA', color: 'from-blue-500 to-indigo-500', permission: 'freelancePortal' },
-      { href: '/admin/freelance/absences', icon: Calendar, label: 'Mes absences', color: 'from-purple-500 to-pink-500', permission: 'freelancePortal' },
+      { href: '/admin/freelance', icon: LayoutDashboard, label: 'Tableau de bord', color: 'from-green-500 to-emerald-500', permission: 'consultantPortal' },
+      { href: '/admin/freelance/timesheets', icon: Clock, label: 'Mes CRA', color: 'from-blue-500 to-indigo-500', permission: 'consultantPortal' },
+      { href: '/admin/freelance/absences', icon: Calendar, label: 'Mes absences', color: 'from-purple-500 to-pink-500', permission: 'consultantPortal' },
     ]
   }
 ]
@@ -137,8 +137,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
     const role = user.role as RoleType
 
-    // Freelance and Consultant CDI users see freelance portal
-    if (role === 'freelance' || role === 'consultant') {
+    // Freelance and Consultant CDI users see consultant portal
+    if (role === 'freelance' || role === 'consultant_cdi') {
       return freelanceMenuSections
     }
 

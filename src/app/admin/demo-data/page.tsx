@@ -62,10 +62,29 @@ interface DemoDataStatus {
     consultants: number
     messages: number
     users: number
+    candidates: number
+  }
+  demoCounts?: {
+    jobs: number
+    consultants: number
+    users: number
+    candidates: number
+  }
+  realCounts?: {
+    jobs: number
+    consultants: number
+    users: number
+    candidates: number
+  }
+  breakdowns?: {
+    usersByRole: Record<string, number>
+    candidatesByStatus: Record<string, number>
   }
   defaultDataAvailable: {
     jobs: number
     consultants: number
+    users: number
+    candidates: string
   }
 }
 
@@ -193,8 +212,9 @@ export default function DemoDataPage() {
   const getSuccessMessage = (action: string) => {
     switch (action) {
       case 'seed': return 'Données de démo ajoutées avec succès'
-      case 'reset': return 'Données réinitialisées aux valeurs par défaut'
+      case 'reset': return 'Données démo réinitialisées aux valeurs par défaut'
       case 'clear': return 'Données supprimées avec succès'
+      case 'clear-demo': return 'Données de démo supprimées (données réelles préservées)'
       default: return 'Opération effectuée'
     }
   }
@@ -342,9 +362,10 @@ export default function DemoDataPage() {
 
   const stats = [
     { label: 'Offres d\'emploi', value: status?.counts.jobs || 0, icon: Briefcase, color: 'from-blue-500 to-indigo-500' },
-    { label: 'Consultants', value: status?.counts.consultants || 0, icon: UserCheck, color: 'from-purple-500 to-pink-500' },
-    { label: 'Messages', value: status?.counts.messages || 0, icon: MessageSquare, color: 'from-green-500 to-emerald-500' },
+    { label: 'Consultants (vitrine)', value: status?.counts.consultants || 0, icon: UserCheck, color: 'from-purple-500 to-pink-500' },
+    { label: 'Candidats', value: status?.counts.candidates || 0, icon: Users, color: 'from-cyan-500 to-teal-500' },
     { label: 'Utilisateurs', value: status?.counts.users || 0, icon: Users, color: 'from-orange-500 to-amber-500' },
+    { label: 'Messages', value: status?.counts.messages || 0, icon: MessageSquare, color: 'from-green-500 to-emerald-500' },
   ]
 
   const tabs = [
@@ -416,7 +437,7 @@ export default function DemoDataPage() {
       {activeTab === 'overview' && (
         <div className="space-y-6">
           {/* Stats */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
             {stats.map((stat, index) => (
               <motion.div
                 key={stat.label}
@@ -434,16 +455,56 @@ export default function DemoDataPage() {
             ))}
           </div>
 
+          {/* Demo/Real data breakdown */}
+          {status?.demoCounts && (
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-5 border border-blue-100 dark:border-blue-800">
+              <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                <Database className="w-5 h-5 text-blue-600" />
+                Répartition des données
+              </h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div>
+                  <span className="text-gray-500 dark:text-gray-400">Utilisateurs</span>
+                  <div className="flex gap-2 mt-1">
+                    <span className="px-2 py-0.5 bg-amber-100 text-amber-700 rounded text-xs">Démo: {status.demoCounts.users}</span>
+                    <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs">Réel: {status.realCounts?.users || 0}</span>
+                  </div>
+                </div>
+                <div>
+                  <span className="text-gray-500 dark:text-gray-400">Candidats</span>
+                  <div className="flex gap-2 mt-1">
+                    <span className="px-2 py-0.5 bg-amber-100 text-amber-700 rounded text-xs">Démo: {status.demoCounts.candidates}</span>
+                    <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs">Réel: {status.realCounts?.candidates || 0}</span>
+                  </div>
+                </div>
+                <div>
+                  <span className="text-gray-500 dark:text-gray-400">Offres</span>
+                  <div className="flex gap-2 mt-1">
+                    <span className="px-2 py-0.5 bg-amber-100 text-amber-700 rounded text-xs">Démo: {status.demoCounts.jobs}</span>
+                    <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs">Réel: {status.realCounts?.jobs || 0}</span>
+                  </div>
+                </div>
+                <div>
+                  <span className="text-gray-500 dark:text-gray-400">Consultants</span>
+                  <div className="flex gap-2 mt-1">
+                    <span className="px-2 py-0.5 bg-amber-100 text-amber-700 rounded text-xs">Démo: {status.demoCounts.consultants}</span>
+                    <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs">Réel: {status.realCounts?.consultants || 0}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Bulk Actions */}
-          <div className="grid md:grid-cols-3 gap-4">
+          <div className="grid md:grid-cols-4 gap-4">
             <div className="bg-white dark:bg-slate-800 rounded-xl p-5 shadow-sm">
               <div className="flex items-center gap-3 mb-3">
                 <div className="p-2 rounded-lg bg-emerald-100">
                   <Download className="w-5 h-5 text-emerald-600" />
                 </div>
-                <h3 className="font-semibold text-gray-900 dark:text-white">Ajouter données démo</h3>
+                <h3 className="font-semibold text-gray-900 dark:text-white">Ajouter démos</h3>
               </div>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Seed si collections vides</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Seed si pas de démo</p>
               <button
                 onClick={() => performAction('seed')}
                 disabled={actionLoading !== null}
@@ -459,11 +520,11 @@ export default function DemoDataPage() {
                 <div className="p-2 rounded-lg bg-orange-100">
                   <RotateCcw className="w-5 h-5 text-orange-600" />
                 </div>
-                <h3 className="font-semibold text-gray-900 dark:text-white">Réinitialiser</h3>
+                <h3 className="font-semibold text-gray-900 dark:text-white">Reset démos</h3>
               </div>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Reset aux valeurs par défaut</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Réinitialiser les démos</p>
               <button
-                onClick={() => confirm('Réinitialiser toutes les données ?') && performAction('reset')}
+                onClick={() => confirm('Réinitialiser les données démo ?') && performAction('reset')}
                 disabled={actionLoading !== null}
                 className="w-full py-2.5 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition disabled:opacity-50 flex items-center justify-center gap-2"
               >
@@ -472,21 +533,39 @@ export default function DemoDataPage() {
               </button>
             </div>
 
+            <div className="bg-white dark:bg-slate-800 rounded-xl p-5 shadow-sm border-2 border-amber-200 dark:border-amber-700">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="p-2 rounded-lg bg-amber-100">
+                  <Trash2 className="w-5 h-5 text-amber-600" />
+                </div>
+                <h3 className="font-semibold text-gray-900 dark:text-white">Vider démos</h3>
+              </div>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Garde les vraies données</p>
+              <button
+                onClick={() => confirm('Supprimer uniquement les données démo ?') && performAction('clear-demo')}
+                disabled={actionLoading !== null}
+                className="w-full py-2.5 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {actionLoading === 'clear-demo' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                Vider démos
+              </button>
+            </div>
+
             <div className="bg-white dark:bg-slate-800 rounded-xl p-5 shadow-sm">
               <div className="flex items-center gap-3 mb-3">
                 <div className="p-2 rounded-lg bg-red-100">
                   <Trash2 className="w-5 h-5 text-red-600" />
                 </div>
-                <h3 className="font-semibold text-gray-900 dark:text-white">Vider tout</h3>
+                <h3 className="font-semibold text-gray-900 dark:text-white">Vider TOUT</h3>
               </div>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Supprimer toutes les données</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">⚠️ Irréversible</p>
               <button
-                onClick={() => confirm('⚠️ Supprimer toutes les données ?') && performAction('clear', { collection: 'all' })}
+                onClick={() => confirm('⚠️ ATTENTION: Supprimer TOUTES les données (démo ET réelles) ?') && performAction('clear', { collection: 'all' })}
                 disabled={actionLoading !== null}
                 className="w-full py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {actionLoading === 'clear' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                Vider
+                Tout vider
               </button>
             </div>
           </div>

@@ -1,261 +1,339 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { motion } from 'framer-motion'
-import { Shield, Plus, Trash2, Edit, Loader2, X, Save } from 'lucide-react'
+import { useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import {
+  Shield,
+  Building2,
+  Users,
+  UserCheck,
+  Briefcase,
+  Search,
+  UserCog,
+  Zap,
+  UserPlus,
+  Check,
+  X,
+  Eye,
+  ChevronDown,
+  ChevronUp,
+  Info
+} from 'lucide-react'
+import {
+  ROLES,
+  ROLE_CATEGORIES,
+  ROLE_PERMISSIONS,
+  RoleType,
+  RoleCategory,
+  RolePermissions,
+  getRolesByCategory
+} from '@/lib/roles'
 
-interface Role {
-  _id: string
-  name: string
-  label: string
-  permissions: string[]
-  createdAt: string
-}
-
-const availablePermissions = [
-  { value: '*', label: 'Toutes les permissions (Admin)' },
-  { value: 'dashboard:view', label: 'Voir le tableau de bord' },
-  { value: 'candidates:view', label: 'Voir les candidats' },
-  { value: 'candidates:manage', label: 'Gérer les candidats' },
-  { value: 'recruitment:manage', label: 'Gérer le recrutement (Kanban)' },
-  { value: 'freelance:portal', label: 'Accès portail Freelance' },
-  { value: 'freelance:timesheets', label: 'Gérer ses CRA' },
-  { value: 'commercial:view', label: 'Voir les opportunités commerciales' },
-  { value: 'commercial:manage', label: 'Gérer les opportunités' },
-  { value: 'users:manage', label: 'Gérer les utilisateurs' },
-  { value: 'roles:manage', label: 'Gérer les rôles' },
-  { value: 'settings:manage', label: 'Gérer les paramètres' },
-  { value: 'api:manage', label: 'Gérer les tokens API' },
+// Permission groups for display
+const PERMISSION_GROUPS = [
+  {
+    id: 'dashboards',
+    label: 'Tableaux de bord',
+    permissions: ['dashboard', 'sourceurDashboard', 'commercialDashboard', 'rhDashboard']
+  },
+  {
+    id: 'recruitment',
+    label: 'Recrutement',
+    permissions: ['recruitment', 'candidates', 'consultants']
+  },
+  {
+    id: 'admin',
+    label: 'Administration',
+    permissions: ['users', 'roles', 'settings', 'jobs', 'messages']
+  },
+  {
+    id: 'integration',
+    label: 'Intégrations',
+    permissions: ['webhooks', 'apiTokens', 'boondManager', 'scraper', 'demoData', 'docs']
+  },
+  {
+    id: 'portal',
+    label: 'Portail Consultant',
+    permissions: ['consultantPortal']
+  },
+  {
+    id: 'data_access',
+    label: 'Accès aux données',
+    permissions: ['viewAllData', 'viewAssignedOnly', 'canAssignJobs', 'canAssignConsultants', 'canManageContracts']
+  }
 ]
 
+// Permission labels in French
+const PERMISSION_LABELS: Record<keyof RolePermissions, string> = {
+  dashboard: 'Dashboard général',
+  sourceurDashboard: 'Dashboard Sourceur',
+  commercialDashboard: 'Dashboard Commercial',
+  rhDashboard: 'Dashboard RH',
+  recruitment: 'Module Recrutement',
+  jobs: 'Gestion des offres',
+  consultants: 'Gestion des consultants',
+  candidates: 'Gestion des candidats',
+  messages: 'Messagerie',
+  users: 'Gestion des utilisateurs',
+  roles: 'Gestion des rôles',
+  webhooks: 'Configuration Webhooks',
+  apiTokens: 'Tokens API',
+  demoData: 'Données de démo',
+  docs: 'Documentation',
+  settings: 'Paramètres',
+  consultantPortal: 'Portail Consultant/Freelance',
+  scraper: 'Scraper CV',
+  boondManager: 'BoondManager',
+  canAssignJobs: 'Assigner des offres',
+  canAssignConsultants: 'Assigner des consultants',
+  canManageContracts: 'Gérer les contrats',
+  viewAllData: 'Voir toutes les données',
+  viewAssignedOnly: 'Voir données assignées'
+}
+
+// Role icons mapping
+const ROLE_ICONS: Record<RoleType, React.ReactNode> = {
+  admin: <Shield className="w-5 h-5" />,
+  commercial: <Briefcase className="w-5 h-5" />,
+  sourceur: <Search className="w-5 h-5" />,
+  rh: <UserCog className="w-5 h-5" />,
+  consultant_cdi: <UserCheck className="w-5 h-5" />,
+  freelance: <Zap className="w-5 h-5" />,
+  candidat: <UserPlus className="w-5 h-5" />
+}
+
 export default function RolesPage() {
-  const [roles, setRoles] = useState<Role[]>([])
-  const [loading, setLoading] = useState(true)
-  const [editingRole, setEditingRole] = useState<Partial<Role> | null>(null)
-  const [saving, setSaving] = useState(false)
+  const [expandedRole, setExpandedRole] = useState<RoleType | null>(null)
+  const [selectedCategory, setSelectedCategory] = useState<RoleCategory | 'all'>('all')
 
-  useEffect(() => {
-    fetchRoles()
-  }, [])
+  const bureauRoles = getRolesByCategory('bureau')
+  const terrainRoles = getRolesByCategory('terrain')
 
-  const fetchRoles = async () => {
-    try {
-      const res = await fetch('/api/admin/roles', { credentials: 'include' })
-      if (res.ok) {
-        const data = await res.json()
-        setRoles(data.roles || [])
-      }
-    } catch (error) {
-      console.error('Error fetching roles:', error)
-    } finally {
-      setLoading(false)
-    }
+  const filteredRoles = selectedCategory === 'all'
+    ? Object.values(ROLES)
+    : getRolesByCategory(selectedCategory)
+
+  const toggleRole = (roleId: RoleType) => {
+    setExpandedRole(expandedRole === roleId ? null : roleId)
   }
 
-  const handleSave = async () => {
-    if (!editingRole) return
-    setSaving(true)
-
-    try {
-      const method = editingRole._id ? 'PUT' : 'POST'
-      const url = editingRole._id
-        ? `/api/admin/roles/${editingRole._id}`
-        : '/api/admin/roles'
-
-      const res = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(editingRole)
-      })
-
-      if (res.ok) {
-        fetchRoles()
-        setEditingRole(null)
-      }
-    } catch (error) {
-      console.error('Error saving role:', error)
-    } finally {
-      setSaving(false)
-    }
+  const getPermissionCount = (roleId: RoleType) => {
+    const perms = ROLE_PERMISSIONS[roleId]
+    return Object.values(perms).filter(v => v === true).length
   }
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer ce rôle ?')) return
-
-    try {
-      await fetch(`/api/admin/roles/${id}`, { method: 'DELETE', credentials: 'include' })
-      fetchRoles()
-    } catch (error) {
-      console.error('Error deleting role:', error)
-    }
-  }
-
-  const togglePermission = (permission: string) => {
-    if (!editingRole) return
-    const perms = editingRole.permissions || []
-    if (perms.includes(permission)) {
-      setEditingRole({ ...editingRole, permissions: perms.filter(p => p !== permission) })
-    } else {
-      setEditingRole({ ...editingRole, permissions: [...perms, permission] })
-    }
+  const renderPermissionBadge = (value: boolean) => {
+    return value ? (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs rounded-full">
+        <Check className="w-3 h-3" />
+        Oui
+      </span>
+    ) : (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 dark:bg-slate-700 text-gray-500 dark:text-gray-400 text-xs rounded-full">
+        <X className="w-3 h-3" />
+        Non
+      </span>
+    )
   }
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-8">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Rôles utilisateurs</h1>
-          <p className="text-gray-600 dark:text-gray-300 mt-2">
-            Gérez les rôles et permissions des utilisateurs (Admin, Sourceur, Commercial, Freelance)
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl">
+              <Shield className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">Rôles & Permissions</h1>
+              <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Configuration des rôles du système</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Info Banner */}
+      <div className="glass-card p-4 mb-6 flex items-start gap-3">
+        <Info className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
+        <div className="text-sm text-gray-600 dark:text-gray-300">
+          <p className="font-medium text-gray-900 dark:text-white mb-1">Système de rôles à deux niveaux</p>
+          <p>
+            <strong className="text-blue-600 dark:text-blue-400">Bureau</strong>: Équipe interne (Admin, Commercial, Sourceur, RH) |
+            <strong className="text-green-600 dark:text-green-400 ml-2">Terrain</strong>: Consultants et candidats (CDI, Freelance, Candidat)
           </p>
         </div>
+      </div>
+
+      {/* Category Filter */}
+      <div className="flex gap-3 mb-6">
         <button
-          onClick={() => setEditingRole({ name: '', label: '', permissions: [] })}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+          onClick={() => setSelectedCategory('all')}
+          className={`px-4 py-2 rounded-xl font-medium transition ${
+            selectedCategory === 'all'
+              ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white'
+              : 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-600'
+          }`}
         >
-          <Plus className="w-5 h-5" />
-          Nouveau rôle
+          Tous ({Object.keys(ROLES).length})
+        </button>
+        <button
+          onClick={() => setSelectedCategory('bureau')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition ${
+            selectedCategory === 'bureau'
+              ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white'
+              : 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-600'
+          }`}
+        >
+          <Building2 className="w-4 h-4" />
+          Bureau ({bureauRoles.length})
+        </button>
+        <button
+          onClick={() => setSelectedCategory('terrain')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition ${
+            selectedCategory === 'terrain'
+              ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white'
+              : 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-600'
+          }`}
+        >
+          <Users className="w-4 h-4" />
+          Terrain ({terrainRoles.length})
         </button>
       </div>
 
-      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm overflow-hidden">
-        {loading ? (
-          <div className="flex justify-center py-12">
-            <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-          </div>
-        ) : roles.length === 0 ? (
-          <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-            <Shield className="w-12 h-12 mx-auto mb-4 opacity-50" />
-            Aucun rôle configuré
-          </div>
-        ) : (
-          <div className="divide-y divide-gray-100 dark:divide-slate-700">
-            {roles.map((role) => (
-              <motion.div
-                key={role._id}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="p-6 hover:bg-gray-50 dark:hover:bg-slate-700"
-              >
-                <div className="flex justify-between items-start">
-                  <div>
-                    <div className="flex items-center gap-3">
-                      <Shield className="w-5 h-5 text-blue-500" />
-                      <span className="font-medium text-gray-900 dark:text-white">{role.label}</span>
-                      <span className="px-2 py-0.5 bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 text-xs rounded-full">
-                        {role.name}
-                      </span>
-                    </div>
-                    <div className="flex flex-wrap gap-1 mt-2">
-                      {role.permissions?.map((perm) => (
-                        <span key={perm} className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded">
-                          {perm}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setEditingRole(role)}
-                      className="p-2 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg"
-                    >
-                      <Edit className="w-5 h-5" />
-                    </button>
-                    {role.name !== 'admin' && (
-                      <button
-                        onClick={() => handleDelete(role._id)}
-                        className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
-                      >
-                        <Trash2 className="w-5 h-5" />
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Edit Modal */}
-      {editingRole && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white dark:bg-slate-800 rounded-xl shadow-xl w-full max-w-lg"
-          >
-            <div className="flex justify-between items-center p-6 border-b border-gray-200 dark:border-slate-700">
-              <h2 className="text-xl font-semibold">
-                {editingRole._id ? 'Modifier le rôle' : 'Nouveau rôle'}
-              </h2>
-              <button onClick={() => setEditingRole(null)}>
-                <X className="w-6 h-6 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300" />
-              </button>
-            </div>
-
-            <div className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Identifiant</label>
-                <input
-                  type="text"
-                  value={editingRole.name || ''}
-                  onChange={(e) => setEditingRole({ ...editingRole, name: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-                  placeholder="editor"
-                  disabled={editingRole._id !== undefined}
-                />
+      {/* Category Sections */}
+      {selectedCategory === 'all' ? (
+        <div className="space-y-8">
+          {/* Bureau Section */}
+          <div>
+            <div className="flex items-center gap-2 mb-4">
+              <div className="p-1.5 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-lg">
+                <Building2 className="w-4 h-4 text-white" />
               </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nom affiché</label>
-                <input
-                  type="text"
-                  value={editingRole.label || ''}
-                  onChange={(e) => setEditingRole({ ...editingRole, label: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-                  placeholder="Éditeur"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Permissions</label>
-                <div className="space-y-2 max-h-48 overflow-y-auto">
-                  {availablePermissions.map((perm) => (
-                    <label key={perm.value} className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={editingRole.permissions?.includes(perm.value) || false}
-                        onChange={() => togglePermission(perm.value)}
-                        className="w-4 h-4 text-blue-600 rounded"
-                      />
-                      <span className="text-sm text-gray-700 dark:text-gray-300">{perm.label}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Bureau</h2>
+              <span className="text-sm text-gray-500 dark:text-gray-400">- {ROLE_CATEGORIES.bureau.description}</span>
             </div>
-
-            <div className="flex justify-end gap-3 p-6 border-t border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800">
-              <button
-                onClick={() => setEditingRole(null)}
-                className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-600 rounded-lg transition"
-              >
-                Annuler
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
-              >
-                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                Enregistrer
-              </button>
+            <div className="space-y-3">
+              {bureauRoles.map(role => renderRoleCard(role.id as RoleType, expandedRole, toggleRole, getPermissionCount, renderPermissionBadge))}
             </div>
-          </motion.div>
+          </div>
+
+          {/* Terrain Section */}
+          <div>
+            <div className="flex items-center gap-2 mb-4">
+              <div className="p-1.5 bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg">
+                <Users className="w-4 h-4 text-white" />
+              </div>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Terrain</h2>
+              <span className="text-sm text-gray-500 dark:text-gray-400">- {ROLE_CATEGORIES.terrain.description}</span>
+            </div>
+            <div className="space-y-3">
+              {terrainRoles.map(role => renderRoleCard(role.id as RoleType, expandedRole, toggleRole, getPermissionCount, renderPermissionBadge))}
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {filteredRoles.map(role => renderRoleCard(role.id as RoleType, expandedRole, toggleRole, getPermissionCount, renderPermissionBadge))}
         </div>
       )}
     </div>
+  )
+}
+
+function renderRoleCard(
+  roleId: RoleType,
+  expandedRole: RoleType | null,
+  toggleRole: (id: RoleType) => void,
+  getPermissionCount: (id: RoleType) => number,
+  renderPermissionBadge: (value: boolean) => React.ReactNode
+) {
+  const role = ROLES[roleId]
+  const perms = ROLE_PERMISSIONS[roleId]
+  const isExpanded = expandedRole === roleId
+
+  const ROLE_ICONS: Record<RoleType, React.ReactNode> = {
+    admin: <Shield className="w-5 h-5" />,
+    commercial: <Briefcase className="w-5 h-5" />,
+    sourceur: <Search className="w-5 h-5" />,
+    rh: <UserCog className="w-5 h-5" />,
+    consultant_cdi: <UserCheck className="w-5 h-5" />,
+    freelance: <Zap className="w-5 h-5" />,
+    candidat: <UserPlus className="w-5 h-5" />
+  }
+
+  return (
+    <motion.div
+      key={roleId}
+      className="glass-card overflow-hidden"
+      initial={false}
+      animate={{ height: 'auto' }}
+    >
+      {/* Role Header */}
+      <button
+        onClick={() => toggleRole(roleId)}
+        className="w-full p-4 flex items-center justify-between hover:bg-gray-50/50 dark:hover:bg-slate-700/50 transition"
+      >
+        <div className="flex items-center gap-3">
+          <div className={`p-2 bg-gradient-to-r ${role.color} rounded-xl text-white`}>
+            {ROLE_ICONS[roleId]}
+          </div>
+          <div className="text-left">
+            <h3 className="font-semibold text-gray-900 dark:text-white">{role.label}</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{role.description}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="px-3 py-1 bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 text-sm rounded-full">
+            {getPermissionCount(roleId)} permissions
+          </span>
+          {isExpanded ? (
+            <ChevronUp className="w-5 h-5 text-gray-400" />
+          ) : (
+            <ChevronDown className="w-5 h-5 text-gray-400" />
+          )}
+        </div>
+      </button>
+
+      {/* Permissions Detail */}
+      <AnimatePresence>
+        {isExpanded && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="border-t border-gray-100 dark:border-slate-700"
+          >
+            <div className="p-4 space-y-4">
+              {PERMISSION_GROUPS.map(group => {
+                const groupPerms = group.permissions.filter(p => p in perms)
+                if (groupPerms.length === 0) return null
+
+                const hasAnyEnabled = groupPerms.some(p => perms[p as keyof RolePermissions])
+
+                return (
+                  <div key={group.id} className={`rounded-lg p-3 ${hasAnyEnabled ? 'bg-green-50/50 dark:bg-green-900/10' : 'bg-gray-50 dark:bg-slate-700/50'}`}>
+                    <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
+                      <Eye className="w-4 h-4" />
+                      {group.label}
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      {groupPerms.map(permKey => (
+                        <div key={permKey} className="flex items-center justify-between py-1">
+                          <span className="text-sm text-gray-600 dark:text-gray-400">
+                            {PERMISSION_LABELS[permKey as keyof RolePermissions] || permKey}
+                          </span>
+                          {renderPermissionBadge(perms[permKey as keyof RolePermissions])}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   )
 }

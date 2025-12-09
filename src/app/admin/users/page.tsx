@@ -13,9 +13,28 @@ import {
   Mail,
   Shield,
   Search,
-  AlertCircle
+  AlertCircle,
+  Building2,
+  UserCheck,
+  Briefcase,
+  SearchIcon,
+  UserCog,
+  Zap,
+  UserPlus,
+  Filter
 } from 'lucide-react'
-import { ROLE_LABELS, ROLE_COLORS, RoleType } from '@/lib/roles'
+import {
+  ROLES,
+  ROLE_LABELS,
+  ROLE_COLORS,
+  ROLE_CATEGORIES,
+  RoleType,
+  RoleCategory,
+  getRolesByCategory,
+  getRoleCategory,
+  isBureauRole,
+  isTerrainRole
+} from '@/lib/roles'
 
 interface User {
   _id: string
@@ -24,13 +43,25 @@ interface User {
   role: string
   createdAt: string
   updatedAt?: string
+  candidateId?: string // Link to candidate profile for terrain roles
 }
 
 const emptyFormData = {
   email: '',
   name: '',
   password: '',
-  role: 'consultant'
+  role: 'commercial'
+}
+
+// Role icons mapping
+const ROLE_ICONS: Record<string, React.ReactNode> = {
+  admin: <Shield className="w-4 h-4" />,
+  commercial: <Briefcase className="w-4 h-4" />,
+  sourceur: <SearchIcon className="w-4 h-4" />,
+  rh: <UserCog className="w-4 h-4" />,
+  consultant_cdi: <UserCheck className="w-4 h-4" />,
+  freelance: <Zap className="w-4 h-4" />,
+  candidat: <UserPlus className="w-4 h-4" />
 }
 
 export default function UsersPage() {
@@ -43,6 +74,7 @@ export default function UsersPage() {
   const [error, setError] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
   const [filterRole, setFilterRole] = useState<string>('all')
+  const [filterCategory, setFilterCategory] = useState<RoleCategory | 'all'>('all')
 
   useEffect(() => {
     fetchUsers()
@@ -160,13 +192,77 @@ export default function UsersPage() {
     const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesRole = filterRole === 'all' || user.role === filterRole
-    return matchesSearch && matchesRole
+    const matchesCategory = filterCategory === 'all' || getRoleCategory(user.role) === filterCategory
+    return matchesSearch && matchesRole && matchesCategory
   })
+
+  // Group users by category
+  const bureauUsers = filteredUsers.filter(u => isBureauRole(u.role))
+  const terrainUsers = filteredUsers.filter(u => isTerrainRole(u.role))
+
+  // Count by category
+  const bureauCount = users.filter(u => isBureauRole(u.role)).length
+  const terrainCount = users.filter(u => isTerrainRole(u.role)).length
 
   const getRoleBadgeClass = (role: string) => {
     const colors = ROLE_COLORS[role as RoleType] || 'from-slate-500 to-slate-600'
     return `bg-gradient-to-r ${colors} text-white`
   }
+
+  const renderUserRow = (user: User, index: number) => (
+    <motion.tr
+      key={user._id}
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.03 }}
+      onClick={() => openEditModal(user)}
+      className="hover:bg-gray-50/50 dark:hover:bg-slate-700/50 transition cursor-pointer"
+    >
+      <td className="px-6 py-4">
+        <div className="flex items-center gap-3">
+          <div className={`w-10 h-10 rounded-full bg-gradient-to-r ${ROLE_COLORS[user.role as RoleType] || 'from-slate-500 to-slate-600'} flex items-center justify-center`}>
+            <span className="text-white font-bold text-sm">
+              {user.name?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase()}
+            </span>
+          </div>
+          <span className="font-medium text-gray-900 dark:text-white">{user.name}</span>
+        </div>
+      </td>
+      <td className="px-6 py-4">
+        <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
+          <Mail className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+          {user.email}
+        </div>
+      </td>
+      <td className="px-6 py-4">
+        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ${getRoleBadgeClass(user.role)}`}>
+          {ROLE_ICONS[user.role] || <Shield className="w-3 h-3" />}
+          {ROLE_LABELS[user.role as RoleType] || user.role}
+        </span>
+      </td>
+      <td className="px-6 py-4 text-gray-500 dark:text-gray-400 text-sm">
+        {new Date(user.createdAt).toLocaleDateString('fr-FR', {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric'
+        })}
+      </td>
+      <td className="px-6 py-4">
+        <div className="flex justify-end gap-2">
+          <button
+            onClick={(e) => { e.stopPropagation(); handleDelete(user); }}
+            className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition"
+            title="Supprimer"
+          >
+            <Trash2 className="w-5 h-5" />
+          </button>
+        </div>
+      </td>
+    </motion.tr>
+  )
+
+  const bureauRoles = getRolesByCategory('bureau')
+  const terrainRoles = getRolesByCategory('terrain')
 
   return (
     <div>
@@ -192,6 +288,65 @@ export default function UsersPage() {
         </button>
       </div>
 
+      {/* Category Stats */}
+      <div className="grid md:grid-cols-2 gap-4 mb-6">
+        <motion.button
+          onClick={() => setFilterCategory(filterCategory === 'bureau' ? 'all' : 'bureau')}
+          className={`glass-card p-4 text-left transition-all ${filterCategory === 'bureau' ? 'ring-2 ring-blue-500' : ''}`}
+          whileHover={{ scale: 1.01 }}
+          whileTap={{ scale: 0.99 }}
+        >
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-xl">
+              <Building2 className="w-5 h-5 text-white" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-gray-900 dark:text-white">Bureau</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">{ROLE_CATEGORIES.bureau.description}</p>
+            </div>
+            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{bureauCount}</div>
+          </div>
+          <div className="flex flex-wrap gap-2 mt-3">
+            {bureauRoles.map(role => {
+              const count = users.filter(u => u.role === role.id).length
+              return count > 0 ? (
+                <span key={role.id} className="text-xs px-2 py-1 bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 rounded">
+                  {role.label}: {count}
+                </span>
+              ) : null
+            })}
+          </div>
+        </motion.button>
+
+        <motion.button
+          onClick={() => setFilterCategory(filterCategory === 'terrain' ? 'all' : 'terrain')}
+          className={`glass-card p-4 text-left transition-all ${filterCategory === 'terrain' ? 'ring-2 ring-green-500' : ''}`}
+          whileHover={{ scale: 1.01 }}
+          whileTap={{ scale: 0.99 }}
+        >
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl">
+              <UserCheck className="w-5 h-5 text-white" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-gray-900 dark:text-white">Terrain</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">{ROLE_CATEGORIES.terrain.description}</p>
+            </div>
+            <div className="text-2xl font-bold text-green-600 dark:text-green-400">{terrainCount}</div>
+          </div>
+          <div className="flex flex-wrap gap-2 mt-3">
+            {terrainRoles.map(role => {
+              const count = users.filter(u => u.role === role.id).length
+              return count > 0 ? (
+                <span key={role.id} className="text-xs px-2 py-1 bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 rounded">
+                  {role.label}: {count}
+                </span>
+              ) : null
+            })}
+          </div>
+        </motion.button>
+      </div>
+
       {/* Filters */}
       <div className="glass-card p-4 mb-6">
         <div className="flex flex-col md:flex-row gap-4">
@@ -205,109 +360,120 @@ export default function UsersPage() {
               className="w-full pl-10 pr-4 py-2.5 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-800 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
             />
           </div>
-          <select
-            value={filterRole}
-            onChange={(e) => setFilterRole(e.target.value)}
-            className="px-4 py-2.5 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-800 text-gray-900 dark:text-white"
-          >
-            <option value="all">Tous les rôles</option>
-            {Object.entries(ROLE_LABELS).map(([key, label]) => (
-              <option key={key} value={key}>{label}</option>
-            ))}
-          </select>
+          <div className="flex items-center gap-2">
+            <Filter className="w-5 h-5 text-gray-400" />
+            <select
+              value={filterRole}
+              onChange={(e) => setFilterRole(e.target.value)}
+              className="px-4 py-2.5 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-800 text-gray-900 dark:text-white"
+            >
+              <option value="all">Tous les rôles</option>
+              <optgroup label="Bureau">
+                {bureauRoles.map(role => (
+                  <option key={role.id} value={role.id}>{role.label}</option>
+                ))}
+              </optgroup>
+              <optgroup label="Terrain">
+                {terrainRoles.map(role => (
+                  <option key={role.id} value={role.id}>{role.label}</option>
+                ))}
+              </optgroup>
+            </select>
+          </div>
+          {filterCategory !== 'all' && (
+            <button
+              onClick={() => setFilterCategory('all')}
+              className="px-4 py-2.5 bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 rounded-xl hover:bg-gray-200 dark:hover:bg-slate-600 transition text-sm font-medium"
+            >
+              Effacer le filtre
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Users Table */}
-      <div className="glass-card overflow-hidden">
-        {loading ? (
-          <div className="flex justify-center py-12">
-            <Loader2 className="w-8 h-8 animate-spin text-ebmc-turquoise" />
+      {/* Users Tables - Show separately if filtering by category */}
+      {filterCategory === 'all' ? (
+        // Show all users in one table
+        <div className="glass-card overflow-hidden">
+          {loading ? (
+            <div className="flex justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-ebmc-turquoise" />
+            </div>
+          ) : filteredUsers.length === 0 ? (
+            <div className="text-center py-12">
+              <Users className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+              <p className="text-gray-500 dark:text-gray-400">
+                {searchTerm || filterRole !== 'all'
+                  ? 'Aucun utilisateur ne correspond aux critères'
+                  : 'Aucun utilisateur trouvé'}
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50/80 dark:bg-slate-800/80 border-b border-gray-100 dark:border-slate-700">
+                  <tr>
+                    <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Utilisateur</th>
+                    <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Email</th>
+                    <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Rôle</th>
+                    <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Créé le</th>
+                    <th className="text-right px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
+                  {filteredUsers.map((user, index) => renderUserRow(user, index))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      ) : (
+        // Show filtered category
+        <div className="glass-card overflow-hidden">
+          <div className="p-4 border-b border-gray-100 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-800/50">
+            <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+              {filterCategory === 'bureau' ? (
+                <>
+                  <Building2 className="w-5 h-5 text-blue-500" />
+                  Équipe Bureau ({bureauUsers.length})
+                </>
+              ) : (
+                <>
+                  <UserCheck className="w-5 h-5 text-green-500" />
+                  Équipe Terrain ({terrainUsers.length})
+                </>
+              )}
+            </h3>
           </div>
-        ) : filteredUsers.length === 0 ? (
-          <div className="text-center py-12">
-            <Users className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
-            <p className="text-gray-500 dark:text-gray-400">
-              {searchTerm || filterRole !== 'all'
-                ? 'Aucun utilisateur ne correspond aux critères'
-                : 'Aucun utilisateur trouvé'}
-            </p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50/80 dark:bg-slate-800/80 border-b border-gray-100 dark:border-slate-700">
-                <tr>
-                  <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Utilisateur</th>
-                  <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Email</th>
-                  <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Rôle</th>
-                  <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Créé le</th>
-                  <th className="text-right px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
-                {filteredUsers.map((user, index) => (
-                  <motion.tr
-                    key={user._id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.03 }}
-                    className="hover:bg-gray-50/50 dark:hover:bg-slate-700/50 transition"
-                  >
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-full bg-gradient-to-r ${ROLE_COLORS[user.role as RoleType] || 'from-slate-500 to-slate-600'} flex items-center justify-center`}>
-                          <span className="text-white font-bold text-sm">
-                            {user.name?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase()}
-                          </span>
-                        </div>
-                        <span className="font-medium text-gray-900 dark:text-white">{user.name}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
-                        <Mail className="w-4 h-4 text-gray-400 dark:text-gray-500" />
-                        {user.email}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ${getRoleBadgeClass(user.role)}`}>
-                        <Shield className="w-3 h-3" />
-                        {ROLE_LABELS[user.role as RoleType] || user.role}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-gray-500 dark:text-gray-400 text-sm">
-                      {new Date(user.createdAt).toLocaleDateString('fr-FR', {
-                        day: 'numeric',
-                        month: 'short',
-                        year: 'numeric'
-                      })}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex justify-end gap-2">
-                        <button
-                          onClick={() => openEditModal(user)}
-                          className="p-2 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition"
-                          title="Modifier"
-                        >
-                          <Edit className="w-5 h-5" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(user)}
-                          className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition"
-                          title="Supprimer"
-                        >
-                          <Trash2 className="w-5 h-5" />
-                        </button>
-                      </div>
-                    </td>
-                  </motion.tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+          {loading ? (
+            <div className="flex justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-ebmc-turquoise" />
+            </div>
+          ) : (filterCategory === 'bureau' ? bureauUsers : terrainUsers).length === 0 ? (
+            <div className="text-center py-12">
+              <Users className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+              <p className="text-gray-500 dark:text-gray-400">Aucun utilisateur dans cette catégorie</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50/80 dark:bg-slate-800/80 border-b border-gray-100 dark:border-slate-700">
+                  <tr>
+                    <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Utilisateur</th>
+                    <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Email</th>
+                    <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Rôle</th>
+                    <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Créé le</th>
+                    <th className="text-right px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
+                  {(filterCategory === 'bureau' ? bureauUsers : terrainUsers).map((user, index) => renderUserRow(user, index))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Create/Edit Modal */}
       <AnimatePresence>
@@ -407,16 +573,19 @@ export default function UsersPage() {
                     onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                     className="w-full px-4 py-3 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
                   >
-                    {Object.entries(ROLE_LABELS).map(([key, label]) => (
-                      <option key={key} value={key}>{label}</option>
-                    ))}
+                    <optgroup label="🏢 Bureau">
+                      {bureauRoles.map(role => (
+                        <option key={role.id} value={role.id}>{role.label}</option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="👷 Terrain">
+                      {terrainRoles.map(role => (
+                        <option key={role.id} value={role.id}>{role.label}</option>
+                      ))}
+                    </optgroup>
                   </select>
                   <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                    {formData.role === 'admin' && 'Accès complet à toutes les fonctionnalités'}
-                    {formData.role === 'sourceur' && 'Accès aux consultants, messages et scraper CV'}
-                    {formData.role === 'commercial' && 'Accès aux offres et consultants assignés'}
-                    {formData.role === 'consultant' && 'Consultant CDI - Accès au portail CRA et absences'}
-                    {formData.role === 'freelance' && 'Accès au portail freelance uniquement'}
+                    {ROLES[formData.role as RoleType]?.description || ''}
                   </p>
                 </div>
 
