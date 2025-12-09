@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Search,
@@ -10,7 +10,6 @@ import {
   User,
   ExternalLink,
   CheckCircle,
-  Filter,
   ChevronLeft,
   ChevronRight,
   Linkedin,
@@ -20,7 +19,8 @@ import {
   Clock,
   Star,
   X,
-  RefreshCw
+  RefreshCw,
+  Database
 } from 'lucide-react'
 
 interface CVResult {
@@ -101,7 +101,6 @@ export default function ScraperPage() {
   const [results, setResults] = useState<CVResult[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [showFilters, setShowFilters] = useState(false)
   const [selectedCV, setSelectedCV] = useState<CVResult | null>(null)
   const [pagination, setPagination] = useState<Pagination>({
     page: 1,
@@ -190,14 +189,14 @@ export default function ScraperPage() {
     }
   }
 
-  const getSourceColor = (source: string) => {
+  const getSourceBadge = (source: string) => {
     switch (source) {
       case 'LINKEDIN':
-        return 'bg-[#0077B5]/10 text-[#0077B5] border-[#0077B5]/20'
+        return 'bg-gradient-to-r from-[#0077B5]/20 to-[#0077B5]/10 text-[#0077B5]'
       case 'MALT':
-        return 'bg-[#FC5757]/10 text-[#FC5757] border-[#FC5757]/20'
+        return 'bg-gradient-to-r from-[#FC5757]/20 to-[#FC5757]/10 text-[#FC5757]'
       default:
-        return 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-slate-700'
+        return 'bg-gradient-to-r from-gray-200 to-gray-100 dark:from-slate-700 dark:to-slate-600 text-gray-600 dark:text-gray-300'
     }
   }
 
@@ -205,24 +204,23 @@ export default function ScraperPage() {
     <div>
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-        <div className="flex items-center gap-4">
-          <div className="p-3 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500 shadow-lg">
-            <Search className="w-6 h-6 text-white" />
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-gradient-to-r from-ebmc-turquoise to-cyan-500 rounded-xl">
+            <Database className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Recherche de Candidats</h1>
-            <p className="text-gray-500 dark:text-gray-400">Recherchez dans la base de CVs scrappés</p>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">Base de CVs</h1>
+            <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
+              {pagination.total > 0 ? `${pagination.total} profils trouvés` : 'Recherchez dans la base de CVs scrappés'}
+            </p>
           </div>
         </div>
       </div>
 
-      {/* Search Bar */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700 p-6 mb-6"
-      >
-        <div className="flex flex-col md:flex-row gap-4">
+      {/* Search & Filters */}
+      <div className="glass-card p-4 mb-6">
+        <div className="flex flex-col lg:flex-row gap-4">
+          {/* Search input */}
           <div className="flex-1 relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500" />
             <input
@@ -231,10 +229,12 @@ export default function ScraperPage() {
               onChange={(e) => setFilters(prev => ({ ...prev, query: e.target.value }))}
               onKeyPress={handleKeyPress}
               placeholder="Rechercher par nom, titre, compétences..."
-              className="w-full pl-12 pr-4 py-3 border border-gray-200 dark:border-slate-700 rounded-xl focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+              className="w-full pl-12 pr-4 py-2.5 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl focus:border-ebmc-turquoise focus:ring-1 focus:ring-ebmc-turquoise text-gray-900 dark:text-white placeholder-gray-400"
             />
           </div>
-          <div className="relative md:w-64">
+
+          {/* Location */}
+          <div className="relative lg:w-56">
             <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500" />
             <input
               type="text"
@@ -242,143 +242,84 @@ export default function ScraperPage() {
               onChange={(e) => setFilters(prev => ({ ...prev, location: e.target.value }))}
               onKeyPress={handleKeyPress}
               placeholder="Localisation..."
-              className="w-full pl-12 pr-4 py-3 border border-gray-200 dark:border-slate-700 rounded-xl focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+              className="w-full pl-12 pr-4 py-2.5 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl focus:border-ebmc-turquoise focus:ring-1 focus:ring-ebmc-turquoise text-gray-900 dark:text-white placeholder-gray-400"
             />
           </div>
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className={`flex items-center gap-2 px-4 py-3 border rounded-xl transition ${
-              showFilters ? 'border-indigo-500 bg-indigo-50 text-indigo-600' : 'border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700'
-            }`}
+
+          {/* Source */}
+          <select
+            value={filters.source}
+            onChange={(e) => setFilters(prev => ({ ...prev, source: e.target.value }))}
+            className="lg:w-40 px-4 py-2.5 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl focus:border-ebmc-turquoise focus:ring-1 focus:ring-ebmc-turquoise text-gray-900 dark:text-white"
           >
-            <Filter className="w-5 h-5" />
-            <span className="hidden md:inline">Filtres</span>
-            {filters.job_categories.length > 0 && (
-              <span className="bg-indigo-500 text-white text-xs px-2 py-0.5 rounded-full">
-                {filters.job_categories.length}
-              </span>
-            )}
-          </button>
+            {SOURCES.map(src => (
+              <option key={src.value} value={src.value}>{src.label}</option>
+            ))}
+          </select>
+
+          {/* Availability */}
+          <select
+            value={filters.open_to_work === null ? '' : filters.open_to_work ? 'true' : 'false'}
+            onChange={(e) => setFilters(prev => ({
+              ...prev,
+              open_to_work: e.target.value === '' ? null : e.target.value === 'true'
+            }))}
+            className="lg:w-40 px-4 py-2.5 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl focus:border-ebmc-turquoise focus:ring-1 focus:ring-ebmc-turquoise text-gray-900 dark:text-white"
+          >
+            <option value="">Disponibilité</option>
+            <option value="true">Disponibles</option>
+            <option value="false">En poste</option>
+          </select>
+
+          {/* Search button */}
           <button
             onClick={() => handleSearch(1)}
             disabled={loading}
-            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-xl hover:opacity-90 transition disabled:opacity-50"
+            className="flex items-center justify-center gap-2 bg-gradient-to-r from-ebmc-turquoise to-cyan-500 text-white px-5 py-2.5 rounded-xl hover:shadow-lg hover:shadow-ebmc-turquoise/25 transition-all font-medium disabled:opacity-50"
           >
             {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Search className="w-5 h-5" />}
             Rechercher
           </button>
         </div>
 
-        {/* Filters Panel */}
-        <AnimatePresence>
-          {showFilters && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="mt-6 pt-6 border-t border-gray-100 dark:border-slate-700 space-y-4"
-            >
-              {/* Categories */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Catégories de poste
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {JOB_CATEGORIES.map(cat => (
-                    <button
-                      key={cat.value}
-                      onClick={() => toggleCategory(cat.value)}
-                      className={`px-3 py-1.5 text-sm rounded-lg border transition ${
-                        filters.job_categories.includes(cat.value)
-                          ? 'bg-indigo-50 border-indigo-500 text-indigo-600'
-                          : 'border-gray-200 dark:border-slate-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700'
-                      }`}
-                    >
-                      {cat.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Source & Availability */}
-              <div className="grid md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Source
-                  </label>
-                  <select
-                    value={filters.source}
-                    onChange={(e) => setFilters(prev => ({ ...prev, source: e.target.value }))}
-                    className="w-full px-4 py-2.5 border border-gray-200 dark:border-slate-700 rounded-xl focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-                  >
-                    {SOURCES.map(src => (
-                      <option key={src.value} value={src.value}>{src.label}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Disponibilité
-                  </label>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setFilters(prev => ({ ...prev, open_to_work: null }))}
-                      className={`flex-1 px-4 py-2.5 text-sm rounded-xl border transition ${
-                        filters.open_to_work === null
-                          ? 'bg-indigo-50 border-indigo-500 text-indigo-600'
-                          : 'border-gray-200 dark:border-slate-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700'
-                      }`}
-                    >
-                      Tous
-                    </button>
-                    <button
-                      onClick={() => setFilters(prev => ({ ...prev, open_to_work: true }))}
-                      className={`flex-1 px-4 py-2.5 text-sm rounded-xl border transition ${
-                        filters.open_to_work === true
-                          ? 'bg-green-50 border-green-500 text-green-600'
-                          : 'border-gray-200 dark:border-slate-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700'
-                      }`}
-                    >
-                      <CheckCircle className="w-4 h-4 inline mr-1" />
-                      Disponibles
-                    </button>
-                    <button
-                      onClick={() => setFilters(prev => ({ ...prev, open_to_work: false }))}
-                      className={`flex-1 px-4 py-2.5 text-sm rounded-xl border transition ${
-                        filters.open_to_work === false
-                          ? 'bg-orange-50 border-orange-500 text-orange-600'
-                          : 'border-gray-200 dark:border-slate-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700'
-                      }`}
-                    >
-                      En poste
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </motion.div>
+        {/* Category chips */}
+        <div className="mt-4 pt-4 border-t border-gray-100 dark:border-slate-700">
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">Catégories :</p>
+          <div className="flex flex-wrap gap-2">
+            {JOB_CATEGORIES.map(cat => (
+              <button
+                key={cat.value}
+                onClick={() => toggleCategory(cat.value)}
+                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition ${
+                  filters.job_categories.includes(cat.value)
+                    ? 'bg-gradient-to-r from-ebmc-turquoise to-cyan-500 text-white'
+                    : 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-600'
+                }`}
+              >
+                {cat.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
 
       {/* Error */}
       {error && (
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6"
+          className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 mb-6 flex items-center gap-3"
         >
-          <p className="text-red-600">{error}</p>
+          <div className="p-2 bg-red-100 dark:bg-red-900/40 rounded-lg">
+            <X className="w-5 h-5 text-red-500" />
+          </div>
+          <p className="text-red-700 dark:text-red-300">{error}</p>
         </motion.div>
       )}
 
-      {/* Results */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700 overflow-hidden"
-      >
-        {/* Results Header */}
+      {/* Results Table */}
+      <div className="glass-card overflow-hidden">
+        {/* Table Header */}
         <div className="px-6 py-4 border-b border-gray-100 dark:border-slate-700 flex items-center justify-between">
           <div>
             <h2 className="font-semibold text-gray-900 dark:text-white">
@@ -396,7 +337,7 @@ export default function ScraperPage() {
           {results.length > 0 && (
             <button
               onClick={() => handleSearch(pagination.page)}
-              className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700"
+              className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 hover:text-ebmc-turquoise transition"
             >
               <RefreshCw className="w-4 h-4" />
               Actualiser
@@ -404,14 +345,16 @@ export default function ScraperPage() {
           )}
         </div>
 
-        {/* Results List */}
+        {/* Results */}
         {loading ? (
           <div className="flex items-center justify-center py-16">
-            <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
+            <Loader2 className="w-8 h-8 animate-spin text-ebmc-turquoise" />
           </div>
         ) : results.length === 0 ? (
           <div className="text-center py-16">
-            <Search className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+            <div className="w-16 h-16 bg-gradient-to-r from-ebmc-turquoise/20 to-cyan-500/20 rounded-xl flex items-center justify-center mx-auto mb-4">
+              <Search className="w-8 h-8 text-ebmc-turquoise" />
+            </div>
             <p className="text-gray-500 dark:text-gray-400">
               {pagination.total === 0 && filters.query
                 ? 'Aucun résultat pour cette recherche'
@@ -419,105 +362,125 @@ export default function ScraperPage() {
             </p>
           </div>
         ) : (
-          <div className="divide-y divide-gray-100 dark:divide-slate-700">
-            {results.map((cv) => (
-              <motion.div
-                key={cv.id}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="p-6 hover:bg-gray-50 dark:hover:bg-slate-700 cursor-pointer transition"
-                onClick={() => setSelectedCV(cv)}
-              >
-                <div className="flex items-start gap-4">
-                  {/* Avatar */}
-                  <div className="w-14 h-14 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white text-lg font-bold overflow-hidden flex-shrink-0">
-                    {cv.profileImageUrl ? (
-                      <img src={cv.profileImageUrl} alt={cv.fullName} className="w-full h-full object-cover" />
-                    ) : (
-                      cv.fullName?.charAt(0).toUpperCase() || 'U'
-                    )}
-                  </div>
-
-                  {/* Info */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-3 flex-wrap">
-                      <h3 className="font-semibold text-gray-900 dark:text-white">{cv.fullName}</h3>
-                      {cv.openToWork && (
-                        <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full flex items-center gap-1">
-                          <CheckCircle className="w-3 h-3" />
-                          Open to Work
-                        </span>
-                      )}
-                      <span className={`px-2 py-0.5 text-xs rounded-full border flex items-center gap-1 ${getSourceColor(cv.source)}`}>
-                        {getSourceIcon(cv.source)}
-                        {cv.source}
-                      </span>
-                    </div>
-                    {cv.jobTitle && (
-                      <p className="text-gray-600 dark:text-gray-300 mt-1">{cv.jobTitle}</p>
-                    )}
-                    <div className="flex flex-wrap gap-4 mt-2 text-sm text-gray-500 dark:text-gray-400">
-                      {cv.location && (
-                        <span className="flex items-center gap-1">
-                          <MapPin className="w-4 h-4" />
-                          {cv.location}
-                        </span>
-                      )}
-                      {cv.jobCategory && (
-                        <span className="flex items-center gap-1">
-                          <Briefcase className="w-4 h-4" />
-                          {JOB_CATEGORIES.find(c => c.value === cv.jobCategory)?.label || cv.jobCategory}
-                        </span>
-                      )}
-                      {cv.dailyRate && (
-                        <span className="flex items-center gap-1 text-green-600 font-medium">
-                          {cv.dailyRate} {cv.currency || '€'}/jour
-                        </span>
-                      )}
-                    </div>
-                    {cv.skills && cv.skills.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-3">
-                        {cv.skills.slice(0, 6).map((skill, i) => (
-                          <span key={i} className="px-2 py-0.5 bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 text-xs rounded">
-                            {skill}
-                          </span>
-                        ))}
-                        {cv.skills.length > 6 && (
-                          <span className="text-xs text-gray-400 dark:text-gray-500">+{cv.skills.length - 6}</span>
+          <table className="w-full">
+            <thead className="bg-gray-50/80 dark:bg-slate-800/80 border-b border-gray-100 dark:border-slate-700">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Candidat</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden md:table-cell">Poste</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden lg:table-cell">Localisation</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden sm:table-cell">Source</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden sm:table-cell">Statut</th>
+                <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
+              {results.map((cv, index) => (
+                <motion.tr
+                  key={cv.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.03 }}
+                  className="hover:bg-gray-50/80 dark:hover:bg-slate-700/50 cursor-pointer transition-colors"
+                  onClick={() => setSelectedCV(cv)}
+                >
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-ebmc-turquoise to-cyan-500 flex items-center justify-center text-white font-semibold overflow-hidden flex-shrink-0">
+                        {cv.profileImageUrl ? (
+                          <img src={cv.profileImageUrl} alt={cv.fullName} className="w-full h-full object-cover" />
+                        ) : (
+                          cv.fullName?.charAt(0).toUpperCase() || 'U'
                         )}
                       </div>
+                      <div>
+                        <p className="font-medium text-gray-900 dark:text-white">{cv.fullName}</p>
+                        {cv.skills && cv.skills.length > 0 && (
+                          <div className="flex gap-1 mt-1">
+                            {cv.skills.slice(0, 2).map((skill, i) => (
+                              <span key={i} className="px-1.5 py-0.5 bg-gray-100 dark:bg-slate-700 text-gray-500 dark:text-gray-400 text-xs rounded">
+                                {skill}
+                              </span>
+                            ))}
+                            {cv.skills.length > 2 && (
+                              <span className="text-xs text-gray-400">+{cv.skills.length - 2}</span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 hidden md:table-cell">
+                    <p className="text-sm text-gray-700 dark:text-gray-300">{cv.jobTitle || '-'}</p>
+                    {cv.jobCategory && (
+                      <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                        {JOB_CATEGORIES.find(c => c.value === cv.jobCategory)?.label || cv.jobCategory}
+                      </p>
                     )}
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex items-center gap-2">
-                    {cv.linkedinUrl && (
-                      <a
-                        href={cv.linkedinUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                        className="p-2 text-[#0077B5] hover:bg-[#0077B5]/10 rounded-lg transition"
+                  </td>
+                  <td className="px-6 py-4 hidden lg:table-cell">
+                    {cv.location ? (
+                      <span className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-300">
+                        <MapPin className="w-3.5 h-3.5" />
+                        {cv.location}
+                      </span>
+                    ) : (
+                      <span className="text-gray-400">-</span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 hidden sm:table-cell">
+                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-lg ${getSourceBadge(cv.source)}`}>
+                      {getSourceIcon(cv.source)}
+                      {cv.source}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 hidden sm:table-cell">
+                    {cv.openToWork ? (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-gradient-to-r from-green-500/20 to-emerald-500/20 text-green-600 dark:text-green-400 text-xs font-medium rounded-lg">
+                        <CheckCircle className="w-3.5 h-3.5" />
+                        Disponible
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center px-2.5 py-1 bg-gray-100 dark:bg-slate-700 text-gray-500 dark:text-gray-400 text-xs font-medium rounded-lg">
+                        En poste
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center justify-end gap-1">
+                      {cv.linkedinUrl && (
+                        <a
+                          href={cv.linkedinUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="p-2 text-[#0077B5] hover:bg-[#0077B5]/10 rounded-lg transition"
+                        >
+                          <Linkedin className="w-4 h-4" />
+                        </a>
+                      )}
+                      {cv.maltUrl && (
+                        <a
+                          href={cv.maltUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="p-2 text-[#FC5757] hover:bg-[#FC5757]/10 rounded-lg transition"
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                        </a>
+                      )}
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setSelectedCV(cv); }}
+                        className="p-2 text-ebmc-turquoise hover:bg-ebmc-turquoise/10 rounded-lg transition"
                       >
-                        <Linkedin className="w-5 h-5" />
-                      </a>
-                    )}
-                    {cv.maltUrl && (
-                      <a
-                        href={cv.maltUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                        className="p-2 text-[#FC5757] hover:bg-[#FC5757]/10 rounded-lg transition"
-                      >
-                        <ExternalLink className="w-5 h-5" />
-                      </a>
-                    )}
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
+                        <User className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </td>
+                </motion.tr>
+              ))}
+            </tbody>
+          </table>
         )}
 
         {/* Pagination */}
@@ -544,7 +507,7 @@ export default function ScraperPage() {
             </button>
           </div>
         )}
-      </motion.div>
+      </div>
 
       {/* CV Detail Modal */}
       <AnimatePresence>
@@ -563,9 +526,9 @@ export default function ScraperPage() {
               className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col"
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Header */}
+              {/* Modal Header */}
               <div className="p-6 border-b border-gray-100 dark:border-slate-700 flex items-start gap-4">
-                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white text-xl font-bold overflow-hidden flex-shrink-0">
+                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-ebmc-turquoise to-cyan-500 flex items-center justify-center text-white text-xl font-bold overflow-hidden flex-shrink-0">
                   {selectedCV.profileImageUrl ? (
                     <img src={selectedCV.profileImageUrl} alt={selectedCV.fullName} className="w-full h-full object-cover" />
                   ) : (
@@ -576,8 +539,8 @@ export default function ScraperPage() {
                   <div className="flex items-center gap-3 flex-wrap">
                     <h2 className="text-xl font-bold text-gray-900 dark:text-white">{selectedCV.fullName}</h2>
                     {selectedCV.openToWork && (
-                      <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full flex items-center gap-1">
-                        <CheckCircle className="w-3 h-3" />
+                      <span className="px-2.5 py-1 bg-gradient-to-r from-green-500/20 to-emerald-500/20 text-green-600 dark:text-green-400 text-xs font-medium rounded-lg flex items-center gap-1">
+                        <CheckCircle className="w-3.5 h-3.5" />
                         Disponible
                       </span>
                     )}
@@ -592,7 +555,7 @@ export default function ScraperPage() {
                         {selectedCV.location}
                       </span>
                     )}
-                    <span className={`flex items-center gap-1 px-2 py-0.5 rounded-full border ${getSourceColor(selectedCV.source)}`}>
+                    <span className={`flex items-center gap-1 px-2.5 py-0.5 rounded-lg ${getSourceBadge(selectedCV.source)}`}>
                       {getSourceIcon(selectedCV.source)}
                       {selectedCV.source}
                     </span>
@@ -606,26 +569,26 @@ export default function ScraperPage() {
                 </button>
               </div>
 
-              {/* Content */}
+              {/* Modal Content */}
               <div className="p-6 overflow-y-auto flex-1 space-y-6">
                 {/* Contact */}
-                <div className="flex flex-wrap gap-4">
+                <div className="flex flex-wrap gap-3">
                   {selectedCV.email && (
                     <a
                       href={`mailto:${selectedCV.email}`}
-                      className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 rounded-lg transition"
+                      className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 rounded-lg transition text-sm"
                     >
                       <Mail className="w-4 h-4 text-gray-600 dark:text-gray-300" />
-                      {selectedCV.email}
+                      <span className="text-gray-700 dark:text-gray-200">{selectedCV.email}</span>
                     </a>
                   )}
                   {selectedCV.phone && (
                     <a
                       href={`tel:${selectedCV.phone}`}
-                      className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 rounded-lg transition"
+                      className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 rounded-lg transition text-sm"
                     >
                       <Phone className="w-4 h-4 text-gray-600 dark:text-gray-300" />
-                      {selectedCV.phone}
+                      <span className="text-gray-700 dark:text-gray-200">{selectedCV.phone}</span>
                     </a>
                   )}
                   {selectedCV.linkedinUrl && (
@@ -633,7 +596,7 @@ export default function ScraperPage() {
                       href={selectedCV.linkedinUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-2 px-4 py-2 bg-[#0077B5]/10 hover:bg-[#0077B5]/20 text-[#0077B5] rounded-lg transition"
+                      className="flex items-center gap-2 px-4 py-2 bg-[#0077B5]/10 hover:bg-[#0077B5]/20 text-[#0077B5] rounded-lg transition text-sm font-medium"
                     >
                       <Linkedin className="w-4 h-4" />
                       LinkedIn
@@ -644,7 +607,7 @@ export default function ScraperPage() {
                       href={selectedCV.maltUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-2 px-4 py-2 bg-[#FC5757]/10 hover:bg-[#FC5757]/20 text-[#FC5757] rounded-lg transition"
+                      className="flex items-center gap-2 px-4 py-2 bg-[#FC5757]/10 hover:bg-[#FC5757]/20 text-[#FC5757] rounded-lg transition text-sm font-medium"
                     >
                       <Globe className="w-4 h-4" />
                       Malt
@@ -654,22 +617,22 @@ export default function ScraperPage() {
 
                 {/* Malt Info */}
                 {selectedCV.source === 'MALT' && (selectedCV.dailyRate || selectedCV.maltRating) && (
-                  <div className="bg-orange-50 rounded-xl p-4">
-                    <h3 className="font-semibold text-orange-800 mb-2">Infos Malt</h3>
+                  <div className="bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20 rounded-xl p-4 border border-orange-100 dark:border-orange-800">
+                    <h3 className="font-semibold text-orange-800 dark:text-orange-300 mb-2">Infos Malt</h3>
                     <div className="flex flex-wrap gap-4 text-sm">
                       {selectedCV.dailyRate && (
-                        <span className="font-medium text-orange-600">
+                        <span className="font-medium text-orange-600 dark:text-orange-400">
                           TJM: {selectedCV.dailyRate} {selectedCV.currency || '€'}
                         </span>
                       )}
                       {selectedCV.maltRating && (
-                        <span className="flex items-center gap-1">
+                        <span className="flex items-center gap-1 text-gray-600 dark:text-gray-300">
                           <Star className="w-4 h-4 text-yellow-500" />
                           {selectedCV.maltRating}/5
                         </span>
                       )}
                       {selectedCV.maltMissionsCompleted && (
-                        <span className="flex items-center gap-1">
+                        <span className="flex items-center gap-1 text-gray-600 dark:text-gray-300">
                           <Briefcase className="w-4 h-4" />
                           {selectedCV.maltMissionsCompleted} missions
                         </span>
@@ -692,7 +655,7 @@ export default function ScraperPage() {
                     <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Compétences</h3>
                     <div className="flex flex-wrap gap-2">
                       {selectedCV.skills.map((skill, i) => (
-                        <span key={i} className="px-3 py-1 bg-indigo-100 text-indigo-700 text-sm rounded-lg">
+                        <span key={i} className="px-3 py-1 bg-gradient-to-r from-ebmc-turquoise/20 to-cyan-500/20 text-ebmc-turquoise text-sm rounded-lg">
                           {skill}
                         </span>
                       ))}
@@ -707,7 +670,7 @@ export default function ScraperPage() {
                     <div className="space-y-3">
                       {selectedCV.experiences.slice(0, 5).map((exp, i) => (
                         <div key={i} className="flex items-start gap-3">
-                          <div className="w-2 h-2 bg-indigo-500 rounded-full mt-2" />
+                          <div className="w-2 h-2 bg-ebmc-turquoise rounded-full mt-2" />
                           <div>
                             <p className="font-medium text-gray-900 dark:text-white">{exp.title}</p>
                             <p className="text-sm text-gray-600 dark:text-gray-300">{exp.company}</p>
