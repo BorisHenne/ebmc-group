@@ -5,9 +5,8 @@ import { motion } from 'framer-motion'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
-import { LogIn, Menu, X, Sparkles } from 'lucide-react'
+import { LogIn, Menu, X } from 'lucide-react'
 import { LanguageSwitcher } from '@/components/LanguageSwitcher'
-import { ShimmerButton } from '@/components/ui/aceternity'
 import { ThemeToggleCompact } from '@/components/ThemeToggle'
 import { useTheme } from '@/components/ThemeProvider'
 
@@ -105,12 +104,6 @@ export function Navigation({ currentPage = 'home', variant = 'auto' }: Navigatio
               >
                 <LogIn className="w-4 h-4" />
                 {t('nav.login')}
-              </Link>
-              <Link href="/#contact">
-                <ShimmerButton>
-                  <Sparkles className="w-4 h-4" />
-                  {t('nav.startProject')}
-                </ShimmerButton>
               </Link>
             </div>
 
