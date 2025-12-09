@@ -47,7 +47,13 @@ export function Footer({ variant = 'auto' }: FooterProps) {
         <div className="flex flex-col md:flex-row justify-between items-center gap-8">
           {/* Logo */}
           <Link href="/">
-            <Image src="/logo.svg" alt="EBMC GROUP" width={120} height={35} className="h-8 w-auto" />
+            <Image
+              src={effectiveVariant === 'dark' ? '/logo-dark.svg' : '/logo.svg'}
+              alt="EBMC GROUP"
+              width={120}
+              height={35}
+              className="h-8 w-auto"
+            />
           </Link>
 
           {/* Nav */}

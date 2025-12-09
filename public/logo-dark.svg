@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 150" width="420" height="150">
+  <title>EBMC Group Logo</title>
+  <desc>Logo vectoriel EBMC Group - Cabinet de recrutement IT Luxembourg</desc>
+
+  <!-- Fond transparent -->
+
+  <!-- EBMC - Police serif classique -->
+  <text x="210" y="78"
+        text-anchor="middle"
+        font-family="Georgia, 'Times New Roman', 'Palatino Linotype', serif"
+        font-weight="700"
+        font-size="88"
+        letter-spacing="2">
+    <tspan fill="#ffffff">EBM</tspan><tspan fill="#2BA3AD">C</tspan>
+  </text>
+
+  <!-- GROUP - avec large espacement typographique -->
+  <text x="210" y="128"
+        text-anchor="middle"
+        font-family="Georgia, 'Times New Roman', 'Palatino Linotype', serif"
+        font-weight="700"
+        font-size="34"
+        letter-spacing="16"
+        fill="#ffffff">GROUP</text>
+</svg>
