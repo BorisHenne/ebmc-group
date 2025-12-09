@@ -1,9 +1,9 @@
 'use client'
 
-import { useTransition, useState } from 'react'
+import { useTransition, useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Globe } from 'lucide-react'
+import { Globe, ChevronDown } from 'lucide-react'
 
 interface LanguageSwitcherProps {
   locale: string
@@ -14,80 +14,90 @@ export function LanguageSwitcher({ locale, variant = 'dark' }: LanguageSwitcherP
   const [isPending, startTransition] = useTransition()
   const [isOpen, setIsOpen] = useState(false)
   const router = useRouter()
+  const dropdownRef = useRef<HTMLDivElement>(null)
   const isLight = variant === 'light'
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false)
+      }
+    }
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isOpen])
 
   const switchLocale = (newLocale: string) => {
     if (newLocale === locale) {
       setIsOpen(false)
       return
     }
-    startTransition(async () => {
+    setIsOpen(false)
+    startTransition(() => {
       document.cookie = `locale=${newLocale};path=/;max-age=31536000`
       router.refresh()
     })
-    setIsOpen(false)
   }
 
   const languages = [
-    { code: 'fr', label: 'FR', flag: '🇫🇷' },
-    { code: 'en', label: 'EN', flag: '🇬🇧' },
+    { code: 'fr', label: 'FR', fullLabel: 'Français' },
+    { code: 'en', label: 'EN', fullLabel: 'English' },
   ]
 
   const currentLang = languages.find(l => l.code === locale) || languages[0]
-  const otherLang = languages.find(l => l.code !== locale) || languages[1]
 
   return (
-    <div className="relative">
-      <motion.button
+    <div className="relative" ref={dropdownRef}>
+      <button
         onClick={() => setIsOpen(!isOpen)}
         disabled={isPending}
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.98 }}
-        className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+        className={`flex items-center gap-1 px-2 py-1.5 rounded-md text-xs font-medium transition-all ${
           isLight
-            ? 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-            : 'text-white/70 hover:text-white hover:bg-white/10'
-        }`}
+            ? 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'
+            : 'text-white/60 hover:text-white/90 hover:bg-white/5'
+        } ${isPending ? 'opacity-50' : ''}`}
       >
         <Globe className="w-3.5 h-3.5" />
         <span>{currentLang.label}</span>
-      </motion.button>
+        <ChevronDown className={`w-3 h-3 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
 
-      <AnimatePresence>
+      <AnimatePresence mode="wait">
         {isOpen && (
-          <>
-            {/* Backdrop */}
-            <div
-              className="fixed inset-0 z-40"
-              onClick={() => setIsOpen(false)}
-            />
-
-            {/* Dropdown */}
-            <motion.div
-              initial={{ opacity: 0, y: -4, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -4, scale: 0.95 }}
-              transition={{ duration: 0.15 }}
-              className={`absolute right-0 top-full mt-1 z-50 rounded-lg shadow-lg overflow-hidden ${
-                isLight
-                  ? 'bg-white border border-slate-200'
-                  : 'bg-slate-800/95 backdrop-blur-sm border border-white/10'
-              }`}
-            >
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.15 }}
+            className={`absolute right-0 top-full mt-1 z-50 min-w-[100px] rounded-md shadow-lg py-1 ${
+              isLight
+                ? 'bg-white border border-slate-200'
+                : 'bg-slate-800 border border-slate-700'
+            }`}
+          >
+            {languages.map((lang) => (
               <button
-                onClick={() => switchLocale(otherLang.code)}
+                key={lang.code}
+                onClick={() => switchLocale(lang.code)}
                 disabled={isPending}
-                className={`flex items-center gap-2 px-3 py-2 text-xs font-medium transition-colors w-full ${
-                  isLight
-                    ? 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                    : 'text-white/80 hover:bg-white/10 hover:text-white'
+                className={`w-full text-left px-3 py-1.5 text-xs font-medium transition-colors ${
+                  locale === lang.code
+                    ? isLight
+                      ? 'bg-ebmc-turquoise/10 text-ebmc-turquoise'
+                      : 'bg-ebmc-turquoise/20 text-ebmc-turquoise'
+                    : isLight
+                      ? 'text-slate-600 hover:bg-slate-50'
+                      : 'text-slate-300 hover:bg-slate-700'
                 }`}
               >
-                <span>{otherLang.flag}</span>
-                <span>{otherLang.code === 'fr' ? 'Français' : 'English'}</span>
+                {lang.fullLabel}
               </button>
-            </motion.div>
-          </>
+            ))}
+          </motion.div>
         )}
       </AnimatePresence>
     </div>
