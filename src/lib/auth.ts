@@ -24,8 +24,8 @@ export async function verifyPassword(password: string, hashedPassword: string): 
   return bcrypt.compare(password, hashedPassword)
 }
 
-export async function createToken(userId: string, email: string, role: string): Promise<string> {
-  return new SignJWT({ userId, email, role })
+export async function createToken(userId: string, email: string, role: string, name: string): Promise<string> {
+  return new SignJWT({ userId, email, role, name })
     .setProtectedHeader({ alg: 'HS256' })
     .setExpirationTime('7d')
     .setIssuedAt()
@@ -35,7 +35,7 @@ export async function createToken(userId: string, email: string, role: string): 
 export async function verifyToken(token: string) {
   try {
     const { payload } = await jwtVerify(token, JWT_SECRET)
-    return payload as { userId: string; email: string; role: string }
+    return payload as { userId: string; email: string; role: string; name?: string }
   } catch {
     return null
   }

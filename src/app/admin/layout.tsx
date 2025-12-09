@@ -28,6 +28,7 @@ import {
   Search,
   Target,
   BarChart3,
+  Kanban,
   LucideIcon
 } from 'lucide-react'
 import { LightBackground } from '@/components/ui/TechBackground'
@@ -55,6 +56,7 @@ const allMenuItems: MenuItem[] = [
   { href: '/admin', icon: LayoutDashboard, label: 'Dashboard', color: 'from-ebmc-turquoise to-cyan-500', permission: 'dashboard' },
   { href: '/admin/sourceur', icon: Target, label: 'Dashboard Sourceur', color: 'from-purple-500 to-pink-500', permission: 'sourceurDashboard' },
   { href: '/admin/commercial', icon: BarChart3, label: 'Dashboard Commercial', color: 'from-blue-500 to-indigo-500', permission: 'commercialDashboard' },
+  { href: '/admin/recrutement', icon: Kanban, label: 'Parcours recrutement', color: 'from-indigo-500 to-violet-500', permission: 'sourceurDashboard' },
   { href: '/admin/scraper', icon: Search, label: 'Recherche CVs', color: 'from-indigo-500 to-purple-500', permission: 'scraper' },
   { href: '/admin/jobs', icon: Briefcase, label: 'Offres d\'emploi', color: 'from-blue-500 to-indigo-500', permission: 'jobs' },
   { href: '/admin/consultants', icon: UserCheck, label: 'Consultants', color: 'from-purple-500 to-pink-500', permission: 'consultants' },
