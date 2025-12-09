@@ -365,8 +365,8 @@ export default function DemoDataPage() {
     <div>
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Données de démonstration</h1>
-          <p className="text-gray-600 mt-1">Gérez les données de démo pour le site vitrine</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Données de démonstration</h1>
+          <p className="text-gray-600 dark:text-gray-300 mt-1">Gérez les données de démo pour le site vitrine</p>
         </div>
         <button
           onClick={fetchAll}
@@ -423,27 +423,27 @@ export default function DemoDataPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
-                className="bg-white rounded-xl p-5 shadow-sm"
+                className="bg-white dark:bg-slate-800 rounded-xl p-5 shadow-sm"
               >
                 <div className={`inline-flex p-2.5 rounded-xl bg-gradient-to-r ${stat.color} mb-3`}>
                   <stat.icon className="w-5 h-5 text-white" />
                 </div>
-                <div className="text-3xl font-bold text-gray-900">{stat.value}</div>
-                <div className="text-sm text-gray-500">{stat.label}</div>
+                <div className="text-3xl font-bold text-gray-900 dark:text-white">{stat.value}</div>
+                <div className="text-sm text-gray-500 dark:text-gray-400">{stat.label}</div>
               </motion.div>
             ))}
           </div>
 
           {/* Bulk Actions */}
           <div className="grid md:grid-cols-3 gap-4">
-            <div className="bg-white rounded-xl p-5 shadow-sm">
+            <div className="bg-white dark:bg-slate-800 rounded-xl p-5 shadow-sm">
               <div className="flex items-center gap-3 mb-3">
                 <div className="p-2 rounded-lg bg-emerald-100">
                   <Download className="w-5 h-5 text-emerald-600" />
                 </div>
-                <h3 className="font-semibold text-gray-900">Ajouter données démo</h3>
+                <h3 className="font-semibold text-gray-900 dark:text-white">Ajouter données démo</h3>
               </div>
-              <p className="text-sm text-gray-500 mb-4">Seed si collections vides</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Seed si collections vides</p>
               <button
                 onClick={() => performAction('seed')}
                 disabled={actionLoading !== null}
@@ -454,14 +454,14 @@ export default function DemoDataPage() {
               </button>
             </div>
 
-            <div className="bg-white rounded-xl p-5 shadow-sm">
+            <div className="bg-white dark:bg-slate-800 rounded-xl p-5 shadow-sm">
               <div className="flex items-center gap-3 mb-3">
                 <div className="p-2 rounded-lg bg-orange-100">
                   <RotateCcw className="w-5 h-5 text-orange-600" />
                 </div>
-                <h3 className="font-semibold text-gray-900">Réinitialiser</h3>
+                <h3 className="font-semibold text-gray-900 dark:text-white">Réinitialiser</h3>
               </div>
-              <p className="text-sm text-gray-500 mb-4">Reset aux valeurs par défaut</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Reset aux valeurs par défaut</p>
               <button
                 onClick={() => confirm('Réinitialiser toutes les données ?') && performAction('reset')}
                 disabled={actionLoading !== null}
@@ -472,14 +472,14 @@ export default function DemoDataPage() {
               </button>
             </div>
 
-            <div className="bg-white rounded-xl p-5 shadow-sm">
+            <div className="bg-white dark:bg-slate-800 rounded-xl p-5 shadow-sm">
               <div className="flex items-center gap-3 mb-3">
                 <div className="p-2 rounded-lg bg-red-100">
                   <Trash2 className="w-5 h-5 text-red-600" />
                 </div>
-                <h3 className="font-semibold text-gray-900">Vider tout</h3>
+                <h3 className="font-semibold text-gray-900 dark:text-white">Vider tout</h3>
               </div>
-              <p className="text-sm text-gray-500 mb-4">Supprimer toutes les données</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Supprimer toutes les données</p>
               <button
                 onClick={() => confirm('⚠️ Supprimer toutes les données ?') && performAction('clear', { collection: 'all' })}
                 disabled={actionLoading !== null}
@@ -497,7 +497,7 @@ export default function DemoDataPage() {
       {activeTab === 'jobs' && (
         <div>
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold text-gray-900">Offres d&apos;emploi</h2>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Offres d&apos;emploi</h2>
             <button
               onClick={() => setEditingJob(emptyJob)}
               className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
@@ -507,21 +507,21 @@ export default function DemoDataPage() {
             </button>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm overflow-hidden">
             {jobs.length === 0 ? (
-              <div className="text-center py-12 text-gray-500">
+              <div className="text-center py-12 text-gray-500 dark:text-gray-400">
                 <Briefcase className="w-12 h-12 mx-auto mb-4 opacity-50" />
                 <p>Aucune offre d&apos;emploi</p>
               </div>
             ) : (
               <div className="divide-y">
                 {jobs.map((job) => (
-                  <div key={job._id} className="p-4 hover:bg-gray-50 flex items-center justify-between">
+                  <div key={job._id} className="p-4 hover:bg-gray-50 dark:hover:bg-slate-700 flex items-center justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-3">
-                        <span className="font-medium text-gray-900">{job.title}</span>
+                        <span className="font-medium text-gray-900 dark:text-white">{job.title}</span>
                         <span className={`px-2 py-0.5 text-xs rounded-full ${
-                          job.active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
+                          job.active ? 'bg-green-100 text-green-700' : 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300'
                         }`}>
                           {job.active ? 'Active' : 'Inactive'}
                         </span>
@@ -529,7 +529,7 @@ export default function DemoDataPage() {
                           {job.category}
                         </span>
                       </div>
-                      <div className="flex gap-4 mt-1 text-sm text-gray-500">
+                      <div className="flex gap-4 mt-1 text-sm text-gray-500 dark:text-gray-400">
                         <span className="flex items-center gap-1">
                           <MapPin className="w-3 h-3" />
                           {job.location}
@@ -543,13 +543,13 @@ export default function DemoDataPage() {
                     <div className="flex gap-2">
                       <button
                         onClick={() => setEditingJob(job)}
-                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
+                        className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg"
                       >
                         <Edit className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => handleDeleteJob(job._id)}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                        className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -566,7 +566,7 @@ export default function DemoDataPage() {
       {activeTab === 'consultants' && (
         <div>
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold text-gray-900">Consultants</h2>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Consultants</h2>
             <button
               onClick={() => setEditingConsultant(emptyConsultant)}
               className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
@@ -576,19 +576,19 @@ export default function DemoDataPage() {
             </button>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm overflow-hidden">
             {consultants.length === 0 ? (
-              <div className="text-center py-12 text-gray-500">
+              <div className="text-center py-12 text-gray-500 dark:text-gray-400">
                 <UserCheck className="w-12 h-12 mx-auto mb-4 opacity-50" />
                 <p>Aucun consultant</p>
               </div>
             ) : (
               <div className="divide-y">
                 {consultants.map((consultant) => (
-                  <div key={consultant._id} className="p-4 hover:bg-gray-50 flex items-center justify-between">
+                  <div key={consultant._id} className="p-4 hover:bg-gray-50 dark:hover:bg-slate-700 flex items-center justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-3">
-                        <span className="font-medium text-gray-900">{consultant.name}</span>
+                        <span className="font-medium text-gray-900 dark:text-white">{consultant.name}</span>
                         <span className={`px-2 py-0.5 text-xs rounded-full ${
                           consultant.available ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
                         }`}>
@@ -598,7 +598,7 @@ export default function DemoDataPage() {
                           {consultant.category}
                         </span>
                       </div>
-                      <div className="flex gap-4 mt-1 text-sm text-gray-500">
+                      <div className="flex gap-4 mt-1 text-sm text-gray-500 dark:text-gray-400">
                         <span>{consultant.title}</span>
                         <span className="flex items-center gap-1">
                           <MapPin className="w-3 h-3" />
@@ -609,13 +609,13 @@ export default function DemoDataPage() {
                     <div className="flex gap-2">
                       <button
                         onClick={() => setEditingConsultant(consultant)}
-                        className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg"
+                        className="p-2 text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg"
                       >
                         <Edit className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => handleDeleteConsultant(consultant._id)}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                        className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -634,21 +634,21 @@ export default function DemoDataPage() {
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col"
+            className="bg-white dark:bg-slate-800 rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col"
           >
-            <div className="flex justify-between items-center p-5 border-b">
-              <h2 className="text-xl font-semibold">
+            <div className="flex justify-between items-center p-5 border-b border-gray-200 dark:border-slate-700">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
                 {editingJob._id ? 'Modifier l\'offre' : 'Nouvelle offre'}
               </h2>
               <button onClick={() => setEditingJob(null)}>
-                <X className="w-6 h-6 text-gray-400 hover:text-gray-600" />
+                <X className="w-6 h-6 text-gray-400 dark:text-gray-500 hover:text-gray-600" />
               </button>
             </div>
 
             <div className="p-5 overflow-y-auto flex-1 space-y-5">
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Titre (FR)</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Titre (FR)</label>
                   <input
                     type="text"
                     value={editingJob.title || ''}
@@ -657,7 +657,7 @@ export default function DemoDataPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Title (EN)</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Title (EN)</label>
                   <input
                     type="text"
                     value={editingJob.titleEn || ''}
@@ -669,7 +669,7 @@ export default function DemoDataPage() {
 
               <div className="grid md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Localisation</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Localisation</label>
                   <input
                     type="text"
                     value={editingJob.location || ''}
@@ -678,7 +678,7 @@ export default function DemoDataPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Catégorie</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Catégorie</label>
                   <select
                     value={editingJob.category || 'tech'}
                     onChange={(e) => setEditingJob({ ...editingJob, category: e.target.value })}
@@ -690,7 +690,7 @@ export default function DemoDataPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Type</label>
                   <select
                     value={editingJob.type || 'CDI'}
                     onChange={(e) => {
@@ -708,7 +708,7 @@ export default function DemoDataPage() {
 
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Expérience (FR)</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Expérience (FR)</label>
                   <input
                     type="text"
                     value={editingJob.experience || ''}
@@ -718,7 +718,7 @@ export default function DemoDataPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Experience (EN)</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Experience (EN)</label>
                   <input
                     type="text"
                     value={editingJob.experienceEn || ''}
@@ -731,7 +731,7 @@ export default function DemoDataPage() {
 
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Description (FR)</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description (FR)</label>
                   <textarea
                     value={editingJob.description || ''}
                     onChange={(e) => setEditingJob({ ...editingJob, description: e.target.value })}
@@ -740,7 +740,7 @@ export default function DemoDataPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Description (EN)</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description (EN)</label>
                   <textarea
                     value={editingJob.descriptionEn || ''}
                     onChange={(e) => setEditingJob({ ...editingJob, descriptionEn: e.target.value })}
@@ -752,7 +752,7 @@ export default function DemoDataPage() {
 
               {/* Missions FR */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Missions (FR)</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Missions (FR)</label>
                 {(editingJob.missions || ['']).map((m, i) => (
                   <div key={i} className="flex gap-2 mb-2">
                     <input
@@ -761,7 +761,7 @@ export default function DemoDataPage() {
                       onChange={(e) => updateJobArrayField('missions', i, e.target.value)}
                       className="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
                     />
-                    <button onClick={() => removeJobArrayItem('missions', i)} className="px-3 py-2 text-red-500 hover:bg-red-50 rounded-lg">
+                    <button onClick={() => removeJobArrayItem('missions', i)} className="px-3 py-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg">
                       <X className="w-4 h-4" />
                     </button>
                   </div>
@@ -773,7 +773,7 @@ export default function DemoDataPage() {
 
               {/* Requirements FR */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Prérequis (FR)</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Prérequis (FR)</label>
                 {(editingJob.requirements || ['']).map((r, i) => (
                   <div key={i} className="flex gap-2 mb-2">
                     <input
@@ -782,7 +782,7 @@ export default function DemoDataPage() {
                       onChange={(e) => updateJobArrayField('requirements', i, e.target.value)}
                       className="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
                     />
-                    <button onClick={() => removeJobArrayItem('requirements', i)} className="px-3 py-2 text-red-500 hover:bg-red-50 rounded-lg">
+                    <button onClick={() => removeJobArrayItem('requirements', i)} className="px-3 py-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg">
                       <X className="w-4 h-4" />
                     </button>
                   </div>
@@ -800,12 +800,12 @@ export default function DemoDataPage() {
                   onChange={(e) => setEditingJob({ ...editingJob, active: e.target.checked })}
                   className="w-4 h-4 text-blue-600 rounded"
                 />
-                <label htmlFor="jobActive" className="text-sm text-gray-700">Offre active (visible sur le site)</label>
+                <label htmlFor="jobActive" className="text-sm text-gray-700 dark:text-gray-300">Offre active (visible sur le site)</label>
               </div>
             </div>
 
-            <div className="flex justify-end gap-3 p-5 border-t bg-gray-50">
-              <button onClick={() => setEditingJob(null)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">
+            <div className="flex justify-end gap-3 p-5 border-t border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800">
+              <button onClick={() => setEditingJob(null)} className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-600 rounded-lg">
                 Annuler
               </button>
               <button
@@ -827,20 +827,20 @@ export default function DemoDataPage() {
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col"
+            className="bg-white dark:bg-slate-800 rounded-xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col"
           >
-            <div className="flex justify-between items-center p-5 border-b">
-              <h2 className="text-xl font-semibold">
+            <div className="flex justify-between items-center p-5 border-b border-gray-200 dark:border-slate-700">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
                 {editingConsultant._id ? 'Modifier le consultant' : 'Nouveau consultant'}
               </h2>
               <button onClick={() => setEditingConsultant(null)}>
-                <X className="w-6 h-6 text-gray-400 hover:text-gray-600" />
+                <X className="w-6 h-6 text-gray-400 dark:text-gray-500 hover:text-gray-600" />
               </button>
             </div>
 
             <div className="p-5 overflow-y-auto flex-1 space-y-5">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Nom</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nom</label>
                 <input
                   type="text"
                   value={editingConsultant.name || ''}
@@ -851,7 +851,7 @@ export default function DemoDataPage() {
 
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Titre (FR)</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Titre (FR)</label>
                   <input
                     type="text"
                     value={editingConsultant.title || ''}
@@ -860,7 +860,7 @@ export default function DemoDataPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Title (EN)</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Title (EN)</label>
                   <input
                     type="text"
                     value={editingConsultant.titleEn || ''}
@@ -872,7 +872,7 @@ export default function DemoDataPage() {
 
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Localisation</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Localisation</label>
                   <input
                     type="text"
                     value={editingConsultant.location || ''}
@@ -881,7 +881,7 @@ export default function DemoDataPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Catégorie</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Catégorie</label>
                   <select
                     value={editingConsultant.category || 'sap'}
                     onChange={(e) => setEditingConsultant({ ...editingConsultant, category: e.target.value })}
@@ -897,7 +897,7 @@ export default function DemoDataPage() {
 
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Expérience (FR)</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Expérience (FR)</label>
                   <input
                     type="text"
                     value={editingConsultant.experience || ''}
@@ -907,7 +907,7 @@ export default function DemoDataPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Experience (EN)</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Experience (EN)</label>
                   <input
                     type="text"
                     value={editingConsultant.experienceEn || ''}
@@ -920,7 +920,7 @@ export default function DemoDataPage() {
 
               {/* Skills */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Compétences</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Compétences</label>
                 {(editingConsultant.skills || ['']).map((s, i) => (
                   <div key={i} className="flex gap-2 mb-2">
                     <input
@@ -929,7 +929,7 @@ export default function DemoDataPage() {
                       onChange={(e) => updateConsultantArrayField('skills', i, e.target.value)}
                       className="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
                     />
-                    <button onClick={() => removeConsultantArrayItem('skills', i)} className="px-3 py-2 text-red-500 hover:bg-red-50 rounded-lg">
+                    <button onClick={() => removeConsultantArrayItem('skills', i)} className="px-3 py-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg">
                       <X className="w-4 h-4" />
                     </button>
                   </div>
@@ -941,7 +941,7 @@ export default function DemoDataPage() {
 
               {/* Certifications */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Certifications</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Certifications</label>
                 {(editingConsultant.certifications || ['']).map((c, i) => (
                   <div key={i} className="flex gap-2 mb-2">
                     <input
@@ -950,7 +950,7 @@ export default function DemoDataPage() {
                       onChange={(e) => updateConsultantArrayField('certifications', i, e.target.value)}
                       className="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
                     />
-                    <button onClick={() => removeConsultantArrayItem('certifications', i)} className="px-3 py-2 text-red-500 hover:bg-red-50 rounded-lg">
+                    <button onClick={() => removeConsultantArrayItem('certifications', i)} className="px-3 py-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg">
                       <X className="w-4 h-4" />
                     </button>
                   </div>
@@ -968,12 +968,12 @@ export default function DemoDataPage() {
                   onChange={(e) => setEditingConsultant({ ...editingConsultant, available: e.target.checked })}
                   className="w-4 h-4 text-purple-600 rounded"
                 />
-                <label htmlFor="consultantAvailable" className="text-sm text-gray-700">Disponible pour mission</label>
+                <label htmlFor="consultantAvailable" className="text-sm text-gray-700 dark:text-gray-300">Disponible pour mission</label>
               </div>
             </div>
 
-            <div className="flex justify-end gap-3 p-5 border-t bg-gray-50">
-              <button onClick={() => setEditingConsultant(null)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">
+            <div className="flex justify-end gap-3 p-5 border-t border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800">
+              <button onClick={() => setEditingConsultant(null)} className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-600 rounded-lg">
                 Annuler
               </button>
               <button

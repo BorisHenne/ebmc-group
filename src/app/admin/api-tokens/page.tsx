@@ -128,8 +128,8 @@ export default function ApiTokensPage() {
     <div>
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Tokens API</h1>
-          <p className="text-gray-600 mt-2">Gérez les tokens d&apos;accès à l&apos;API</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Tokens API</h1>
+          <p className="text-gray-600 dark:text-gray-300 mt-2">Gérez les tokens d&apos;accès à l&apos;API</p>
         </div>
         <button
           onClick={() => setShowModal(true)}
@@ -148,13 +148,13 @@ export default function ApiTokensPage() {
         </p>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm overflow-hidden">
         {loading ? (
           <div className="flex justify-center py-12">
             <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
           </div>
         ) : tokens.length === 0 ? (
-          <div className="text-center py-12 text-gray-500">
+          <div className="text-center py-12 text-gray-500 dark:text-gray-400">
             <Key className="w-12 h-12 mx-auto mb-4 opacity-50" />
             Aucun token API configuré
           </div>
@@ -165,15 +165,15 @@ export default function ApiTokensPage() {
                 key={token._id}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="p-6 hover:bg-gray-50"
+                className="p-6 hover:bg-gray-50 dark:hover:bg-slate-700"
               >
                 <div className="flex justify-between items-start">
                   <div>
                     <div className="flex items-center gap-3">
                       <Key className="w-5 h-5 text-amber-500" />
-                      <span className="font-medium text-gray-900">{token.name}</span>
+                      <span className="font-medium text-gray-900 dark:text-white">{token.name}</span>
                     </div>
-                    <p className="text-sm text-gray-500 mt-1 font-mono">{token.token}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 font-mono">{token.token}</p>
                     <div className="flex flex-wrap gap-1 mt-2">
                       {token.permissions?.map((perm) => (
                         <span key={perm} className="px-2 py-0.5 bg-amber-100 text-amber-700 text-xs rounded">
@@ -181,7 +181,7 @@ export default function ApiTokensPage() {
                         </span>
                       ))}
                     </div>
-                    <div className="flex gap-4 mt-2 text-xs text-gray-400">
+                    <div className="flex gap-4 mt-2 text-xs text-gray-400 dark:text-gray-500">
                       <span>Créé par {token.createdBy}</span>
                       <span>Utilisé {token.usageCount} fois</span>
                       {token.expiresAt && (
@@ -194,7 +194,7 @@ export default function ApiTokensPage() {
                   </div>
                   <button
                     onClick={() => handleDelete(token._id)}
-                    className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
+                    className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
                   >
                     <Trash2 className="w-5 h-5" />
                   </button>
@@ -211,14 +211,14 @@ export default function ApiTokensPage() {
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-xl shadow-xl w-full max-w-lg"
+            className="bg-white dark:bg-slate-800 rounded-xl shadow-xl w-full max-w-lg"
           >
             <div className="flex justify-between items-center p-6 border-b">
               <h2 className="text-xl font-semibold">
                 {newToken ? 'Token créé' : 'Nouveau token API'}
               </h2>
               <button onClick={closeModal}>
-                <X className="w-6 h-6 text-gray-400 hover:text-gray-600" />
+                <X className="w-6 h-6 text-gray-400 dark:text-gray-500 hover:text-gray-600" />
               </button>
             </div>
 
@@ -234,7 +234,7 @@ export default function ApiTokensPage() {
                     type="text"
                     value={newToken}
                     readOnly
-                    className="flex-1 px-3 py-2 border rounded-lg bg-gray-50 font-mono text-sm"
+                    className="flex-1 px-3 py-2 border rounded-lg bg-gray-50 dark:bg-slate-800 font-mono text-sm"
                   />
                   <button
                     onClick={copyToken}
@@ -247,7 +247,7 @@ export default function ApiTokensPage() {
             ) : (
               <form onSubmit={handleCreate} className="p-6 space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Nom du token</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nom du token</label>
                   <input
                     type="text"
                     value={formData.name}
@@ -259,7 +259,7 @@ export default function ApiTokensPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Expiration</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Expiration</label>
                   <select
                     value={formData.expiresIn}
                     onChange={(e) => setFormData({ ...formData, expiresIn: e.target.value })}
@@ -272,7 +272,7 @@ export default function ApiTokensPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Permissions</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Permissions</label>
                   <div className="space-y-2 max-h-48 overflow-y-auto">
                     {availablePermissions.map((perm) => (
                       <label key={perm.value} className="flex items-center gap-2 cursor-pointer">
@@ -282,7 +282,7 @@ export default function ApiTokensPage() {
                           onChange={() => togglePermission(perm.value)}
                           className="w-4 h-4 text-blue-600 rounded"
                         />
-                        <span className="text-sm text-gray-700">{perm.label}</span>
+                        <span className="text-sm text-gray-700 dark:text-gray-300">{perm.label}</span>
                       </label>
                     ))}
                   </div>

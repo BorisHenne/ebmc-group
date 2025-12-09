@@ -1,6 +1,6 @@
 // Role-based access control configuration
 
-export type RoleType = 'admin' | 'sourceur' | 'commercial' | 'consultant' | 'freelance' | 'user'
+export type RoleType = 'admin' | 'sourceur' | 'commercial' | 'consultant' | 'freelance'
 
 export interface RolePermissions {
   // Dashboard access
@@ -150,29 +150,6 @@ export const ROLE_PERMISSIONS: Record<RoleType, RolePermissions> = {
     viewAllData: false,
     viewAssignedOnly: false,
   },
-  user: {
-    dashboard: true,
-    sourceurDashboard: false,
-    commercialDashboard: false,
-    recruitment: false,
-    jobs: true,
-    consultants: true,
-    messages: true,
-    users: false,
-    roles: false,
-    webhooks: false,
-    apiTokens: false,
-    demoData: false,
-    docs: true,
-    settings: false,
-    freelancePortal: false,
-    scraper: false,
-    boondManager: false,
-    canAssignJobs: false,
-    canAssignConsultants: false,
-    viewAllData: true,
-    viewAssignedOnly: false,
-  },
 }
 
 export const ROLE_LABELS: Record<RoleType, string> = {
@@ -181,7 +158,6 @@ export const ROLE_LABELS: Record<RoleType, string> = {
   commercial: 'Commercial',
   consultant: 'Consultant CDI',
   freelance: 'Freelance',
-  user: 'Utilisateur',
 }
 
 export const ROLE_DESCRIPTIONS: Record<RoleType, string> = {
@@ -190,7 +166,6 @@ export const ROLE_DESCRIPTIONS: Record<RoleType, string> = {
   commercial: 'Acces aux offres et consultants qui lui sont assignes',
   consultant: 'Consultant CDI - Acces au portail CRA et absences',
   freelance: 'Freelance - Acces au portail CRA et absences',
-  user: 'Acces lecture aux donnees principales',
 }
 
 export const ROLE_COLORS: Record<RoleType, string> = {
@@ -199,7 +174,6 @@ export const ROLE_COLORS: Record<RoleType, string> = {
   commercial: 'from-blue-500 to-indigo-500',
   consultant: 'from-teal-500 to-cyan-500',
   freelance: 'from-green-500 to-emerald-500',
-  user: 'from-slate-500 to-slate-600',
 }
 
 export function hasPermission(role: string, permission: keyof RolePermissions): boolean {

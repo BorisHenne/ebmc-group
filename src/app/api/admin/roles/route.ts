@@ -16,8 +16,10 @@ export async function GET() {
     if (allRoles.length === 0) {
       const defaultRoles = [
         { name: 'admin', label: 'Administrateur', permissions: ['*'], createdAt: new Date() },
-        { name: 'user', label: 'Utilisateur', permissions: ['read'], createdAt: new Date() },
-        { name: 'editor', label: 'Éditeur', permissions: ['read', 'write'], createdAt: new Date() },
+        { name: 'sourceur', label: 'Sourceur', permissions: ['recruitment', 'jobs', 'consultants', 'messages', 'scraper', 'boondManager'], createdAt: new Date() },
+        { name: 'commercial', label: 'Commercial', permissions: ['recruitment', 'jobs', 'consultants', 'boondManager'], createdAt: new Date() },
+        { name: 'consultant', label: 'Consultant CDI', permissions: ['freelancePortal'], createdAt: new Date() },
+        { name: 'freelance', label: 'Freelance', permissions: ['freelancePortal'], createdAt: new Date() },
       ]
       await roles.insertMany(defaultRoles)
       return NextResponse.json({ roles: defaultRoles })

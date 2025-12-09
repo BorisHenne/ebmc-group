@@ -129,8 +129,8 @@ export default function WebhooksPage() {
     <div>
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Webhooks</h1>
-          <p className="text-gray-600 mt-2">Configurez les intégrations Make.com et Boondmanager</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Webhooks</h1>
+          <p className="text-gray-600 dark:text-gray-300 mt-2">Configurez les intégrations Make.com et Boondmanager</p>
         </div>
         <button
           onClick={handleSave}
@@ -147,7 +147,7 @@ export default function WebhooksPage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-xl shadow-sm p-6"
+          className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-6"
         >
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
@@ -155,8 +155,8 @@ export default function WebhooksPage() {
                 <Webhook className="w-5 h-5 text-purple-600" />
               </div>
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">Make.com</h2>
-                <p className="text-sm text-gray-500">Webhooks pour automatisations</p>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Make.com</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Webhooks pour automatisations</p>
               </div>
             </div>
             <label className="flex items-center gap-2 cursor-pointer">
@@ -169,14 +169,14 @@ export default function WebhooksPage() {
                 })}
                 className="w-4 h-4 text-blue-600 rounded"
               />
-              <span className="text-sm text-gray-600">Activer</span>
+              <span className="text-sm text-gray-600 dark:text-gray-300">Activer</span>
             </label>
           </div>
 
           <div className="grid md:grid-cols-2 gap-4">
             {Object.entries(config.make.webhooks).map(([key, value]) => (
               <div key={key}>
-                <label className="block text-sm font-medium text-gray-700 mb-1 capitalize">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 capitalize">
                   {key.replace(/([A-Z])/g, ' $1').trim()}
                 </label>
                 <div className="flex gap-2">
@@ -196,7 +196,7 @@ export default function WebhooksPage() {
                   <button
                     onClick={() => testWebhook(key)}
                     disabled={!value || testing === key}
-                    className="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition disabled:opacity-50"
+                    className="px-3 py-2 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 rounded-lg transition disabled:opacity-50"
                   >
                     {testing === key ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
@@ -221,7 +221,7 @@ export default function WebhooksPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-white rounded-xl shadow-sm p-6"
+          className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-6"
         >
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
@@ -229,8 +229,8 @@ export default function WebhooksPage() {
                 <Webhook className="w-5 h-5 text-green-600" />
               </div>
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">Boondmanager</h2>
-                <p className="text-sm text-gray-500">Intégration ERP / CRM</p>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Boondmanager</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Intégration ERP / CRM</p>
               </div>
             </div>
             <label className="flex items-center gap-2 cursor-pointer">
@@ -243,7 +243,7 @@ export default function WebhooksPage() {
                 })}
                 className="w-4 h-4 text-blue-600 rounded"
               />
-              <span className="text-sm text-gray-600">Activer</span>
+              <span className="text-sm text-gray-600 dark:text-gray-300">Activer</span>
             </label>
           </div>
 
@@ -258,16 +258,16 @@ export default function WebhooksPage() {
                 })}
                 className="w-4 h-4 text-blue-600 rounded"
               />
-              <span className="text-sm text-gray-600">Utiliser l&apos;environnement Sandbox</span>
+              <span className="text-sm text-gray-600 dark:text-gray-300">Utiliser l&apos;environnement Sandbox</span>
             </label>
           </div>
 
           <div className="grid md:grid-cols-2 gap-6">
             {/* Production */}
             <div className="space-y-4">
-              <h3 className="font-medium text-gray-900">Production</h3>
+              <h3 className="font-medium text-gray-900 dark:text-white">Production</h3>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">URL API</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">URL API</label>
                 <input
                   type="url"
                   value={config.boondmanager.prodUrl}
@@ -279,7 +279,7 @@ export default function WebhooksPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Client ID</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Client ID</label>
                 <input
                   type="text"
                   value={config.boondmanager.prodClientId}
@@ -291,7 +291,7 @@ export default function WebhooksPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Username</label>
                 <input
                   type="text"
                   value={config.boondmanager.prodUsername}
@@ -303,7 +303,7 @@ export default function WebhooksPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Token</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Token</label>
                 <input
                   type="password"
                   value={config.boondmanager.prodToken}
@@ -318,9 +318,9 @@ export default function WebhooksPage() {
 
             {/* Sandbox */}
             <div className="space-y-4">
-              <h3 className="font-medium text-gray-900">Sandbox</h3>
+              <h3 className="font-medium text-gray-900 dark:text-white">Sandbox</h3>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">URL API</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">URL API</label>
                 <input
                   type="url"
                   value={config.boondmanager.sandboxUrl}
@@ -332,7 +332,7 @@ export default function WebhooksPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Client ID</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Client ID</label>
                 <input
                   type="text"
                   value={config.boondmanager.sandboxClientId}
@@ -344,7 +344,7 @@ export default function WebhooksPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Username</label>
                 <input
                   type="text"
                   value={config.boondmanager.sandboxUsername}
@@ -356,7 +356,7 @@ export default function WebhooksPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Token</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Token</label>
                 <input
                   type="password"
                   value={config.boondmanager.sandboxToken}

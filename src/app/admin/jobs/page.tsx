@@ -12,7 +12,10 @@ import {
   MapPin,
   Clock,
   Save,
-  UserCheck
+  UserCheck,
+  Search,
+  Filter,
+  XCircle
 } from 'lucide-react'
 
 interface User {
@@ -69,6 +72,14 @@ export default function JobsPage() {
   const [editingJob, setEditingJob] = useState<Partial<Job> | null>(null)
   const [saving, setSaving] = useState(false)
   const [commerciaux, setCommerciaux] = useState<User[]>([])
+
+  // Search and filters
+  const [searchTerm, setSearchTerm] = useState('')
+  const [filterCategory, setFilterCategory] = useState<string>('all')
+  const [filterStatus, setFilterStatus] = useState<string>('all')
+  const [filterType, setFilterType] = useState<string>('all')
+  const [filterAssigned, setFilterAssigned] = useState<string>('all')
+  const [showFilters, setShowFilters] = useState(false)
 
   useEffect(() => {
     fetchJobs()
@@ -167,12 +178,52 @@ export default function JobsPage() {
     updateField(field, arr)
   }
 
+  // Filter jobs
+  const filteredJobs = jobs.filter(job => {
+    // Search filter
+    const searchLower = searchTerm.toLowerCase()
+    const matchesSearch = !searchTerm ||
+      job.title.toLowerCase().includes(searchLower) ||
+      job.titleEn?.toLowerCase().includes(searchLower) ||
+      job.location.toLowerCase().includes(searchLower) ||
+      job.description?.toLowerCase().includes(searchLower) ||
+      job.descriptionEn?.toLowerCase().includes(searchLower)
+
+    // Category filter
+    const matchesCategory = filterCategory === 'all' || job.category === filterCategory
+
+    // Status filter
+    const matchesStatus = filterStatus === 'all' ||
+      (filterStatus === 'active' && job.active) ||
+      (filterStatus === 'inactive' && !job.active)
+
+    // Type filter
+    const matchesType = filterType === 'all' || job.type === filterType
+
+    // Assigned filter
+    const matchesAssigned = filterAssigned === 'all' ||
+      (filterAssigned === 'unassigned' && !job.assignedTo) ||
+      (filterAssigned !== 'unassigned' && job.assignedTo === filterAssigned)
+
+    return matchesSearch && matchesCategory && matchesStatus && matchesType && matchesAssigned
+  })
+
+  const clearFilters = () => {
+    setSearchTerm('')
+    setFilterCategory('all')
+    setFilterStatus('all')
+    setFilterType('all')
+    setFilterAssigned('all')
+  }
+
+  const hasActiveFilters = searchTerm || filterCategory !== 'all' || filterStatus !== 'all' || filterType !== 'all' || filterAssigned !== 'all'
+
   return (
     <div>
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Offres d&apos;emploi</h1>
-          <p className="text-gray-600 mt-2">Gérez les offres d&apos;emploi publiées</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Offres d&apos;emploi</h1>
+          <p className="text-gray-600 dark:text-gray-300 mt-2">Gérez les offres d&apos;emploi publiées</p>
         </div>
         <button
           onClick={() => setEditingJob(emptyJob)}
@@ -183,32 +234,172 @@ export default function JobsPage() {
         </button>
       </div>
 
+      {/* Search and Filters */}
+      <div className="mb-6 space-y-4">
+        {/* Search Bar */}
+        <div className="flex gap-3">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Rechercher par titre, description, localisation..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-3 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition text-gray-900 dark:text-white"
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                <XCircle className="w-5 h-5" />
+              </button>
+            )}
+          </div>
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className={`flex items-center gap-2 px-4 py-3 rounded-xl border transition ${
+              showFilters || hasActiveFilters
+                ? 'bg-ebmc-turquoise text-white border-ebmc-turquoise'
+                : 'bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-slate-700 hover:border-ebmc-turquoise'
+            }`}
+          >
+            <Filter className="w-5 h-5" />
+            Filtres
+            {hasActiveFilters && (
+              <span className="w-2 h-2 bg-white rounded-full"></span>
+            )}
+          </button>
+        </div>
+
+        {/* Filter Options */}
+        {showFilters && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="bg-white dark:bg-slate-800 rounded-xl p-4 border border-gray-200 dark:border-slate-700 shadow-sm"
+          >
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Category Filter */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Catégorie
+                </label>
+                <select
+                  value={filterCategory}
+                  onChange={(e) => setFilterCategory(e.target.value)}
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-ebmc-turquoise/20"
+                >
+                  <option value="all">Toutes les catégories</option>
+                  <option value="tech">Tech</option>
+                  <option value="consulting">Consulting</option>
+                  <option value="management">Management</option>
+                </select>
+              </div>
+
+              {/* Status Filter */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Statut
+                </label>
+                <select
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-ebmc-turquoise/20"
+                >
+                  <option value="all">Tous</option>
+                  <option value="active">Actives</option>
+                  <option value="inactive">Inactives</option>
+                </select>
+              </div>
+
+              {/* Type Filter */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Type de contrat
+                </label>
+                <select
+                  value={filterType}
+                  onChange={(e) => setFilterType(e.target.value)}
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-ebmc-turquoise/20"
+                >
+                  <option value="all">Tous</option>
+                  <option value="CDI">CDI</option>
+                  <option value="CDD">CDD</option>
+                  <option value="Freelance">Freelance</option>
+                </select>
+              </div>
+
+              {/* Assigned Filter */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Commercial assigné
+                </label>
+                <select
+                  value={filterAssigned}
+                  onChange={(e) => setFilterAssigned(e.target.value)}
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-ebmc-turquoise/20"
+                >
+                  <option value="all">Tous</option>
+                  <option value="unassigned">Non assignées</option>
+                  {commerciaux.map(user => (
+                    <option key={user._id} value={user._id}>
+                      {user.name || user.email}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {hasActiveFilters && (
+              <div className="mt-4 flex justify-end">
+                <button
+                  onClick={clearFilters}
+                  className="text-sm text-ebmc-turquoise hover:underline flex items-center gap-1"
+                >
+                  <XCircle className="w-4 h-4" />
+                  Effacer tous les filtres
+                </button>
+              </div>
+            )}
+          </motion.div>
+        )}
+
+        {/* Results count */}
+        {(searchTerm || hasActiveFilters) && (
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            {filteredJobs.length} résultat{filteredJobs.length !== 1 ? 's' : ''} trouvé{filteredJobs.length !== 1 ? 's' : ''}
+          </p>
+        )}
+      </div>
+
       {/* Jobs List */}
-      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm overflow-hidden">
         {loading ? (
           <div className="flex justify-center py-12">
             <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
           </div>
-        ) : jobs.length === 0 ? (
-          <div className="text-center py-12 text-gray-500">
+        ) : filteredJobs.length === 0 ? (
+          <div className="text-center py-12 text-gray-500 dark:text-gray-400">
             <Briefcase className="w-12 h-12 mx-auto mb-4 opacity-50" />
-            Aucune offre d&apos;emploi
+            {hasActiveFilters ? 'Aucune offre ne correspond aux critères' : 'Aucune offre d\'emploi'}
           </div>
         ) : (
-          <div className="divide-y">
-            {jobs.map((job) => (
+          <div className="divide-y divide-gray-100 dark:divide-slate-700">
+            {filteredJobs.map((job) => (
               <motion.div
                 key={job._id}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="p-6 hover:bg-gray-50"
+                className="p-6 hover:bg-gray-50 dark:hover:bg-slate-700"
               >
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
                     <div className="flex items-center gap-3">
-                      <span className="font-medium text-gray-900">{job.title}</span>
+                      <span className="font-medium text-gray-900 dark:text-white">{job.title}</span>
                       <span className={`px-2 py-0.5 text-xs rounded-full ${
-                        job.active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
+                        job.active ? 'bg-green-100 text-green-700' : 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300'
                       }`}>
                         {job.active ? 'Active' : 'Inactive'}
                       </span>
@@ -216,7 +407,7 @@ export default function JobsPage() {
                         {job.category}
                       </span>
                     </div>
-                    <div className="flex gap-4 mt-2 text-sm text-gray-500">
+                    <div className="flex gap-4 mt-2 text-sm text-gray-500 dark:text-gray-400">
                       <span className="flex items-center gap-1">
                         <MapPin className="w-4 h-4" />
                         {job.location}
@@ -236,13 +427,13 @@ export default function JobsPage() {
                   <div className="flex gap-2">
                     <button
                       onClick={() => setEditingJob(job)}
-                      className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg"
+                      className="p-2 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg"
                     >
                       <Edit className="w-5 h-5" />
                     </button>
                     <button
                       onClick={() => handleDelete(job._id)}
-                      className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
+                      className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
                     >
                       <Trash2 className="w-5 h-5" />
                     </button>
@@ -260,14 +451,14 @@ export default function JobsPage() {
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col"
+            className="bg-white dark:bg-slate-800 rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col"
           >
-            <div className="flex justify-between items-center p-6 border-b">
-              <h2 className="text-xl font-semibold">
+            <div className="flex justify-between items-center p-6 border-b border-gray-200 dark:border-slate-700">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
                 {editingJob._id ? 'Modifier l\'offre' : 'Nouvelle offre'}
               </h2>
               <button onClick={() => setEditingJob(null)}>
-                <X className="w-6 h-6 text-gray-400 hover:text-gray-600" />
+                <X className="w-6 h-6 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300" />
               </button>
             </div>
 
@@ -275,7 +466,7 @@ export default function JobsPage() {
               {/* Basic Info */}
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Titre (FR)</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Titre (FR)</label>
                   <input
                     type="text"
                     value={editingJob.title || ''}
@@ -284,7 +475,7 @@ export default function JobsPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Title (EN)</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Title (EN)</label>
                   <input
                     type="text"
                     value={editingJob.titleEn || ''}
@@ -296,7 +487,7 @@ export default function JobsPage() {
 
               <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Localisation</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Localisation</label>
                   <input
                     type="text"
                     value={editingJob.location || ''}
@@ -306,7 +497,7 @@ export default function JobsPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Catégorie</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Catégorie</label>
                   <select
                     value={editingJob.category || 'tech'}
                     onChange={(e) => updateField('category', e.target.value)}
@@ -318,7 +509,7 @@ export default function JobsPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Type</label>
                   <select
                     value={editingJob.type || 'CDI'}
                     onChange={(e) => {
@@ -333,7 +524,7 @@ export default function JobsPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     <span className="flex items-center gap-1">
                       <UserCheck className="w-4 h-4 text-purple-500" />
                       Commercial assigné
@@ -360,7 +551,7 @@ export default function JobsPage() {
 
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Expérience (FR)</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Expérience (FR)</label>
                   <input
                     type="text"
                     value={editingJob.experience || ''}
@@ -370,7 +561,7 @@ export default function JobsPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Experience (EN)</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Experience (EN)</label>
                   <input
                     type="text"
                     value={editingJob.experienceEn || ''}
@@ -383,7 +574,7 @@ export default function JobsPage() {
 
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Description (FR)</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description (FR)</label>
                   <textarea
                     value={editingJob.description || ''}
                     onChange={(e) => updateField('description', e.target.value)}
@@ -392,7 +583,7 @@ export default function JobsPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Description (EN)</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description (EN)</label>
                   <textarea
                     value={editingJob.descriptionEn || ''}
                     onChange={(e) => updateField('descriptionEn', e.target.value)}
@@ -404,7 +595,7 @@ export default function JobsPage() {
 
               {/* Missions */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Missions (FR)</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Missions (FR)</label>
                 {(editingJob.missions || ['']).map((m, i) => (
                   <div key={i} className="flex gap-2 mb-2">
                     <input
@@ -415,7 +606,7 @@ export default function JobsPage() {
                     />
                     <button
                       onClick={() => removeArrayItem('missions', i)}
-                      className="px-3 py-2 text-red-500 hover:bg-red-50 rounded-lg"
+                      className="px-3 py-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -438,14 +629,14 @@ export default function JobsPage() {
                   onChange={(e) => updateField('active', e.target.checked)}
                   className="w-4 h-4 text-blue-600 rounded"
                 />
-                <label htmlFor="active" className="text-sm text-gray-700">Offre active (visible sur le site)</label>
+                <label htmlFor="active" className="text-sm text-gray-700 dark:text-gray-300">Offre active (visible sur le site)</label>
               </div>
             </div>
 
-            <div className="flex justify-end gap-3 p-6 border-t bg-gray-50">
+            <div className="flex justify-end gap-3 p-6 border-t border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800">
               <button
                 onClick={() => setEditingJob(null)}
-                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition"
+                className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-600 rounded-lg transition"
               >
                 Annuler
               </button>

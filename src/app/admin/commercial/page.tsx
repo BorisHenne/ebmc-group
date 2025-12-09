@@ -242,10 +242,10 @@ export default function CommercialDashboard() {
             <Briefcase className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
               {userName ? `Bonjour ${userName}` : 'Dashboard Commercial'}
             </h1>
-            <p className="text-gray-500">Suivi de vos opportunités et consultants</p>
+            <p className="text-gray-500 dark:text-gray-400">Suivi de vos opportunités et consultants</p>
           </div>
         </div>
 
@@ -265,7 +265,7 @@ export default function CommercialDashboard() {
           </Link>
           <button
             onClick={fetchData}
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition"
+            className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition"
           >
             <RefreshCw className="w-4 h-4" />
             Actualiser
@@ -278,7 +278,7 @@ export default function CommercialDashboard() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100"
+          className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-slate-700"
         >
           <div className="flex items-center justify-between mb-4">
             <div className="p-2 bg-blue-100 rounded-lg">
@@ -289,15 +289,15 @@ export default function CommercialDashboard() {
               +8%
             </span>
           </div>
-          <p className="text-3xl font-bold text-gray-900">{stats?.opportunities?.total || 0}</p>
-          <p className="text-gray-500 text-sm mt-1">Opportunites totales</p>
+          <p className="text-3xl font-bold text-gray-900 dark:text-white">{stats?.opportunities?.total || 0}</p>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Opportunites totales</p>
         </motion.div>
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100"
+          className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-slate-700"
         >
           <div className="flex items-center justify-between mb-4">
             <div className="p-2 bg-green-100 rounded-lg">
@@ -308,15 +308,15 @@ export default function CommercialDashboard() {
               +12%
             </span>
           </div>
-          <p className="text-3xl font-bold text-gray-900">{conversionRate}%</p>
-          <p className="text-gray-500 text-sm mt-1">Taux de conversion</p>
+          <p className="text-3xl font-bold text-gray-900 dark:text-white">{conversionRate}%</p>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Taux de conversion</p>
         </motion.div>
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100"
+          className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-slate-700"
         >
           <div className="flex items-center justify-between mb-4">
             <div className="p-2 bg-purple-100 rounded-lg">
@@ -327,15 +327,15 @@ export default function CommercialDashboard() {
               +5%
             </span>
           </div>
-          <p className="text-3xl font-bold text-gray-900">{stats?.resources?.total || 0}</p>
-          <p className="text-gray-500 text-sm mt-1">Consultants</p>
+          <p className="text-3xl font-bold text-gray-900 dark:text-white">{stats?.resources?.total || 0}</p>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Consultants</p>
         </motion.div>
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100"
+          className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-slate-700"
         >
           <div className="flex items-center justify-between mb-4">
             <div className="p-2 bg-amber-100 rounded-lg">
@@ -346,8 +346,8 @@ export default function CommercialDashboard() {
               +10%
             </span>
           </div>
-          <p className="text-3xl font-bold text-gray-900">{avgDailyRate}€</p>
-          <p className="text-gray-500 text-sm mt-1">TJM moyen</p>
+          <p className="text-3xl font-bold text-gray-900 dark:text-white">{avgDailyRate}€</p>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">TJM moyen</p>
         </motion.div>
       </div>
 
@@ -358,9 +358,9 @@ export default function CommercialDashboard() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
-          className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100"
+          className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-slate-700"
         >
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
             <TrendingUp className="w-5 h-5 text-ebmc-turquoise" />
             Evolution du CA
           </h3>
@@ -397,7 +397,7 @@ export default function CommercialDashboard() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
-          className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100"
+          className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-slate-700"
         >
           <div className="flex items-center gap-4 mb-4">
             <button
@@ -405,7 +405,7 @@ export default function CommercialDashboard() {
               className={`px-4 py-2 rounded-lg font-medium transition ${
                 activeTab === 'opportunities'
                   ? 'bg-ebmc-turquoise text-white'
-                  : 'text-gray-600 hover:bg-gray-100'
+                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-600 dark:bg-slate-700'
               }`}
             >
               Opportunites
@@ -415,7 +415,7 @@ export default function CommercialDashboard() {
               className={`px-4 py-2 rounded-lg font-medium transition ${
                 activeTab === 'resources'
                   ? 'bg-ebmc-turquoise text-white'
-                  : 'text-gray-600 hover:bg-gray-100'
+                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-600 dark:bg-slate-700'
               }`}
             >
               Consultants
@@ -447,8 +447,8 @@ export default function CommercialDashboard() {
                     className="w-3 h-3 rounded-full"
                     style={{ backgroundColor: entry.color }}
                   />
-                  <span className="text-gray-600">{entry.name}</span>
-                  <span className="font-semibold text-gray-900 ml-auto">{entry.value}</span>
+                  <span className="text-gray-600 dark:text-gray-300">{entry.name}</span>
+                  <span className="font-semibold text-gray-900 dark:text-white ml-auto">{entry.value}</span>
                 </div>
               ))}
             </div>
@@ -461,9 +461,9 @@ export default function CommercialDashboard() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.6 }}
-        className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100"
+        className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-slate-700"
       >
-        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
           <Calendar className="w-5 h-5 text-ebmc-turquoise" />
           Performance mensuelle
         </h3>
@@ -493,13 +493,13 @@ export default function CommercialDashboard() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.65 }}
-        className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100"
+        className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-slate-700"
       >
         <div className="flex flex-col gap-4">
           {/* Search Bar */}
           <div className="flex flex-col md:flex-row gap-4">
             <div className="relative flex-1">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500" />
               <input
                 type="text"
                 placeholder={activeTab === 'opportunities'
@@ -507,14 +507,14 @@ export default function CommercialDashboard() {
                   : "Rechercher un consultant (nom, poste)..."}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise text-lg"
+                className="w-full pl-12 pr-4 py-3 border border-gray-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise text-lg"
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-100 rounded-full"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-100 dark:hover:bg-slate-600 rounded-full"
                 >
-                  <X className="w-4 h-4 text-gray-400" />
+                  <X className="w-4 h-4 text-gray-400 dark:text-gray-500" />
                 </button>
               )}
             </div>
@@ -524,7 +524,7 @@ export default function CommercialDashboard() {
                 className={`flex items-center gap-2 px-4 py-3 rounded-xl transition ${
                   activeTab === 'opportunities'
                     ? 'bg-blue-500 text-white'
-                    : 'border border-gray-200 hover:bg-gray-50 text-gray-700'
+                    : 'border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 dark:bg-slate-800 text-gray-700 dark:text-gray-300'
                 }`}
               >
                 <Briefcase className="w-4 h-4" />
@@ -535,7 +535,7 @@ export default function CommercialDashboard() {
                 className={`flex items-center gap-2 px-4 py-3 rounded-xl transition ${
                   activeTab === 'resources'
                     ? 'bg-purple-500 text-white'
-                    : 'border border-gray-200 hover:bg-gray-50 text-gray-700'
+                    : 'border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 dark:bg-slate-800 text-gray-700 dark:text-gray-300'
                 }`}
               >
                 <Users className="w-4 h-4" />
@@ -547,7 +547,7 @@ export default function CommercialDashboard() {
               className={`flex items-center gap-2 px-4 py-3 border rounded-xl transition ${
                 showFilters || hasActiveFilters
                   ? 'bg-ebmc-turquoise text-white border-ebmc-turquoise'
-                  : 'border-gray-200 hover:bg-gray-50 text-gray-700'
+                  : 'border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 dark:bg-slate-800 text-gray-700 dark:text-gray-300'
               }`}
             >
               <Filter className="w-5 h-5" />
@@ -562,17 +562,17 @@ export default function CommercialDashboard() {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
-              className="flex flex-wrap gap-4 pt-4 border-t border-gray-100"
+              className="flex flex-wrap gap-4 pt-4 border-t border-gray-100 dark:border-slate-700"
             >
               {activeTab === 'opportunities' ? (
                 <>
                   {/* Opportunity Status Filter */}
                   <div className="flex flex-col gap-2">
-                    <label className="text-sm font-medium text-gray-600">Statut opportunite</label>
+                    <label className="text-sm font-medium text-gray-600 dark:text-gray-300">Statut opportunite</label>
                     <select
                       value={oppStatusFilter ?? ''}
                       onChange={(e) => setOppStatusFilter(e.target.value ? parseInt(e.target.value) : null)}
-                      className="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise min-w-[180px]"
+                      className="px-4 py-2 border border-gray-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise min-w-[180px]"
                     >
                       <option value="">Tous les statuts</option>
                       {Object.entries(OPPORTUNITY_STATES).map(([key, label]) => (
@@ -583,16 +583,16 @@ export default function CommercialDashboard() {
 
                   {/* TJM Min Filter */}
                   <div className="flex flex-col gap-2">
-                    <label className="text-sm font-medium text-gray-600">TJM minimum</label>
+                    <label className="text-sm font-medium text-gray-600 dark:text-gray-300">TJM minimum</label>
                     <div className="relative">
                       <input
                         type="number"
                         placeholder="Ex: 500"
                         value={tjmMinFilter}
                         onChange={(e) => setTjmMinFilter(e.target.value)}
-                        className="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise w-[180px]"
+                        className="px-4 py-2 border border-gray-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise w-[180px]"
                       />
-                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400">€/j</span>
+                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500">€/j</span>
                     </div>
                   </div>
                 </>
@@ -600,11 +600,11 @@ export default function CommercialDashboard() {
                 <>
                   {/* Resource Status Filter */}
                   <div className="flex flex-col gap-2">
-                    <label className="text-sm font-medium text-gray-600">Statut consultant</label>
+                    <label className="text-sm font-medium text-gray-600 dark:text-gray-300">Statut consultant</label>
                     <select
                       value={resourceStatusFilter ?? ''}
                       onChange={(e) => setResourceStatusFilter(e.target.value ? parseInt(e.target.value) : null)}
-                      className="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise min-w-[180px]"
+                      className="px-4 py-2 border border-gray-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise min-w-[180px]"
                     >
                       <option value="">Tous les statuts</option>
                       {Object.entries(RESOURCE_STATES).map(([key, label]) => (
@@ -632,7 +632,7 @@ export default function CommercialDashboard() {
 
           {/* Results count */}
           {hasActiveFilters && (
-            <div className="flex items-center gap-2 text-sm text-gray-500">
+            <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
               <span>
                 {activeTab === 'opportunities'
                   ? `${filteredOpportunities.length} opportunite${filteredOpportunities.length > 1 ? 's' : ''} trouvee${filteredOpportunities.length > 1 ? 's' : ''}`
@@ -666,29 +666,29 @@ export default function CommercialDashboard() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.7 }}
-          className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
+          className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700 overflow-hidden"
         >
-          <div className="p-6 border-b border-gray-100">
+          <div className="p-6 border-b border-gray-100 dark:border-slate-700">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                 <Target className="w-5 h-5 text-blue-500" />
                 Mes opportunites
               </h3>
-              <span className="text-sm text-gray-500">{filteredOpportunities.length} sur {opportunities.length}</span>
+              <span className="text-sm text-gray-500 dark:text-gray-400">{filteredOpportunities.length} sur {opportunities.length}</span>
             </div>
           </div>
 
-          <div className="divide-y divide-gray-50 max-h-96 overflow-y-auto">
+          <div className="divide-y divide-gray-50 dark:divide-slate-700 max-h-96 overflow-y-auto">
             {filteredOpportunities.slice(0, 8).map((opp) => (
-              <div key={opp.id} className="p-4 hover:bg-gray-50/50 transition">
+              <div key={opp.id} className="p-4 hover:bg-gray-50 dark:hover:bg-slate-700 dark:bg-slate-800/50 transition">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-gray-900 truncate">{opp.attributes.title}</p>
-                    <p className="text-sm text-gray-500">{opp.attributes.reference || `#${opp.id}`}</p>
+                    <p className="font-medium text-gray-900 dark:text-white truncate">{opp.attributes.title}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{opp.attributes.reference || `#${opp.id}`}</p>
                   </div>
                   <div className="flex items-center gap-3">
                     {opp.attributes.dailyRate && (
-                      <span className="text-sm font-semibold text-gray-700">{opp.attributes.dailyRate}€/j</span>
+                      <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">{opp.attributes.dailyRate}€/j</span>
                     )}
                     <span
                       className="px-2 py-1 rounded-full text-xs font-medium"
@@ -711,31 +711,31 @@ export default function CommercialDashboard() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.8 }}
-          className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
+          className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700 overflow-hidden"
         >
-          <div className="p-6 border-b border-gray-100">
+          <div className="p-6 border-b border-gray-100 dark:border-slate-700">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                 <Users className="w-5 h-5 text-purple-500" />
                 Mes consultants
               </h3>
-              <span className="text-sm text-gray-500">{filteredResources.length} sur {resources.length}</span>
+              <span className="text-sm text-gray-500 dark:text-gray-400">{filteredResources.length} sur {resources.length}</span>
             </div>
           </div>
 
-          <div className="divide-y divide-gray-50 max-h-96 overflow-y-auto">
+          <div className="divide-y divide-gray-50 dark:divide-slate-700 max-h-96 overflow-y-auto">
             {filteredResources.slice(0, 8).map((resource) => (
-              <div key={resource.id} className="p-4 hover:bg-gray-50/50 transition">
+              <div key={resource.id} className="p-4 hover:bg-gray-50 dark:hover:bg-slate-700 dark:bg-slate-800/50 transition">
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center text-white font-medium">
                       {resource.attributes.firstName?.[0]}{resource.attributes.lastName?.[0]}
                     </div>
                     <div className="min-w-0">
-                      <p className="font-medium text-gray-900 truncate">
+                      <p className="font-medium text-gray-900 dark:text-white truncate">
                         {resource.attributes.firstName} {resource.attributes.lastName}
                       </p>
-                      <p className="text-sm text-gray-500 truncate">{resource.attributes.title || '-'}</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{resource.attributes.title || '-'}</p>
                     </div>
                   </div>
                   <span

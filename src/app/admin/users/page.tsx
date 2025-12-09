@@ -30,7 +30,7 @@ const emptyFormData = {
   email: '',
   name: '',
   password: '',
-  role: 'user'
+  role: 'consultant'
 }
 
 export default function UsersPage() {
@@ -415,8 +415,8 @@ export default function UsersPage() {
                     {formData.role === 'admin' && 'Accès complet à toutes les fonctionnalités'}
                     {formData.role === 'sourceur' && 'Accès aux consultants, messages et scraper CV'}
                     {formData.role === 'commercial' && 'Accès aux offres et consultants assignés'}
+                    {formData.role === 'consultant' && 'Consultant CDI - Accès au portail CRA et absences'}
                     {formData.role === 'freelance' && 'Accès au portail freelance uniquement'}
-                    {formData.role === 'user' && 'Accès de base en lecture seule'}
                   </p>
                 </div>
 

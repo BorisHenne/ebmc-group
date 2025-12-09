@@ -29,10 +29,10 @@ const defaultUsers = [
     role: 'freelance',
   },
   {
-    email: 'user@ebmc-group.com',
-    password: 'user123',
-    name: 'Sophie User',
-    role: 'user',
+    email: 'consultant@ebmc-group.com',
+    password: 'consultant123',
+    name: 'Sophie Consultant',
+    role: 'consultant',
   },
 ]
 

@@ -100,8 +100,8 @@ export default function RolesPage() {
     <div>
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Rôles</h1>
-          <p className="text-gray-600 mt-2">Gérez les rôles et permissions</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Rôles</h1>
+          <p className="text-gray-600 dark:text-gray-300 mt-2">Gérez les rôles et permissions</p>
         </div>
         <button
           onClick={() => setEditingRole({ name: '', label: '', permissions: [] })}
@@ -112,31 +112,31 @@ export default function RolesPage() {
         </button>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm overflow-hidden">
         {loading ? (
           <div className="flex justify-center py-12">
             <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
           </div>
         ) : roles.length === 0 ? (
-          <div className="text-center py-12 text-gray-500">
+          <div className="text-center py-12 text-gray-500 dark:text-gray-400">
             <Shield className="w-12 h-12 mx-auto mb-4 opacity-50" />
             Aucun rôle configuré
           </div>
         ) : (
-          <div className="divide-y">
+          <div className="divide-y divide-gray-100 dark:divide-slate-700">
             {roles.map((role) => (
               <motion.div
                 key={role._id}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="p-6 hover:bg-gray-50"
+                className="p-6 hover:bg-gray-50 dark:hover:bg-slate-700"
               >
                 <div className="flex justify-between items-start">
                   <div>
                     <div className="flex items-center gap-3">
                       <Shield className="w-5 h-5 text-blue-500" />
-                      <span className="font-medium text-gray-900">{role.label}</span>
-                      <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full">
+                      <span className="font-medium text-gray-900 dark:text-white">{role.label}</span>
+                      <span className="px-2 py-0.5 bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 text-xs rounded-full">
                         {role.name}
                       </span>
                     </div>
@@ -151,14 +151,14 @@ export default function RolesPage() {
                   <div className="flex gap-2">
                     <button
                       onClick={() => setEditingRole(role)}
-                      className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg"
+                      className="p-2 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg"
                     >
                       <Edit className="w-5 h-5" />
                     </button>
                     {role.name !== 'admin' && (
                       <button
                         onClick={() => handleDelete(role._id)}
-                        className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
+                        className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
                       >
                         <Trash2 className="w-5 h-5" />
                       </button>
@@ -177,20 +177,20 @@ export default function RolesPage() {
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-xl shadow-xl w-full max-w-lg"
+            className="bg-white dark:bg-slate-800 rounded-xl shadow-xl w-full max-w-lg"
           >
-            <div className="flex justify-between items-center p-6 border-b">
+            <div className="flex justify-between items-center p-6 border-b border-gray-200 dark:border-slate-700">
               <h2 className="text-xl font-semibold">
                 {editingRole._id ? 'Modifier le rôle' : 'Nouveau rôle'}
               </h2>
               <button onClick={() => setEditingRole(null)}>
-                <X className="w-6 h-6 text-gray-400 hover:text-gray-600" />
+                <X className="w-6 h-6 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300" />
               </button>
             </div>
 
             <div className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Identifiant</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Identifiant</label>
                 <input
                   type="text"
                   value={editingRole.name || ''}
@@ -202,7 +202,7 @@ export default function RolesPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Nom affiché</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nom affiché</label>
                 <input
                   type="text"
                   value={editingRole.label || ''}
@@ -213,7 +213,7 @@ export default function RolesPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Permissions</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Permissions</label>
                 <div className="space-y-2 max-h-48 overflow-y-auto">
                   {availablePermissions.map((perm) => (
                     <label key={perm.value} className="flex items-center gap-2 cursor-pointer">
@@ -223,17 +223,17 @@ export default function RolesPage() {
                         onChange={() => togglePermission(perm.value)}
                         className="w-4 h-4 text-blue-600 rounded"
                       />
-                      <span className="text-sm text-gray-700">{perm.label}</span>
+                      <span className="text-sm text-gray-700 dark:text-gray-300">{perm.label}</span>
                     </label>
                   ))}
                 </div>
               </div>
             </div>
 
-            <div className="flex justify-end gap-3 p-6 border-t bg-gray-50">
+            <div className="flex justify-end gap-3 p-6 border-t border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800">
               <button
                 onClick={() => setEditingRole(null)}
-                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition"
+                className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-600 rounded-lg transition"
               >
                 Annuler
               </button>

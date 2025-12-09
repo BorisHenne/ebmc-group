@@ -194,16 +194,16 @@ export default function RecrutementPage() {
         <div className="flex items-center gap-4">
           <Link
             href="/admin/sourceur"
-            className="p-2 hover:bg-gray-100 rounded-lg transition"
+            className="p-2 hover:bg-gray-100 dark:hover:bg-slate-600 rounded-lg transition"
           >
-            <ChevronLeft className="w-5 h-5 text-gray-600" />
+            <ChevronLeft className="w-5 h-5 text-gray-600 dark:text-gray-300" />
           </Link>
           <div className="p-3 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500 shadow-lg">
             <Users className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Parcours de recrutement</h1>
-            <p className="text-gray-500">Gérez vos candidats par étape de recrutement</p>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Parcours de recrutement</h1>
+            <p className="text-gray-500 dark:text-gray-400">Gérez vos candidats par étape de recrutement</p>
           </div>
         </div>
 
@@ -213,18 +213,18 @@ export default function RecrutementPage() {
             Mode Démo
           </span>
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
             <input
               type="text"
               placeholder="Rechercher un candidat..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 pr-4 py-2 w-64 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise"
+              className="pl-10 pr-4 py-2 w-64 border border-gray-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise"
             />
           </div>
           <button
             onClick={initializeBoard}
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition"
+            className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition"
           >
             <RefreshCw className="w-4 h-4" />
             Actualiser
@@ -239,13 +239,13 @@ export default function RecrutementPage() {
             key={col.id}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-white rounded-xl p-4 shadow-sm border border-gray-100"
+            className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-slate-700"
           >
             <div className="flex items-center gap-2 mb-2">
               <div className="w-3 h-3 rounded-full" style={{ backgroundColor: col.color }} />
-              <span className="text-sm font-medium text-gray-600">{col.name}</span>
+              <span className="text-sm font-medium text-gray-600 dark:text-gray-300">{col.name}</span>
             </div>
-            <p className="text-2xl font-bold text-gray-900">{col.candidates.length}</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">{col.candidates.length}</p>
           </motion.div>
         ))}
       </div>
@@ -257,23 +257,23 @@ export default function RecrutementPage() {
             {columns.map(column => (
               <div
                 key={column.id}
-                className="w-80 flex-shrink-0 flex flex-col bg-gray-50 rounded-xl"
+                className="w-80 flex-shrink-0 flex flex-col bg-gray-50 dark:bg-slate-800 rounded-xl"
               >
                 {/* Column Header */}
-                <div className="p-4 border-b border-gray-200">
+                <div className="p-4 border-b border-gray-200 dark:border-slate-700">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <div
                         className="w-3 h-3 rounded-full"
                         style={{ backgroundColor: column.color }}
                       />
-                      <h3 className="font-semibold text-gray-900">{column.name}</h3>
-                      <span className="px-2 py-0.5 bg-gray-200 text-gray-600 rounded-full text-xs font-medium">
+                      <h3 className="font-semibold text-gray-900 dark:text-white">{column.name}</h3>
+                      <span className="px-2 py-0.5 bg-gray-200 dark:bg-slate-700 text-gray-600 dark:text-gray-300 rounded-full text-xs font-medium">
                         {filterCandidates(column.candidates).length}
                       </span>
                     </div>
-                    <button className="p-1 hover:bg-gray-200 rounded transition">
-                      <Plus className="w-4 h-4 text-gray-500" />
+                    <button className="p-1 hover:bg-gray-200 dark:hover:bg-slate-600 rounded transition">
+                      <Plus className="w-4 h-4 text-gray-500 dark:text-gray-400" />
                     </button>
                   </div>
                 </div>
@@ -285,7 +285,7 @@ export default function RecrutementPage() {
                       ref={provided.innerRef}
                       {...provided.droppableProps}
                       className={`flex-1 p-2 space-y-2 overflow-y-auto min-h-[200px] transition-colors ${
-                        snapshot.isDraggingOver ? 'bg-gray-100' : ''
+                        snapshot.isDraggingOver ? 'bg-gray-100 dark:bg-slate-700' : ''
                       }`}
                     >
                       {filterCandidates(column.candidates).map((candidate, index) => (
@@ -299,7 +299,7 @@ export default function RecrutementPage() {
                               ref={provided.innerRef}
                               {...provided.draggableProps}
                               {...provided.dragHandleProps}
-                              className={`bg-white rounded-lg p-3 shadow-sm border border-gray-100 cursor-grab active:cursor-grabbing hover:shadow-md transition-all ${
+                              className={`bg-white dark:bg-slate-800 rounded-lg p-3 shadow-sm border border-gray-100 dark:border-slate-700 cursor-grab active:cursor-grabbing hover:shadow-md transition-all ${
                                 snapshot.isDragging ? 'shadow-lg ring-2 ring-ebmc-turquoise/20 scale-105' : ''
                               }`}
                               onClick={() => setSelectedCandidate(candidate)}
@@ -310,30 +310,30 @@ export default function RecrutementPage() {
                                     {candidate.firstName[0]}{candidate.lastName[0]}
                                   </div>
                                   <div>
-                                    <p className="font-medium text-gray-900 text-sm">
+                                    <p className="font-medium text-gray-900 dark:text-white text-sm">
                                       {candidate.firstName} {candidate.lastName}
                                     </p>
-                                    <p className="text-xs text-gray-500">{candidate.title}</p>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">{candidate.title}</p>
                                   </div>
                                 </div>
                                 <button
-                                  className="p-1 hover:bg-gray-100 rounded opacity-0 group-hover:opacity-100 transition"
+                                  className="p-1 hover:bg-gray-100 dark:hover:bg-slate-600 rounded opacity-0 group-hover:opacity-100 transition"
                                   onClick={(e) => {
                                     e.stopPropagation()
                                     // Open menu
                                   }}
                                 >
-                                  <MoreVertical className="w-4 h-4 text-gray-400" />
+                                  <MoreVertical className="w-4 h-4 text-gray-400 dark:text-gray-500" />
                                 </button>
                               </div>
 
-                              <div className="flex items-center gap-3 text-xs text-gray-500">
+                              <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
                                 <span className="flex items-center gap-1">
                                   <Clock className="w-3 h-3" />
                                   {formatRelativeTime(candidate.lastActivity || candidate.createdAt)}
                                 </span>
                                 {candidate.source && (
-                                  <span className="px-1.5 py-0.5 bg-gray-100 rounded text-gray-600">
+                                  <span className="px-1.5 py-0.5 bg-gray-100 dark:bg-slate-700 rounded text-gray-600 dark:text-gray-300">
                                     {candidate.source}
                                   </span>
                                 )}
@@ -345,7 +345,7 @@ export default function RecrutementPage() {
                       {provided.placeholder}
 
                       {filterCandidates(column.candidates).length === 0 && (
-                        <div className="text-center py-8 text-gray-400 text-sm">
+                        <div className="text-center py-8 text-gray-400 dark:text-gray-500 text-sm">
                           Aucun candidat
                         </div>
                       )}
@@ -370,7 +370,7 @@ export default function RecrutementPage() {
           <motion.div
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl"
+            className="bg-white dark:bg-slate-800 rounded-2xl p-6 w-full max-w-md shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start gap-4 mb-6">
@@ -378,10 +378,10 @@ export default function RecrutementPage() {
                 {selectedCandidate.firstName[0]}{selectedCandidate.lastName[0]}
               </div>
               <div className="flex-1">
-                <h2 className="text-xl font-bold text-gray-900">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">
                   {selectedCandidate.firstName} {selectedCandidate.lastName}
                 </h2>
-                <p className="text-gray-600">{selectedCandidate.title}</p>
+                <p className="text-gray-600 dark:text-gray-300">{selectedCandidate.title}</p>
                 <div className="flex items-center gap-2 mt-2">
                   <span
                     className="px-2 py-1 rounded-full text-xs font-medium"
@@ -397,26 +397,26 @@ export default function RecrutementPage() {
             </div>
 
             <div className="space-y-4">
-              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                <Mail className="w-5 h-5 text-gray-400" />
-                <span className="text-gray-700">{selectedCandidate.email}</span>
+              <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-slate-800 rounded-lg">
+                <Mail className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+                <span className="text-gray-700 dark:text-gray-300">{selectedCandidate.email}</span>
               </div>
 
               {selectedCandidate.phone && (
-                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                  <Phone className="w-5 h-5 text-gray-400" />
-                  <span className="text-gray-700">{selectedCandidate.phone}</span>
+                <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-slate-800 rounded-lg">
+                  <Phone className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+                  <span className="text-gray-700 dark:text-gray-300">{selectedCandidate.phone}</span>
                 </div>
               )}
 
-              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                <Briefcase className="w-5 h-5 text-gray-400" />
-                <span className="text-gray-700">{selectedCandidate.source || 'Source inconnue'}</span>
+              <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-slate-800 rounded-lg">
+                <Briefcase className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+                <span className="text-gray-700 dark:text-gray-300">{selectedCandidate.source || 'Source inconnue'}</span>
               </div>
 
-              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                <Calendar className="w-5 h-5 text-gray-400" />
-                <span className="text-gray-700">
+              <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-slate-800 rounded-lg">
+                <Calendar className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+                <span className="text-gray-700 dark:text-gray-300">
                   Ajouté le {new Date(selectedCandidate.createdAt).toLocaleDateString('fr-FR')}
                 </span>
               </div>
@@ -425,7 +425,7 @@ export default function RecrutementPage() {
             <div className="flex gap-3 mt-6">
               <button
                 onClick={() => setSelectedCandidate(null)}
-                className="flex-1 px-4 py-2 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition"
+                className="flex-1 px-4 py-2 border border-gray-200 dark:border-slate-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition"
               >
                 Fermer
               </button>

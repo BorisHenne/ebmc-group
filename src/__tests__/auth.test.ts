@@ -249,8 +249,8 @@ describe('BoondManager Authentication', () => {
     })
 
     it('should set default role for new BoondManager users', () => {
-      const defaultRole = 'user'
-      expect(defaultRole).toBe('user')
+      const defaultRole = 'consultant'
+      expect(defaultRole).toBe('consultant')
     })
   })
 })
@@ -290,7 +290,7 @@ describe('Authorization', () => {
 
 describe('Role System - EBMC Roles', () => {
   describe('Role Types', () => {
-    const validRoles = ['admin', 'sourceur', 'commercial', 'freelance', 'user']
+    const validRoles = ['admin', 'sourceur', 'commercial', 'consultant', 'freelance']
 
     it('should have all required role types', () => {
       validRoles.forEach(role => {
@@ -548,7 +548,7 @@ describe('Demo Users', () => {
     { email: 'sourceur@ebmc-group.com', role: 'sourceur' },
     { email: 'commercial@ebmc-group.com', role: 'commercial' },
     { email: 'freelance@ebmc-group.com', role: 'freelance' },
-    { email: 'user@ebmc-group.com', role: 'user' },
+    { email: 'consultant@ebmc-group.com', role: 'consultant' },
   ]
 
   it('should have 5 demo users', () => {
@@ -561,7 +561,7 @@ describe('Demo Users', () => {
     expect(roles).toContain('sourceur')
     expect(roles).toContain('commercial')
     expect(roles).toContain('freelance')
-    expect(roles).toContain('user')
+    expect(roles).toContain('consultant')
   })
 
   it('should use ebmc-group.com domain', () => {

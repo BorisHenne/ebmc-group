@@ -121,10 +121,10 @@ export default function FreelancePortalPage() {
             <User className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
               Bienvenue, {user?.name || user?.email?.split('@')[0]}
             </h1>
-            <p className="text-gray-500">Portail Freelance EBMC GROUP</p>
+            <p className="text-gray-500 dark:text-gray-400">Portail Freelance EBMC GROUP</p>
           </div>
         </motion.div>
 
@@ -195,22 +195,22 @@ export default function FreelancePortalPage() {
             transition={{ delay: 0.3 + index * 0.1 }}
           >
             <Link href={card.href}>
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hover:shadow-lg transition-all group cursor-pointer">
+              <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700 p-6 hover:shadow-lg transition-all group cursor-pointer">
                 <div className="flex items-start justify-between mb-4">
                   <div className={`p-3 rounded-xl bg-gradient-to-r ${card.color} shadow-lg`}>
                     <card.icon className="w-6 h-6 text-white" />
                   </div>
-                  <ArrowRight className="w-5 h-5 text-gray-400 group-hover:text-ebmc-turquoise group-hover:translate-x-1 transition-all" />
+                  <ArrowRight className="w-5 h-5 text-gray-400 dark:text-gray-500 group-hover:text-ebmc-turquoise group-hover:translate-x-1 transition-all" />
                 </div>
 
-                <h3 className="text-xl font-bold text-gray-900 mb-2">{card.title}</h3>
-                <p className="text-gray-500 text-sm mb-4">{card.description}</p>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{card.title}</h3>
+                <p className="text-gray-500 dark:text-gray-400 text-sm mb-4">{card.description}</p>
 
                 <div className="flex gap-4">
                   {card.stats.map((stat, i) => (
                     <div key={i} className="flex items-center gap-2">
                       <stat.icon className={`w-4 h-4 ${stat.label.includes('attente') ? 'text-amber-500' : 'text-green-500'}`} />
-                      <span className="text-sm text-gray-600">
+                      <span className="text-sm text-gray-600 dark:text-gray-300">
                         <span className="font-semibold">{stat.value}</span> {stat.label}
                       </span>
                     </div>
@@ -227,10 +227,10 @@ export default function FreelancePortalPage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5 }}
-        className="mt-8 bg-gray-50 rounded-2xl p-6"
+        className="mt-8 bg-gray-50 dark:bg-slate-800 rounded-2xl p-6"
       >
-        <h3 className="font-semibold text-gray-900 mb-2">Besoin d&apos;aide ?</h3>
-        <p className="text-gray-600 text-sm">
+        <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Besoin d&apos;aide ?</h3>
+        <p className="text-gray-600 dark:text-gray-300 text-sm">
           Pour toute question concernant vos CRA ou vos absences, contactez votre gestionnaire RH ou envoyez un email à{' '}
           <a href="mailto:rh@ebmcgroup.eu" className="text-ebmc-turquoise hover:underline">
             rh@ebmcgroup.eu
