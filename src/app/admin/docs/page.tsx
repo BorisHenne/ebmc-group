@@ -881,14 +881,64 @@ function AuthDocs() {
 function BoondManagerDocs() {
   return (
     <div className="prose max-w-none">
-      <h2 className="flex items-center gap-2"><Building2 className="w-6 h-6 text-blue-500" />BoondManager SSO</h2>
-      <p>Connectez-vous avec vos identifiants BoondManager existants.</p>
-      <h3>Configuration</h3>
+      <h2 className="flex items-center gap-2"><Building2 className="w-6 h-6 text-blue-500" />Integration BoondManager</h2>
+      <p>Gerez vos donnees BoondManager directement depuis le backoffice.</p>
+
+      <h3>Connexion SSO</h3>
       <ol>
-        <li>Activez l&apos;API REST dans votre profil BoondManager</li>
-        <li>Utilisez l&apos;onglet BoondManager sur la page de connexion</li>
-        <li>Entrez votre sous-domaine, email et mot de passe</li>
+        <li>Activez l&apos;API REST dans votre profil BoondManager (Profil &gt; Configuration &gt; Securite)</li>
+        <li>Sur la page de connexion, selectionnez l&apos;onglet <strong>BoondManager</strong></li>
+        <li>Entrez votre sous-domaine (ex: <code>votre-entreprise</code>)</li>
+        <li>Connectez-vous avec votre email et mot de passe BoondManager</li>
       </ol>
+
+      <h3>Gestion CRUD</h3>
+      <p>Accedez a la page <strong>BoondManager &gt; Gestion BDD</strong> pour gerer :</p>
+
+      <h4>Candidats</h4>
+      <ul>
+        <li>Lister et rechercher des candidats</li>
+        <li>Creer de nouveaux candidats</li>
+        <li>Modifier les informations (nom, email, titre, statut)</li>
+        <li>Supprimer des candidats</li>
+      </ul>
+
+      <h4>Ressources (Consultants)</h4>
+      <ul>
+        <li>Gerer les consultants/ressources internes</li>
+        <li>Suivre leur statut (Disponible, En mission, Intercontrat)</li>
+        <li>Modifier leurs informations de contact</li>
+      </ul>
+
+      <h4>Opportunites</h4>
+      <ul>
+        <li>Gerer les missions/opportunites commerciales</li>
+        <li>Definir le TJM et les dates</li>
+        <li>Suivre le statut (En cours, Gagnee, Perdue)</li>
+      </ul>
+
+      <h3>Statuts des candidats</h3>
+      <div className="not-prose grid grid-cols-2 gap-2 my-4">
+        <div className="px-3 py-2 bg-slate-100 rounded text-sm">1. A qualifier</div>
+        <div className="px-3 py-2 bg-cyan-100 rounded text-sm">2. Qualifie</div>
+        <div className="px-3 py-2 bg-purple-100 rounded text-sm">3. En cours</div>
+        <div className="px-3 py-2 bg-amber-100 rounded text-sm">4. Entretien</div>
+        <div className="px-3 py-2 bg-blue-100 rounded text-sm">5. Proposition</div>
+        <div className="px-3 py-2 bg-green-100 rounded text-sm">6. Embauche</div>
+        <div className="px-3 py-2 bg-red-100 rounded text-sm">7. Refuse</div>
+        <div className="px-3 py-2 bg-gray-100 rounded text-sm">8. Archive</div>
+      </div>
+
+      <h3>API Endpoints</h3>
+      <table className="w-full text-sm">
+        <thead><tr><th>Methode</th><th>Endpoint</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code className="bg-green-100 text-green-700 px-1 rounded">GET</code></td><td><code>/api/boondmanager/candidates</code></td><td>Lister candidats</td></tr>
+          <tr><td><code className="bg-blue-100 text-blue-700 px-1 rounded">POST</code></td><td><code>/api/boondmanager/candidates</code></td><td>Creer candidat</td></tr>
+          <tr><td><code className="bg-amber-100 text-amber-700 px-1 rounded">PATCH</code></td><td><code>/api/boondmanager/candidates</code></td><td>Modifier candidat</td></tr>
+          <tr><td><code className="bg-red-100 text-red-700 px-1 rounded">DELETE</code></td><td><code>/api/boondmanager/candidates</code></td><td>Supprimer candidat</td></tr>
+        </tbody>
+      </table>
     </div>
   )
 }

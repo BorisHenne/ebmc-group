@@ -303,6 +303,185 @@ export class BoondManagerClient {
       },
     }
   }
+
+  // ==================== CRUD OPERATIONS ====================
+
+  // Create a new candidate
+  async createCandidate(data: {
+    firstName: string
+    lastName: string
+    email: string
+    civility?: string
+    title?: string
+    phone?: string
+    source?: string
+  }): Promise<BoondApiResponse<BoondCandidate>> {
+    return this.fetch('/candidates', {
+      method: 'POST',
+      body: JSON.stringify({
+        data: {
+          attributes: {
+            firstName: data.firstName,
+            lastName: data.lastName,
+            email: data.email,
+            civility: data.civility || 'M',
+            title: data.title || '',
+            phone1: data.phone || '',
+            origin: data.source || 'Site Web',
+            state: 1, // A qualifier
+          }
+        }
+      })
+    })
+  }
+
+  // Update a candidate
+  async updateCandidate(id: number, data: {
+    firstName?: string
+    lastName?: string
+    email?: string
+    civility?: string
+    title?: string
+    phone?: string
+    state?: number
+    source?: string
+  }): Promise<BoondApiResponse<BoondCandidate>> {
+    const attributes: Record<string, unknown> = {}
+    if (data.firstName) attributes.firstName = data.firstName
+    if (data.lastName) attributes.lastName = data.lastName
+    if (data.email) attributes.email = data.email
+    if (data.civility) attributes.civility = data.civility
+    if (data.title) attributes.title = data.title
+    if (data.phone) attributes.phone1 = data.phone
+    if (data.state) attributes.state = data.state
+    if (data.source) attributes.origin = data.source
+
+    return this.fetch(`/candidates/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        data: { attributes }
+      })
+    })
+  }
+
+  // Delete a candidate
+  async deleteCandidate(id: number): Promise<void> {
+    await this.fetch(`/candidates/${id}`, { method: 'DELETE' })
+  }
+
+  // Create a new resource
+  async createResource(data: {
+    firstName: string
+    lastName: string
+    email: string
+    civility?: string
+    title?: string
+    phone?: string
+  }): Promise<BoondApiResponse<BoondResource>> {
+    return this.fetch('/resources', {
+      method: 'POST',
+      body: JSON.stringify({
+        data: {
+          attributes: {
+            firstName: data.firstName,
+            lastName: data.lastName,
+            email: data.email,
+            civility: data.civility || 'M',
+            title: data.title || '',
+            phone1: data.phone || '',
+            state: 1, // Disponible
+          }
+        }
+      })
+    })
+  }
+
+  // Update a resource
+  async updateResource(id: number, data: {
+    firstName?: string
+    lastName?: string
+    email?: string
+    civility?: string
+    title?: string
+    phone?: string
+    state?: number
+  }): Promise<BoondApiResponse<BoondResource>> {
+    const attributes: Record<string, unknown> = {}
+    if (data.firstName) attributes.firstName = data.firstName
+    if (data.lastName) attributes.lastName = data.lastName
+    if (data.email) attributes.email = data.email
+    if (data.civility) attributes.civility = data.civility
+    if (data.title) attributes.title = data.title
+    if (data.phone) attributes.phone1 = data.phone
+    if (data.state) attributes.state = data.state
+
+    return this.fetch(`/resources/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        data: { attributes }
+      })
+    })
+  }
+
+  // Delete a resource
+  async deleteResource(id: number): Promise<void> {
+    await this.fetch(`/resources/${id}`, { method: 'DELETE' })
+  }
+
+  // Create a new opportunity
+  async createOpportunity(data: {
+    title: string
+    reference?: string
+    description?: string
+    startDate?: string
+    dailyRate?: number
+  }): Promise<BoondApiResponse<BoondOpportunity>> {
+    return this.fetch('/opportunities', {
+      method: 'POST',
+      body: JSON.stringify({
+        data: {
+          attributes: {
+            title: data.title,
+            reference: data.reference || '',
+            description: data.description || '',
+            startDate: data.startDate || null,
+            averageDailyPriceExcludingTax: data.dailyRate || 0,
+            state: 1, // En cours
+          }
+        }
+      })
+    })
+  }
+
+  // Update an opportunity
+  async updateOpportunity(id: number, data: {
+    title?: string
+    reference?: string
+    description?: string
+    startDate?: string
+    dailyRate?: number
+    state?: number
+  }): Promise<BoondApiResponse<BoondOpportunity>> {
+    const attributes: Record<string, unknown> = {}
+    if (data.title) attributes.title = data.title
+    if (data.reference) attributes.reference = data.reference
+    if (data.description) attributes.description = data.description
+    if (data.startDate) attributes.startDate = data.startDate
+    if (data.dailyRate) attributes.averageDailyPriceExcludingTax = data.dailyRate
+    if (data.state) attributes.state = data.state
+
+    return this.fetch(`/opportunities/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        data: { attributes }
+      })
+    })
+  }
+
+  // Delete an opportunity
+  async deleteOpportunity(id: number): Promise<void> {
+    await this.fetch(`/opportunities/${id}`, { method: 'DELETE' })
+  }
 }
 
 // Create client from stored credentials

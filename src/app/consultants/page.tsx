@@ -67,9 +67,9 @@ export default function ConsultantsPage() {
     : consultants.filter(c => c.category === filter)
 
   return (
-    <TechBackground variant="semi-light">
-      <main className="min-h-screen text-slate-800 overflow-hidden">
-        <Navigation currentPage="consultants" variant="light" />
+    <TechBackground variant="auto">
+      <main className="min-h-screen text-slate-800 dark:text-slate-100 overflow-hidden">
+        <Navigation currentPage="consultants" variant="auto" />
 
         {/* Hero Section */}
         <section className="relative pt-32 pb-20 overflow-hidden">
@@ -84,11 +84,11 @@ export default function ConsultantsPage() {
                 <span className="text-sm font-medium text-ebmc-turquoise">{t('consultants.badge')}</span>
               </span>
 
-              <h1 className="text-5xl md:text-7xl font-bold mb-6 text-slate-900">
+              <h1 className="text-5xl md:text-7xl font-bold mb-6 text-slate-900 dark:text-white">
                 {t('consultants.title')} <TextGradient animate={false}>{t('consultants.titleHighlight')}</TextGradient>
               </h1>
 
-              <p className="text-xl text-slate-500 max-w-2xl mx-auto">
+              <p className="text-xl text-slate-500 dark:text-slate-400 max-w-2xl mx-auto">
                 {t('consultants.description')}
               </p>
             </motion.div>
@@ -106,7 +106,7 @@ export default function ConsultantsPage() {
                   className={`px-6 py-2.5 rounded-full transition-all font-medium ${
                     filter === cat
                       ? 'bg-ebmc-turquoise text-white shadow-lg shadow-ebmc-turquoise/30'
-                      : 'bg-white/60 border border-slate-200/60 text-slate-600 hover:bg-white hover:border-slate-300'
+                      : 'bg-white/60 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
                   }`}
                 >
                   {t(`consultants.filters.${cat}`)}
@@ -140,11 +140,11 @@ export default function ConsultantsPage() {
                         <User className="w-8 h-8 text-white" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-xl font-bold mb-1 truncate text-slate-800">{consultant.name}</h3>
+                        <h3 className="text-xl font-bold mb-1 truncate text-slate-800 dark:text-white">{consultant.name}</h3>
                         <p className="text-ebmc-turquoise text-sm mb-2 font-medium">
                           {locale === 'fr' ? consultant.title : consultant.titleEn}
                         </p>
-                        <div className="flex items-center gap-2 text-slate-500 text-sm">
+                        <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 text-sm">
                           <MapPin className="w-4 h-4" />
                           {consultant.location}
                         </div>
@@ -154,28 +154,28 @@ export default function ConsultantsPage() {
                     {/* Availability Badge */}
                     <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm mb-4 ${
                       consultant.available
-                        ? 'bg-green-100 text-green-700'
-                        : 'bg-orange-100 text-orange-700'
+                        ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                        : 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400'
                     }`}>
                       <span className={`w-2 h-2 rounded-full ${consultant.available ? 'bg-green-500' : 'bg-orange-500'}`} />
                       {consultant.available ? t('consultants.available') : t('consultants.unavailable')}
                     </div>
 
                     {/* Experience */}
-                    <div className="flex items-center gap-2 text-slate-500 text-sm mb-4">
+                    <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 text-sm mb-4">
                       <Briefcase className="w-4 h-4" />
                       <span>{t('consultants.experience')}: </span>
-                      <span className="text-slate-800 font-medium">{locale === 'fr' ? consultant.experience : consultant.experienceEn}</span>
+                      <span className="text-slate-800 dark:text-white font-medium">{locale === 'fr' ? consultant.experience : consultant.experienceEn}</span>
                     </div>
 
                     {/* Skills */}
                     <div className="mb-4">
-                      <div className="text-sm text-slate-500 mb-2">{t('consultants.skills')}</div>
+                      <div className="text-sm text-slate-500 dark:text-slate-400 mb-2">{t('consultants.skills')}</div>
                       <div className="flex flex-wrap gap-2">
                         {consultant.skills.map((skill, i) => (
                           <span
                             key={i}
-                            className="px-2 py-1 bg-slate-100 border border-slate-200/60 rounded text-xs text-slate-600 font-medium"
+                            className="px-2 py-1 bg-slate-100 dark:bg-slate-700/50 border border-slate-200/60 dark:border-slate-600/60 rounded text-xs text-slate-600 dark:text-slate-300 font-medium"
                           >
                             {skill}
                           </span>
@@ -185,12 +185,12 @@ export default function ConsultantsPage() {
 
                     {/* Certifications */}
                     <div className="mb-6">
-                      <div className="text-sm text-slate-500 mb-2">{t('consultants.certifications')}</div>
+                      <div className="text-sm text-slate-500 dark:text-slate-400 mb-2">{t('consultants.certifications')}</div>
                       <div className="space-y-1">
                         {consultant.certifications.map((cert, i) => (
                           <div key={i} className="flex items-center gap-2 text-sm">
                             <Award className="w-4 h-4 text-ebmc-turquoise" />
-                            <span className="text-slate-600">{cert}</span>
+                            <span className="text-slate-600 dark:text-slate-300">{cert}</span>
                           </div>
                         ))}
                       </div>
@@ -211,7 +211,7 @@ export default function ConsultantsPage() {
             )}
 
             {!loading && filteredConsultants.length === 0 && (
-              <div className="text-center py-12 text-slate-500">
+              <div className="text-center py-12 text-slate-500 dark:text-slate-400">
                 {t('consultants.noConsultants')}
               </div>
             )}
@@ -231,10 +231,10 @@ export default function ConsultantsPage() {
               <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-gradient-to-r from-ebmc-turquoise to-cyan-500 flex items-center justify-center shadow-lg">
                 <Mail className="w-8 h-8 text-white" />
               </div>
-              <h2 className="text-3xl font-bold mb-4 text-slate-900">
+              <h2 className="text-3xl font-bold mb-4 text-slate-900 dark:text-white">
                 {locale === 'fr' ? 'Besoin d\'un expert ?' : 'Need an expert?'}
               </h2>
-              <p className="text-slate-500 text-lg mb-8 max-w-xl mx-auto">
+              <p className="text-slate-500 dark:text-slate-400 text-lg mb-8 max-w-xl mx-auto">
                 {locale === 'fr'
                   ? 'Contactez-nous pour discuter de vos besoins et trouver le consultant idéal pour votre projet.'
                   : 'Contact us to discuss your needs and find the ideal consultant for your project.'}
@@ -249,7 +249,7 @@ export default function ConsultantsPage() {
           </div>
         </TechSection>
 
-        <Footer variant="light" />
+        <Footer variant="auto" />
       </main>
     </TechBackground>
   )
