@@ -1,10 +1,10 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 interface TechBackgroundProps {
   children?: React.ReactNode
-  variant?: 'dark' | 'light' | 'semi-light'
+  variant?: 'dark' | 'light' | 'semi-light' | 'auto'
 }
 
 // Subtle grid pattern
@@ -171,32 +171,74 @@ function GradientOverlay({ light = false, semiLight = false }: { light?: boolean
   )
 }
 
-export function TechBackground({ children, variant = 'dark' }: TechBackgroundProps) {
-  const isLight = variant === 'light' || variant === 'semi-light'
-  const isSemiLight = variant === 'semi-light'
+export function TechBackground({ children, variant = 'auto' }: TechBackgroundProps) {
+  const [isDarkMode, setIsDarkMode] = useState(false)
 
-  const bgClass = variant === 'dark'
+  useEffect(() => {
+    // Check initial dark mode
+    const checkDarkMode = () => {
+      setIsDarkMode(document.documentElement.classList.contains('dark'))
+    }
+    checkDarkMode()
+
+    // Watch for dark mode changes
+    const observer = new MutationObserver(checkDarkMode)
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
+
+    return () => observer.disconnect()
+  }, [])
+
+  // Determine effective variant based on auto mode
+  const effectiveVariant = variant === 'auto'
+    ? (isDarkMode ? 'dark' : 'semi-light')
+    : variant
+
+  const isLight = effectiveVariant === 'light' || effectiveVariant === 'semi-light'
+  const isSemiLight = effectiveVariant === 'semi-light'
+
+  const bgClass = effectiveVariant === 'dark'
     ? 'bg-[#0d1117]'
-    : variant === 'semi-light'
-    ? 'bg-gradient-to-br from-slate-100 via-cyan-50/50 to-slate-50'
-    : 'bg-gradient-to-br from-slate-50 via-cyan-50/30 to-white'
+    : effectiveVariant === 'semi-light'
+    ? 'bg-gradient-to-br from-slate-100 via-cyan-50/50 to-slate-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900'
+    : 'bg-gradient-to-br from-slate-50 via-cyan-50/30 to-white dark:from-slate-900 dark:via-slate-800 dark:to-slate-900'
 
   return (
-    <div className={`relative min-h-screen ${bgClass}`}>
+    <div className={`relative min-h-screen transition-colors duration-300 ${bgClass}`}>
       {/* Gradient orbs for light modes */}
-      {isLight && <GradientOrbs darker={isSemiLight} />}
+      {isLight && !isDarkMode && <GradientOrbs darker={isSemiLight} />}
+      {isDarkMode && <GradientOrbsDark />}
 
       {/* Subtle grid */}
-      <TechGrid light={isLight} />
+      <TechGrid light={isLight && !isDarkMode} />
 
       {/* Floating dots */}
-      <FloatingDots light={isLight} />
+      <FloatingDots light={isLight && !isDarkMode} />
 
       {/* Gradient overlays */}
-      <GradientOverlay light={isLight} semiLight={isSemiLight} />
+      <GradientOverlay light={isLight && !isDarkMode} semiLight={isSemiLight && !isDarkMode} />
 
       {/* Content */}
       <div className="relative z-10">{children}</div>
+    </div>
+  )
+}
+
+// Dark mode gradient orbs
+function GradientOrbsDark() {
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      <div
+        className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] rounded-full blur-3xl"
+        style={{ background: 'linear-gradient(to bottom right, rgba(43, 163, 173, 0.15), rgba(34, 211, 238, 0.05))' }}
+      />
+      <div
+        className="absolute bottom-[-20%] left-[-10%] w-[500px] h-[500px] rounded-full blur-3xl"
+        style={{ background: 'linear-gradient(to top right, rgba(34, 211, 238, 0.1), rgba(59, 130, 246, 0.05))' }}
+      />
+      <div
+        className="absolute top-[40%] left-[30%] w-[300px] h-[300px] rounded-full blur-3xl"
+        style={{ background: 'linear-gradient(to right, rgba(43, 163, 173, 0.08), transparent)' }}
+      />
     </div>
   )
 }
