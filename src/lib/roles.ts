@@ -8,6 +8,8 @@ export interface RolePermissions {
   // Role-specific dashboards
   sourceurDashboard: boolean
   commercialDashboard: boolean
+  // Recruitment module (shared between sourceur and commercial)
+  recruitment: boolean
   // Admin modules
   jobs: boolean
   consultants: boolean
@@ -32,8 +34,9 @@ export interface RolePermissions {
 export const ROLE_PERMISSIONS: Record<RoleType, RolePermissions> = {
   admin: {
     dashboard: true,
-    sourceurDashboard: true,
-    commercialDashboard: true,
+    sourceurDashboard: false, // Admin uses general dashboard
+    commercialDashboard: false,
+    recruitment: true,
     jobs: true,
     consultants: true,
     messages: true,
@@ -55,6 +58,7 @@ export const ROLE_PERMISSIONS: Record<RoleType, RolePermissions> = {
     dashboard: false, // Sourceur uses their specific dashboard
     sourceurDashboard: true,
     commercialDashboard: false,
+    recruitment: true, // Access to recruitment kanban
     jobs: true, // Access to job offers management
     consultants: true,
     messages: true,
@@ -76,6 +80,7 @@ export const ROLE_PERMISSIONS: Record<RoleType, RolePermissions> = {
     dashboard: false, // Commercial uses their specific dashboard
     sourceurDashboard: false,
     commercialDashboard: true,
+    recruitment: true, // Access to recruitment kanban
     jobs: true,
     consultants: true,
     messages: false,
@@ -97,6 +102,7 @@ export const ROLE_PERMISSIONS: Record<RoleType, RolePermissions> = {
     dashboard: false,
     sourceurDashboard: false,
     commercialDashboard: false,
+    recruitment: false,
     jobs: false,
     consultants: false,
     messages: false,
@@ -118,6 +124,7 @@ export const ROLE_PERMISSIONS: Record<RoleType, RolePermissions> = {
     dashboard: true,
     sourceurDashboard: false,
     commercialDashboard: false,
+    recruitment: false,
     jobs: true,
     consultants: true,
     messages: true,
