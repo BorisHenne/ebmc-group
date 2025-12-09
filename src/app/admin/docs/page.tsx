@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { BookOpen, Code, Key, Webhook, Users, Shield, ChevronRight } from 'lucide-react'
+import { BookOpen, Code, Key, Webhook, Users, Shield, ChevronRight, Building2 } from 'lucide-react'
 
 const sections = [
   {
@@ -16,6 +16,12 @@ const sections = [
     icon: Key,
     title: 'Authentification',
     description: 'Tokens et sécurité'
+  },
+  {
+    id: 'boondmanager',
+    icon: Building2,
+    title: 'BoondManager',
+    description: 'Connexion SSO BoondManager'
   },
   {
     id: 'webhooks',
@@ -78,6 +84,7 @@ export default function DocsPage() {
           >
             {activeSection === 'api' && <ApiDocs />}
             {activeSection === 'auth' && <AuthDocs />}
+            {activeSection === 'boondmanager' && <BoondManagerDocs />}
             {activeSection === 'webhooks' && <WebhooksDocs />}
             {activeSection === 'users' && <UsersDocs />}
             {activeSection === 'roles' && <RolesDocs />}
@@ -217,6 +224,9 @@ function AuthDocs() {
         <li>Renouvelé automatiquement</li>
       </ul>
 
+      <h4>3. BoondManager SSO</h4>
+      <p>Connexion via vos identifiants BoondManager. Voir la section <strong>BoondManager</strong>.</p>
+
       <h3>Endpoints d&apos;authentification</h3>
       <table className="w-full">
         <thead>
@@ -230,7 +240,12 @@ function AuthDocs() {
           <tr>
             <td><code className="bg-blue-100 text-blue-700 px-2 py-1 rounded">POST</code></td>
             <td><code>/api/auth/login</code></td>
-            <td>Connexion</td>
+            <td>Connexion standard</td>
+          </tr>
+          <tr>
+            <td><code className="bg-blue-100 text-blue-700 px-2 py-1 rounded">POST</code></td>
+            <td><code>/api/auth/boondmanager</code></td>
+            <td>Connexion BoondManager</td>
           </tr>
           <tr>
             <td><code className="bg-blue-100 text-blue-700 px-2 py-1 rounded">POST</code></td>
@@ -251,6 +266,126 @@ function AuthDocs() {
   -H "Content-Type: application/json" \\
   -d '{"email": "admin@ebmcgroup.eu", "password": "votre_mdp"}'`}
       </pre>
+    </div>
+  )
+}
+
+function BoondManagerDocs() {
+  return (
+    <div className="prose max-w-none">
+      <h2 className="flex items-center gap-2">
+        <Building2 className="w-6 h-6 text-blue-500" />
+        BoondManager SSO
+      </h2>
+
+      <h3>Présentation</h3>
+      <p>
+        Connectez-vous à EBMC GROUP avec vos identifiants BoondManager existants.
+        Cette intégration utilise l&apos;API REST de BoondManager pour authentifier les utilisateurs.
+      </p>
+
+      <h3>Configuration préalable</h3>
+      <p>Pour utiliser la connexion BoondManager, vous devez d&apos;abord activer l&apos;API REST dans votre compte :</p>
+      <ol>
+        <li>Connectez-vous à votre compte BoondManager</li>
+        <li>Accédez à <strong>Profil</strong> → <strong>Configuration</strong></li>
+        <li>Sélectionnez l&apos;onglet <strong>Sécurité</strong></li>
+        <li>Activez <strong>&quot;Autoriser les appels API REST depuis BasicAuth&quot;</strong></li>
+        <li>Enregistrez les modifications</li>
+      </ol>
+
+      <h3>Connexion</h3>
+      <ol>
+        <li>Accédez à la page <code>/login</code></li>
+        <li>Cliquez sur l&apos;onglet <strong>BoondManager</strong></li>
+        <li>Entrez votre sous-domaine (ex: <code>votre-entreprise</code>)</li>
+        <li>Entrez votre email et mot de passe BoondManager</li>
+        <li>Cliquez sur <strong>Se connecter avec BoondManager</strong></li>
+      </ol>
+
+      <h3>Endpoint API</h3>
+      <table className="w-full">
+        <thead>
+          <tr>
+            <th>Méthode</th>
+            <th>Endpoint</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code className="bg-blue-100 text-blue-700 px-2 py-1 rounded">POST</code></td>
+            <td><code>/api/auth/boondmanager</code></td>
+            <td>Authentification BoondManager</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Paramètres requis</h3>
+      <pre className="bg-gray-900 text-green-400 p-4 rounded-lg overflow-x-auto">
+{`{
+  "email": "user@entreprise.com",
+  "password": "votre_mot_de_passe",
+  "subdomain": "votre-entreprise"
+}`}
+      </pre>
+
+      <h3>Exemple de requête</h3>
+      <pre className="bg-gray-900 text-green-400 p-4 rounded-lg overflow-x-auto">
+{`curl -X POST https://ebmc.boris-henne.fr/api/auth/boondmanager \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "email": "consultant@ebmc.eu",
+    "password": "mon_mdp_boond",
+    "subdomain": "ebmc"
+  }'`}
+      </pre>
+
+      <h3>Comportement</h3>
+      <ul>
+        <li><strong>Première connexion :</strong> Un compte local est automatiquement créé</li>
+        <li><strong>Connexions suivantes :</strong> Le compte est mis à jour avec les dernières infos</li>
+        <li><strong>Rôle par défaut :</strong> <code>user</code> (modifiable par un admin)</li>
+        <li><strong>Données stockées :</strong> Email, nom, ID BoondManager, sous-domaine</li>
+      </ul>
+
+      <h3>Dépannage</h3>
+      <table className="w-full">
+        <thead>
+          <tr>
+            <th>Erreur</th>
+            <th>Solution</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Identifiants incorrects</td>
+            <td>Vérifiez email/mot de passe BoondManager</td>
+          </tr>
+          <tr>
+            <td>Erreur de connexion</td>
+            <td>Vérifiez que l&apos;API REST est activée dans votre profil</td>
+          </tr>
+          <tr>
+            <td>Sous-domaine invalide</td>
+            <td>Utilisez uniquement le nom (pas l&apos;URL complète)</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Ressources</h3>
+      <ul>
+        <li>
+          <a href="https://doc.boondmanager.com/api-externe/" target="_blank" rel="noopener noreferrer">
+            Documentation API BoondManager
+          </a>
+        </li>
+        <li>
+          <a href="https://www.boondmanager.com" target="_blank" rel="noopener noreferrer">
+            Site officiel BoondManager
+          </a>
+        </li>
+      </ul>
     </div>
   )
 }

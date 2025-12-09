@@ -2,21 +2,25 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { motion } from 'framer-motion'
-import { Lock, Mail, AlertCircle, Loader2, ArrowLeft, Sparkles } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Lock, Mail, AlertCircle, Loader2, ArrowLeft, Sparkles, Building2, ExternalLink } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { TechBackground } from '@/components/ui/TechBackground'
 import { ShimmerButton, TextGradient } from '@/components/ui/aceternity'
 
+type AuthMode = 'standard' | 'boondmanager'
+
 export default function LoginPage() {
   const router = useRouter()
+  const [authMode, setAuthMode] = useState<AuthMode>('standard')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [subdomain, setSubdomain] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleStandardLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
     setLoading(true)
@@ -42,6 +46,46 @@ export default function LoginPage() {
       setError('Erreur de connexion au serveur')
       setLoading(false)
     }
+  }
+
+  const handleBoondManagerLogin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
+    setLoading(true)
+
+    try {
+      const res = await fetch('/api/auth/boondmanager', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ email, password, subdomain })
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        setError(data.error || 'Erreur de connexion BoondManager')
+        setLoading(false)
+        return
+      }
+
+      router.push('/admin')
+    } catch {
+      setError('Erreur de connexion au serveur')
+      setLoading(false)
+    }
+  }
+
+  const resetForm = () => {
+    setEmail('')
+    setPassword('')
+    setSubdomain('')
+    setError('')
+  }
+
+  const switchMode = (mode: AuthMode) => {
+    resetForm()
+    setAuthMode(mode)
   }
 
   return (
@@ -88,79 +132,232 @@ export default function LoginPage() {
               <p className="text-slate-500 mt-2 text-sm">Accédez au backoffice EBMC GROUP</p>
             </div>
 
+            {/* Auth Mode Tabs */}
+            <div className="flex gap-2 p-1 bg-slate-100/80 rounded-xl mb-6">
+              <button
+                onClick={() => switchMode('standard')}
+                className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-all ${
+                  authMode === 'standard'
+                    ? 'bg-white text-slate-800 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                Standard
+              </button>
+              <button
+                onClick={() => switchMode('boondmanager')}
+                className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+                  authMode === 'boondmanager'
+                    ? 'bg-white text-slate-800 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                <Building2 className="w-4 h-4" />
+                BoondManager
+              </button>
+            </div>
+
             {/* Error alert */}
-            {error && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6 flex items-center gap-3"
-              >
-                <div className="p-1.5 rounded-full bg-red-100">
-                  <AlertCircle className="w-4 h-4 text-red-500" />
-                </div>
-                <span className="text-red-600 text-sm">{error}</span>
-              </motion.div>
-            )}
+            <AnimatePresence>
+              {error && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6 flex items-center gap-3"
+                >
+                  <div className="p-1.5 rounded-full bg-red-100">
+                    <AlertCircle className="w-4 h-4 text-red-500" />
+                  </div>
+                  <span className="text-red-600 text-sm">{error}</span>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
-            {/* Form */}
-            <form onSubmit={handleSubmit} className="space-y-5">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Adresse email
-                </label>
-                <div className="relative group">
-                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-ebmc-turquoise transition-colors" />
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full pl-12 pr-4 py-3.5 bg-white/50 border border-slate-200 rounded-xl text-slate-800 placeholder:text-slate-400 focus:border-ebmc-turquoise focus:ring-2 focus:ring-ebmc-turquoise/20 outline-none transition-all"
-                    placeholder="admin@ebmc-group.com"
-                    required
-                    autoComplete="email"
-                  />
-                </div>
-              </div>
+            {/* Forms */}
+            <AnimatePresence mode="wait">
+              {authMode === 'standard' ? (
+                <motion.form
+                  key="standard"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  transition={{ duration: 0.2 }}
+                  onSubmit={handleStandardLogin}
+                  className="space-y-5"
+                >
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Adresse email
+                    </label>
+                    <div className="relative group">
+                      <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-ebmc-turquoise transition-colors" />
+                      <input
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="w-full pl-12 pr-4 py-3.5 bg-white/50 border border-slate-200 rounded-xl text-slate-800 placeholder:text-slate-400 focus:border-ebmc-turquoise focus:ring-2 focus:ring-ebmc-turquoise/20 outline-none transition-all"
+                        placeholder="admin@ebmc-group.com"
+                        required
+                        autoComplete="email"
+                      />
+                    </div>
+                  </div>
 
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Mot de passe
-                </label>
-                <div className="relative group">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-ebmc-turquoise transition-colors" />
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full pl-12 pr-4 py-3.5 bg-white/50 border border-slate-200 rounded-xl text-slate-800 placeholder:text-slate-400 focus:border-ebmc-turquoise focus:ring-2 focus:ring-ebmc-turquoise/20 outline-none transition-all"
-                    placeholder="••••••••"
-                    required
-                    autoComplete="current-password"
-                  />
-                </div>
-              </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Mot de passe
+                    </label>
+                    <div className="relative group">
+                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-ebmc-turquoise transition-colors" />
+                      <input
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="w-full pl-12 pr-4 py-3.5 bg-white/50 border border-slate-200 rounded-xl text-slate-800 placeholder:text-slate-400 focus:border-ebmc-turquoise focus:ring-2 focus:ring-ebmc-turquoise/20 outline-none transition-all"
+                        placeholder="••••••••"
+                        required
+                        autoComplete="current-password"
+                      />
+                    </div>
+                  </div>
 
-              <ShimmerButton
-                type="submit"
-                disabled={loading}
-                className="w-full mt-2"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    Connexion en cours...
-                  </>
-                ) : (
-                  'Se connecter'
-                )}
-              </ShimmerButton>
-            </form>
+                  <ShimmerButton
+                    type="submit"
+                    disabled={loading}
+                    className="w-full mt-2"
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        Connexion en cours...
+                      </>
+                    ) : (
+                      'Se connecter'
+                    )}
+                  </ShimmerButton>
+                </motion.form>
+              ) : (
+                <motion.form
+                  key="boondmanager"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.2 }}
+                  onSubmit={handleBoondManagerLogin}
+                  className="space-y-5"
+                >
+                  {/* BoondManager Info */}
+                  <div className="flex items-center gap-3 p-3 bg-blue-50/80 border border-blue-100 rounded-xl mb-2">
+                    <div className="p-2 bg-blue-100 rounded-lg">
+                      <Building2 className="w-4 h-4 text-blue-600" />
+                    </div>
+                    <p className="text-xs text-blue-700">
+                      Connectez-vous avec vos identifiants BoondManager
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Sous-domaine BoondManager
+                    </label>
+                    <div className="relative group">
+                      <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-ebmc-turquoise transition-colors" />
+                      <input
+                        type="text"
+                        value={subdomain}
+                        onChange={(e) => setSubdomain(e.target.value)}
+                        className="w-full pl-12 pr-4 py-3.5 bg-white/50 border border-slate-200 rounded-xl text-slate-800 placeholder:text-slate-400 focus:border-ebmc-turquoise focus:ring-2 focus:ring-ebmc-turquoise/20 outline-none transition-all"
+                        placeholder="votre-entreprise"
+                        required
+                      />
+                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-slate-400">
+                        .boondmanager.com
+                      </span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Email BoondManager
+                    </label>
+                    <div className="relative group">
+                      <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-ebmc-turquoise transition-colors" />
+                      <input
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="w-full pl-12 pr-4 py-3.5 bg-white/50 border border-slate-200 rounded-xl text-slate-800 placeholder:text-slate-400 focus:border-ebmc-turquoise focus:ring-2 focus:ring-ebmc-turquoise/20 outline-none transition-all"
+                        placeholder="vous@entreprise.com"
+                        required
+                        autoComplete="email"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Mot de passe BoondManager
+                    </label>
+                    <div className="relative group">
+                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-ebmc-turquoise transition-colors" />
+                      <input
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="w-full pl-12 pr-4 py-3.5 bg-white/50 border border-slate-200 rounded-xl text-slate-800 placeholder:text-slate-400 focus:border-ebmc-turquoise focus:ring-2 focus:ring-ebmc-turquoise/20 outline-none transition-all"
+                        placeholder="••••••••"
+                        required
+                        autoComplete="current-password"
+                      />
+                    </div>
+                  </div>
+
+                  <ShimmerButton
+                    type="submit"
+                    disabled={loading}
+                    className="w-full mt-2"
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        Connexion BoondManager...
+                      </>
+                    ) : (
+                      <>
+                        <Building2 className="w-4 h-4" />
+                        Se connecter avec BoondManager
+                      </>
+                    )}
+                  </ShimmerButton>
+
+                  {/* BoondManager link */}
+                  <div className="text-center">
+                    <a
+                      href="https://www.boondmanager.com"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-xs text-slate-400 hover:text-ebmc-turquoise transition"
+                    >
+                      Qu&apos;est-ce que BoondManager ?
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                </motion.form>
+              )}
+            </AnimatePresence>
 
             {/* Footer hint */}
             <div className="mt-8 pt-6 border-t border-slate-200/60 text-center">
-              <p className="text-slate-400 text-xs">
-                Première connexion ? Utilisez <span className="text-slate-600">admin@ebmc-group.com</span>
-              </p>
+              {authMode === 'standard' ? (
+                <p className="text-slate-400 text-xs">
+                  Première connexion ? Utilisez <span className="text-slate-600">admin@ebmc-group.com</span>
+                </p>
+              ) : (
+                <p className="text-slate-400 text-xs">
+                  Activez l&apos;API REST dans votre profil BoondManager
+                </p>
+              )}
             </div>
           </motion.div>
 

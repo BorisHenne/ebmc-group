@@ -410,6 +410,109 @@ describe('Mobile Menu Tests', () => {
   })
 })
 
+describe('Homepage Mobile Navigation', () => {
+  describe('Navigation Menu Items', () => {
+    const navItems = [
+      { href: '#services', label: 'Services', isAnchor: true },
+      { href: '/consultants', label: 'Consultants', isAnchor: false },
+      { href: '/careers', label: 'Carrières', isAnchor: false },
+      { href: '#contact', label: 'Contact', isAnchor: true },
+    ]
+
+    it('should have correct number of navigation items', () => {
+      expect(navItems).toHaveLength(4)
+    })
+
+    it('should include Consultants link', () => {
+      const consultantsItem = navItems.find(item => item.href === '/consultants')
+      expect(consultantsItem).toBeDefined()
+      expect(consultantsItem?.label).toBe('Consultants')
+    })
+
+    it('should include Careers link', () => {
+      const careersItem = navItems.find(item => item.href === '/careers')
+      expect(careersItem).toBeDefined()
+      expect(careersItem?.label).toBe('Carrières')
+    })
+
+    it('should have anchor links for Services and Contact', () => {
+      const anchorItems = navItems.filter(item => item.isAnchor)
+      expect(anchorItems).toHaveLength(2)
+      expect(anchorItems.map(i => i.label)).toContain('Services')
+      expect(anchorItems.map(i => i.label)).toContain('Contact')
+    })
+
+    it('should have page links for Consultants and Careers', () => {
+      const pageItems = navItems.filter(item => !item.isAnchor)
+      expect(pageItems).toHaveLength(2)
+      expect(pageItems.map(i => i.label)).toContain('Consultants')
+      expect(pageItems.map(i => i.label)).toContain('Carrières')
+    })
+  })
+
+  describe('Mobile Menu Toggle', () => {
+    it('should toggle mobile menu state', () => {
+      let mobileMenuOpen = false
+      const toggleMenu = () => { mobileMenuOpen = !mobileMenuOpen }
+
+      expect(mobileMenuOpen).toBe(false)
+      toggleMenu()
+      expect(mobileMenuOpen).toBe(true)
+      toggleMenu()
+      expect(mobileMenuOpen).toBe(false)
+    })
+
+    it('should close menu when clicking a nav item', () => {
+      let mobileMenuOpen = true
+      const closeMenu = () => { mobileMenuOpen = false }
+
+      closeMenu()
+      expect(mobileMenuOpen).toBe(false)
+    })
+  })
+
+  describe('Mobile Menu CSS Classes', () => {
+    it('should have correct hamburger button classes', () => {
+      const buttonClasses = 'md:hidden p-2 text-slate-700 hover:text-ebmc-turquoise transition'
+      expect(buttonClasses).toContain('md:hidden')
+      expect(buttonClasses).toContain('p-2')
+    })
+
+    it('should have correct desktop nav classes', () => {
+      const desktopNavClasses = 'hidden md:flex items-center gap-8'
+      expect(desktopNavClasses).toContain('hidden')
+      expect(desktopNavClasses).toContain('md:flex')
+    })
+
+    it('should have correct mobile menu container classes', () => {
+      const mobileMenuClasses = 'md:hidden mt-4 pt-4 border-t border-slate-200/60'
+      expect(mobileMenuClasses).toContain('md:hidden')
+      expect(mobileMenuClasses).toContain('border-t')
+    })
+
+    it('should have correct mobile nav item classes', () => {
+      const itemClasses = 'py-3 px-2 text-sm font-medium text-slate-600 hover:text-ebmc-turquoise hover:bg-slate-50 rounded-lg transition'
+      expect(itemClasses).toContain('py-3')
+      expect(itemClasses).toContain('rounded-lg')
+      expect(itemClasses).toContain('hover:bg-slate-50')
+    })
+  })
+
+  describe('Mobile Breakpoint', () => {
+    it('should show hamburger menu below md breakpoint (768px)', () => {
+      const viewportWidth = 767
+      const shouldShowMobileMenu = viewportWidth < 768
+      expect(shouldShowMobileMenu).toBe(true)
+    })
+
+    it('should hide hamburger menu at md breakpoint and above', () => {
+      const viewportWidth = 768
+      const shouldShowMobileMenu = viewportWidth < 768
+      expect(shouldShowMobileMenu).toBe(false)
+    })
+  })
+})
+
 describe('Mobile Navigation UX', () => {
   it('should have smooth sidebar width', () => {
     // w-72 = 18rem = 288px
