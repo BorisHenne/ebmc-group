@@ -110,9 +110,9 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
   if (!job) {
     return (
       <TechBackground variant="semi-light">
-        <main className="min-h-screen text-slate-800 flex items-center justify-center">
+        <main className="min-h-screen text-slate-800 dark:text-slate-100 flex items-center justify-center">
           <div className="text-center">
-            <h1 className="text-4xl font-bold mb-4">{locale === 'fr' ? 'Offre non trouvée' : 'Job not found'}</h1>
+            <h1 className="text-4xl font-bold mb-4 dark:text-white">{locale === 'fr' ? 'Offre non trouvée' : 'Job not found'}</h1>
             <Link href="/careers" className="text-ebmc-turquoise hover:underline">
               {t('jobs.backToList')}
             </Link>
@@ -122,12 +122,12 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
     )
   }
 
-  const inputClass = "w-full px-4 py-3.5 bg-white/50 border border-slate-200 rounded-xl text-slate-800 placeholder:text-slate-400 focus:border-ebmc-turquoise focus:ring-2 focus:ring-ebmc-turquoise/20 outline-none transition-all"
+  const inputClass = "w-full px-4 py-3.5 bg-white/50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-ebmc-turquoise focus:ring-2 focus:ring-ebmc-turquoise/20 outline-none transition-all"
 
   return (
     <TechBackground variant="semi-light">
-      <main className="min-h-screen text-slate-800 overflow-hidden">
-        <Navigation currentPage="careers" variant="light" />
+      <main className="min-h-screen text-slate-800 dark:text-slate-100 overflow-hidden">
+        <Navigation currentPage="careers" variant="auto" />
 
         {/* Hero Section */}
         <section className="relative pt-32 pb-12 overflow-hidden">
@@ -137,7 +137,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8 }}
             >
-              <Link href="/careers" className="inline-flex items-center gap-2 text-slate-500 hover:text-ebmc-turquoise transition mb-8">
+              <Link href="/careers" className="inline-flex items-center gap-2 text-slate-500 dark:text-slate-400 hover:text-ebmc-turquoise transition mb-8">
                 <ArrowLeft className="w-4 h-4" />
                 {t('jobs.backToList')}
               </Link>
@@ -147,19 +147,19 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                   <Briefcase className="w-8 h-8 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-4xl md:text-5xl font-bold mb-4 text-slate-900">
+                  <h1 className="text-4xl md:text-5xl font-bold mb-4 text-slate-900 dark:text-white">
                     {locale === 'fr' ? job.title : job.titleEn}
                   </h1>
                   <div className="flex flex-wrap gap-4 text-lg">
-                    <span className="flex items-center gap-2 text-slate-500">
+                    <span className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
                       <MapPin className="w-5 h-5" />
                       {job.location}
                     </span>
-                    <span className="flex items-center gap-2 text-slate-500">
+                    <span className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
                       <Clock className="w-5 h-5" />
                       {locale === 'fr' ? job.type : job.typeEn}
                     </span>
-                    <span className="flex items-center gap-2 text-slate-500">
+                    <span className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
                       <Users className="w-5 h-5" />
                       {locale === 'fr' ? job.experience : job.experienceEn}
                     </span>
@@ -181,10 +181,10 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: 0.2 }}
                 >
-                  <h2 className="text-2xl font-bold mb-6 text-slate-900">
+                  <h2 className="text-2xl font-bold mb-6 text-slate-900 dark:text-white">
                     <TextGradient animate={false}>{locale === 'fr' ? 'Description du poste' : 'Job Description'}</TextGradient>
                   </h2>
-                  <p className="text-slate-600 text-lg leading-relaxed">
+                  <p className="text-slate-600 dark:text-slate-300 text-lg leading-relaxed">
                     {locale === 'fr' ? job.description : job.descriptionEn}
                   </p>
                 </motion.div>
@@ -195,14 +195,14 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6, delay: 0.3 }}
                   >
-                    <h2 className="text-2xl font-bold mb-6 text-slate-900">
+                    <h2 className="text-2xl font-bold mb-6 text-slate-900 dark:text-white">
                       <TextGradient animate={false}>{locale === 'fr' ? 'Vos missions' : 'Your missions'}</TextGradient>
                     </h2>
                     <ul className="space-y-4">
                       {(locale === 'fr' ? job.missions : job.missionsEn || job.missions).map((mission, index) => (
                         <li key={index} className="flex items-start gap-3">
                           <CheckCircle className="w-5 h-5 text-ebmc-turquoise flex-shrink-0 mt-1" />
-                          <span className="text-slate-600">{mission}</span>
+                          <span className="text-slate-600 dark:text-slate-300">{mission}</span>
                         </li>
                       ))}
                     </ul>
@@ -215,14 +215,14 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6, delay: 0.4 }}
                   >
-                    <h2 className="text-2xl font-bold mb-6 text-slate-900">
+                    <h2 className="text-2xl font-bold mb-6 text-slate-900 dark:text-white">
                       <TextGradient animate={false}>{locale === 'fr' ? 'Profil recherché' : 'Required profile'}</TextGradient>
                     </h2>
                     <ul className="space-y-4">
                       {(locale === 'fr' ? job.requirements : job.requirementsEn || job.requirements).map((req, index) => (
                         <li key={index} className="flex items-start gap-3">
                           <CheckCircle className="w-5 h-5 text-ebmc-turquoise flex-shrink-0 mt-1" />
-                          <span className="text-slate-600">{req}</span>
+                          <span className="text-slate-600 dark:text-slate-300">{req}</span>
                         </li>
                       ))}
                     </ul>
@@ -239,7 +239,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                   className="sticky top-32"
                 >
                   <div className="glass-card p-8">
-                    <h3 className="text-xl font-bold mb-6 text-slate-900">
+                    <h3 className="text-xl font-bold mb-6 text-slate-900 dark:text-white">
                       {locale === 'fr' ? 'Postuler à cette offre' : 'Apply to this offer'}
                     </h3>
                     <form onSubmit={handleSubmit} className="space-y-4">
@@ -280,12 +280,12 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                         <Send className="w-4 h-4" />
                       </ShimmerButton>
                       {status === 'success' && (
-                        <p className="text-emerald-600 text-center">
+                        <p className="text-emerald-600 dark:text-emerald-400 text-center">
                           {locale === 'fr' ? 'Candidature envoyée !' : 'Application sent!'}
                         </p>
                       )}
                       {status === 'error' && (
-                        <p className="text-red-500 text-center">
+                        <p className="text-red-500 dark:text-red-400 text-center">
                           {locale === 'fr' ? 'Erreur lors de l\'envoi' : 'Error sending'}
                         </p>
                       )}
