@@ -12,7 +12,10 @@ import {
   MapPin,
   Award,
   Save,
-  UserCheck
+  UserCheck,
+  Search,
+  Filter,
+  XCircle
 } from 'lucide-react'
 
 interface UserAccount {
@@ -59,6 +62,13 @@ export default function ConsultantsPage() {
   const [editingConsultant, setEditingConsultant] = useState<Partial<Consultant> | null>(null)
   const [saving, setSaving] = useState(false)
   const [commerciaux, setCommerciaux] = useState<UserAccount[]>([])
+
+  // Search and filters
+  const [searchTerm, setSearchTerm] = useState('')
+  const [filterCategory, setFilterCategory] = useState<string>('all')
+  const [filterAvailability, setFilterAvailability] = useState<string>('all')
+  const [filterAssigned, setFilterAssigned] = useState<string>('all')
+  const [showFilters, setShowFilters] = useState(false)
 
   useEffect(() => {
     fetchConsultants()
@@ -156,6 +166,43 @@ export default function ConsultantsPage() {
     updateField(field, arr)
   }
 
+  // Filter consultants
+  const filteredConsultants = consultants.filter(consultant => {
+    // Search filter
+    const searchLower = searchTerm.toLowerCase()
+    const matchesSearch = !searchTerm ||
+      consultant.name.toLowerCase().includes(searchLower) ||
+      consultant.title.toLowerCase().includes(searchLower) ||
+      consultant.titleEn?.toLowerCase().includes(searchLower) ||
+      consultant.location.toLowerCase().includes(searchLower) ||
+      consultant.skills?.some(s => s.toLowerCase().includes(searchLower)) ||
+      consultant.certifications?.some(c => c.toLowerCase().includes(searchLower))
+
+    // Category filter
+    const matchesCategory = filterCategory === 'all' || consultant.category === filterCategory
+
+    // Availability filter
+    const matchesAvailability = filterAvailability === 'all' ||
+      (filterAvailability === 'available' && consultant.available) ||
+      (filterAvailability === 'mission' && !consultant.available)
+
+    // Assigned filter
+    const matchesAssigned = filterAssigned === 'all' ||
+      (filterAssigned === 'unassigned' && !consultant.assignedTo) ||
+      (filterAssigned !== 'unassigned' && consultant.assignedTo === filterAssigned)
+
+    return matchesSearch && matchesCategory && matchesAvailability && matchesAssigned
+  })
+
+  const clearFilters = () => {
+    setSearchTerm('')
+    setFilterCategory('all')
+    setFilterAvailability('all')
+    setFilterAssigned('all')
+  }
+
+  const hasActiveFilters = searchTerm || filterCategory !== 'all' || filterAvailability !== 'all' || filterAssigned !== 'all'
+
   return (
     <div>
       <div className="flex justify-between items-center mb-8">
@@ -172,20 +219,144 @@ export default function ConsultantsPage() {
         </button>
       </div>
 
+      {/* Search and Filters */}
+      <div className="mb-6 space-y-4">
+        {/* Search Bar */}
+        <div className="flex gap-3">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Rechercher par nom, titre, compétences, certifications..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-3 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition text-gray-900 dark:text-white"
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                <XCircle className="w-5 h-5" />
+              </button>
+            )}
+          </div>
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className={`flex items-center gap-2 px-4 py-3 rounded-xl border transition ${
+              showFilters || hasActiveFilters
+                ? 'bg-ebmc-turquoise text-white border-ebmc-turquoise'
+                : 'bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-slate-700 hover:border-ebmc-turquoise'
+            }`}
+          >
+            <Filter className="w-5 h-5" />
+            Filtres
+            {hasActiveFilters && (
+              <span className="w-2 h-2 bg-white rounded-full"></span>
+            )}
+          </button>
+        </div>
+
+        {/* Filter Options */}
+        {showFilters && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="bg-white dark:bg-slate-800 rounded-xl p-4 border border-gray-200 dark:border-slate-700 shadow-sm"
+          >
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Category Filter */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Catégorie
+                </label>
+                <select
+                  value={filterCategory}
+                  onChange={(e) => setFilterCategory(e.target.value)}
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-ebmc-turquoise/20"
+                >
+                  <option value="all">Toutes les catégories</option>
+                  <option value="sap">SAP</option>
+                  <option value="security">Sécurité</option>
+                  <option value="dev">Développement</option>
+                  <option value="data">Data</option>
+                </select>
+              </div>
+
+              {/* Availability Filter */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Disponibilité
+                </label>
+                <select
+                  value={filterAvailability}
+                  onChange={(e) => setFilterAvailability(e.target.value)}
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-ebmc-turquoise/20"
+                >
+                  <option value="all">Tous</option>
+                  <option value="available">Disponibles</option>
+                  <option value="mission">En mission</option>
+                </select>
+              </div>
+
+              {/* Assigned Filter */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Commercial assigné
+                </label>
+                <select
+                  value={filterAssigned}
+                  onChange={(e) => setFilterAssigned(e.target.value)}
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-ebmc-turquoise/20"
+                >
+                  <option value="all">Tous</option>
+                  <option value="unassigned">Non assignés</option>
+                  {commerciaux.map(user => (
+                    <option key={user._id} value={user._id}>
+                      {user.name || user.email}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {hasActiveFilters && (
+              <div className="mt-4 flex justify-end">
+                <button
+                  onClick={clearFilters}
+                  className="text-sm text-ebmc-turquoise hover:underline flex items-center gap-1"
+                >
+                  <XCircle className="w-4 h-4" />
+                  Effacer tous les filtres
+                </button>
+              </div>
+            )}
+          </motion.div>
+        )}
+
+        {/* Results count */}
+        {(searchTerm || hasActiveFilters) && (
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            {filteredConsultants.length} résultat{filteredConsultants.length !== 1 ? 's' : ''} trouvé{filteredConsultants.length !== 1 ? 's' : ''}
+          </p>
+        )}
+      </div>
+
       {/* Consultants List */}
       <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm overflow-hidden">
         {loading ? (
           <div className="flex justify-center py-12">
             <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
           </div>
-        ) : consultants.length === 0 ? (
+        ) : filteredConsultants.length === 0 ? (
           <div className="text-center py-12 text-gray-500 dark:text-gray-400">
             <User className="w-12 h-12 mx-auto mb-4 opacity-50" />
-            Aucun consultant
+            {hasActiveFilters ? 'Aucun consultant ne correspond aux critères' : 'Aucun consultant'}
           </div>
         ) : (
           <div className="divide-y divide-gray-100 dark:divide-slate-700">
-            {consultants.map((consultant) => (
+            {filteredConsultants.map((consultant) => (
               <motion.div
                 key={consultant._id}
                 initial={{ opacity: 0 }}
