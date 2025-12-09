@@ -12,7 +12,7 @@ export interface User {
   email: string
   password: string
   name: string
-  role: 'admin' | 'user'
+  role: 'admin' | 'sourceur' | 'commercial' | 'consultant' | 'freelance'
   createdAt: Date
 }
 
@@ -50,7 +50,7 @@ export async function getSession() {
   return verifyToken(token)
 }
 
-export async function createUser(email: string, password: string, name: string, role: 'admin' | 'user' = 'user') {
+export async function createUser(email: string, password: string, name: string, role: 'admin' | 'sourceur' | 'commercial' | 'consultant' | 'freelance' = 'consultant') {
   const users = await getCollection('users')
 
   const existingUser = await users.findOne({ email })

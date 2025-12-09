@@ -8,7 +8,7 @@ import {
   Code, Key, Webhook, Shield, Loader2
 } from 'lucide-react'
 
-type UserRole = 'admin' | 'sourceur' | 'commercial' | 'user' | 'freelance'
+type UserRole = 'admin' | 'sourceur' | 'commercial' | 'consultant' | 'freelance'
 
 export default function DocsPage() {
   const [userRole, setUserRole] = useState<UserRole | null>(null)
@@ -21,10 +21,10 @@ export default function DocsPage() {
         const res = await fetch('/api/auth/me', { credentials: 'include' })
         if (res.ok) {
           const data = await res.json()
-          setUserRole(data.user?.role || 'user')
+          setUserRole(data.user?.role || 'consultant')
         }
       } catch {
-        setUserRole('user')
+        setUserRole('consultant')
       } finally {
         setLoading(false)
       }

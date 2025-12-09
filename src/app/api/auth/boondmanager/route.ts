@@ -89,14 +89,14 @@ export async function POST(request: NextRequest) {
       const result = await users.insertOne({
         email: boondEmail,
         name: fullName,
-        role: 'user', // Default role for BoondManager users
+        role: 'consultant', // Default role for BoondManager users (internal consultants)
         boondManagerId: boondId,
         boondManagerSubdomain: cleanSubdomain,
         authProvider: 'boondmanager',
         createdAt: new Date(),
         lastLogin: new Date()
       })
-      user = { _id: result.insertedId, email: boondEmail, name: fullName, role: 'user' }
+      user = { _id: result.insertedId, email: boondEmail, name: fullName, role: 'consultant' }
     } else {
       // Update last login and boond info
       await users.updateOne(
@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
     const token = await createToken(
       user._id.toString(),
       boondEmail,
-      user.role || 'user',
+      user.role || 'consultant',
       user.name || `${boondUser.data.attributes.firstName} ${boondUser.data.attributes.lastName}`
     )
 
@@ -156,7 +156,7 @@ export async function POST(request: NextRequest) {
         id: user._id,
         email: boondEmail,
         name: fullName,
-        role: user.role || 'user',
+        role: user.role || 'consultant',
         authProvider: 'boondmanager',
         boondManagerId: boondId
       }
