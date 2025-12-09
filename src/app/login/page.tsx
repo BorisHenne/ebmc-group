@@ -3,13 +3,22 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Lock, Mail, AlertCircle, Loader2, ArrowLeft, Sparkles, Building2, ExternalLink } from 'lucide-react'
+import { Lock, Mail, AlertCircle, Loader2, ArrowLeft, Sparkles, Building2, ExternalLink, Users } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { TechBackground } from '@/components/ui/TechBackground'
 import { ShimmerButton, TextGradient } from '@/components/ui/aceternity'
 
 type AuthMode = 'standard' | 'boondmanager'
+
+// Demo users for testing
+const demoUsers = [
+  { email: 'admin@ebmc-group.com', password: 'admin123', role: 'Admin', color: 'from-red-500 to-rose-500' },
+  { email: 'sourceur@ebmc-group.com', password: 'sourceur123', role: 'Sourceur', color: 'from-purple-500 to-indigo-500' },
+  { email: 'commercial@ebmc-group.com', password: 'commercial123', role: 'Commercial', color: 'from-blue-500 to-cyan-500' },
+  { email: 'freelance@ebmc-group.com', password: 'freelance123', role: 'Freelance', color: 'from-green-500 to-emerald-500' },
+  { email: 'user@ebmc-group.com', password: 'user123', role: 'User', color: 'from-slate-500 to-slate-600' },
+]
 
 export default function LoginPage() {
   const router = useRouter()
@@ -86,6 +95,13 @@ export default function LoginPage() {
   const switchMode = (mode: AuthMode) => {
     resetForm()
     setAuthMode(mode)
+  }
+
+  const fillDemoCredentials = (demoEmail: string, demoPassword: string) => {
+    setAuthMode('standard')
+    setEmail(demoEmail)
+    setPassword(demoPassword)
+    setError('')
   }
 
   return (
@@ -347,14 +363,33 @@ export default function LoginPage() {
               )}
             </AnimatePresence>
 
-            {/* Footer hint */}
-            <div className="mt-8 pt-6 border-t border-slate-200/60 text-center">
-              {authMode === 'standard' ? (
-                <p className="text-slate-400 text-xs">
-                  Première connexion ? Utilisez <span className="text-slate-600">admin@ebmc-group.com</span>
-                </p>
-              ) : (
-                <p className="text-slate-400 text-xs">
+            {/* Demo Users Section */}
+            <div className="mt-8 pt-6 border-t border-slate-200/60">
+              <div className="flex items-center gap-2 mb-4">
+                <Users className="w-4 h-4 text-slate-400" />
+                <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">Comptes de test</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {demoUsers.map((user) => (
+                  <button
+                    key={user.email}
+                    onClick={() => fillDemoCredentials(user.email, user.password)}
+                    className="group p-2.5 rounded-lg bg-slate-50 hover:bg-white border border-slate-100 hover:border-slate-200 transition-all text-left"
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className={`w-6 h-6 rounded-full bg-gradient-to-r ${user.color} flex items-center justify-center`}>
+                        <span className="text-white text-xs font-bold">{user.role.charAt(0)}</span>
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-medium text-slate-700 truncate">{user.role}</p>
+                        <p className="text-[10px] text-slate-400 truncate">{user.email.split('@')[0]}</p>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+              {authMode === 'boondmanager' && (
+                <p className="text-slate-400 text-xs mt-4 text-center">
                   Activez l&apos;API REST dans votre profil BoondManager
                 </p>
               )}

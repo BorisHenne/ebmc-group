@@ -18,6 +18,7 @@ export interface RolePermissions {
   settings: boolean
   // Special modules
   freelancePortal: boolean
+  scraper: boolean // CV scraper for sourcing
   // Data access
   canAssignJobs: boolean
   canAssignConsultants: boolean
@@ -39,6 +40,7 @@ export const ROLE_PERMISSIONS: Record<RoleType, RolePermissions> = {
     docs: true,
     settings: true,
     freelancePortal: false,
+    scraper: true, // Admin can use CV scraper
     canAssignJobs: true,
     canAssignConsultants: true,
     viewAllData: true,
@@ -57,6 +59,7 @@ export const ROLE_PERMISSIONS: Record<RoleType, RolePermissions> = {
     docs: true,
     settings: false,
     freelancePortal: false,
+    scraper: true, // Sourceur can use CV scraper - main sourcing tool
     canAssignJobs: false,
     canAssignConsultants: false,
     viewAllData: true,
@@ -75,6 +78,7 @@ export const ROLE_PERMISSIONS: Record<RoleType, RolePermissions> = {
     docs: true,
     settings: false,
     freelancePortal: false,
+    scraper: false, // Commercial doesn't need scraper
     canAssignJobs: false,
     canAssignConsultants: false,
     viewAllData: false,
@@ -93,6 +97,7 @@ export const ROLE_PERMISSIONS: Record<RoleType, RolePermissions> = {
     docs: false,
     settings: false,
     freelancePortal: true, // Only access to freelance portal
+    scraper: false,
     canAssignJobs: false,
     canAssignConsultants: false,
     viewAllData: false,
@@ -111,6 +116,7 @@ export const ROLE_PERMISSIONS: Record<RoleType, RolePermissions> = {
     docs: true,
     settings: false,
     freelancePortal: false,
+    scraper: false,
     canAssignJobs: false,
     canAssignConsultants: false,
     viewAllData: true,
