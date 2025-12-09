@@ -1,17 +1,34 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { Linkedin } from 'lucide-react'
 
 interface FooterProps {
-  variant?: 'dark' | 'light'
+  variant?: 'dark' | 'light' | 'auto'
 }
 
-export function Footer({ variant = 'dark' }: FooterProps) {
+export function Footer({ variant = 'auto' }: FooterProps) {
   const t = useTranslations()
-  const isLight = variant === 'light'
+  const [isDarkMode, setIsDarkMode] = useState(false)
+
+  useEffect(() => {
+    const checkDarkMode = () => {
+      setIsDarkMode(document.documentElement.classList.contains('dark'))
+    }
+    checkDarkMode()
+
+    const observer = new MutationObserver(checkDarkMode)
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
+
+    return () => observer.disconnect()
+  }, [])
+
+  // For auto variant, use current theme; otherwise use specified variant
+  const effectiveVariant = variant === 'auto' ? (isDarkMode ? 'dark' : 'light') : variant
+  const isLight = effectiveVariant === 'light'
 
   const navItems = [
     { key: 'services', href: '/#services' },

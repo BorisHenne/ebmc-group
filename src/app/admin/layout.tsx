@@ -33,6 +33,7 @@ import {
 } from 'lucide-react'
 import { LightBackground } from '@/components/ui/TechBackground'
 import { hasPermission, RolePermissions, ROLE_LABELS, ROLE_COLORS, RoleType } from '@/lib/roles'
+import { ThemeToggle } from '@/components/ThemeToggle'
 
 interface User {
   id: string
@@ -222,7 +223,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return (
     <div className="h-full m-4 glass-card rounded-2xl flex flex-col overflow-hidden">
       {/* Logo */}
-      <div className="p-6 border-b border-slate-200/50">
+      <div className="p-6 border-b border-slate-200/50 dark:border-slate-700/50">
         <Link href={(user?.role === 'freelance' || user?.role === 'consultant') ? '/admin/freelance' : '/admin'} className="flex items-center gap-3">
           <Image
             src="/logo.svg"
@@ -239,7 +240,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         {filteredMenuSections.map((section, sectionIndex) => (
           <div key={section.title} className={sectionIndex > 0 ? 'mt-6' : ''}>
             {/* Section title */}
-            <h3 className="px-4 mb-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+            <h3 className="px-4 mb-2 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
               {section.title}
             </h3>
             {/* Section items */}
@@ -260,7 +261,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                       className={`group flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 ${
                         isActive
                           ? 'bg-gradient-to-r ' + item.color + ' text-white shadow-lg shadow-ebmc-turquoise/20'
-                          : 'text-slate-600 hover:bg-white/50 hover:text-slate-900'
+                          : 'text-slate-600 dark:text-slate-300 hover:bg-white/50 dark:hover:bg-slate-700/50 hover:text-slate-900 dark:hover:text-white'
                       }`}
                     >
                       <div className={`p-1.5 rounded-lg ${
@@ -284,7 +285,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </nav>
 
       {/* User & Logout */}
-      <div className="p-4 border-t border-slate-200/50">
+      <div className="p-4 border-t border-slate-200/50 dark:border-slate-700/50">
         <div className="flex items-center gap-3 mb-4 px-3">
           <div className={`w-10 h-10 bg-gradient-to-r ${roleColor} rounded-full flex items-center justify-center shadow-lg`}>
             <span className="text-white font-bold">
@@ -292,15 +293,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </span>
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-slate-800 text-sm font-medium truncate">{user?.name || user?.email}</p>
+            <p className="text-slate-800 dark:text-slate-100 text-sm font-medium truncate">{user?.name || user?.email}</p>
             <p className={`text-xs font-medium bg-gradient-to-r ${roleColor} bg-clip-text text-transparent`}>
               {roleLabel}
             </p>
           </div>
+          <ThemeToggle variant="light" />
         </div>
         <button
           onClick={handleLogout}
-          className="flex items-center gap-3 w-full px-4 py-3 text-slate-600 hover:bg-red-50 hover:text-red-600 rounded-xl transition-all group"
+          className="flex items-center gap-3 w-full px-4 py-3 text-slate-600 dark:text-slate-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400 rounded-xl transition-all group"
         >
           <LogOut className="w-5 h-5 group-hover:rotate-12 transition-transform" />
           <span className="font-medium text-sm">Deconnexion</span>

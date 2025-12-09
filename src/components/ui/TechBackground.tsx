@@ -245,10 +245,28 @@ function GradientOrbsDark() {
 
 // Light background for admin/dashboard
 export function LightBackground({ children }: { children?: React.ReactNode }) {
+  const [isDarkMode, setIsDarkMode] = useState(false)
+
+  useEffect(() => {
+    const checkDarkMode = () => {
+      setIsDarkMode(document.documentElement.classList.contains('dark'))
+    }
+    checkDarkMode()
+
+    const observer = new MutationObserver(checkDarkMode)
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
+
+    return () => observer.disconnect()
+  }, [])
+
   return (
-    <div className="relative min-h-screen bg-gradient-to-br from-slate-50 via-cyan-50/20 to-white">
-      <GradientOrbs />
-      <TechGrid light />
+    <div className={`relative min-h-screen transition-colors duration-300 ${
+      isDarkMode
+        ? 'bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900'
+        : 'bg-gradient-to-br from-slate-50 via-cyan-50/20 to-white'
+    }`}>
+      {isDarkMode ? <GradientOrbsDark /> : <GradientOrbs />}
+      <TechGrid light={!isDarkMode} />
       <div className="relative z-10">{children}</div>
     </div>
   )
