@@ -67,18 +67,63 @@ export default function TimesheetsPage() {
     return days
   }
 
+  // Convert API days object to array format
+  const convertDaysToArray = (daysObj: Record<string, number> | undefined, monthNum: number, yearNum: number): TimesheetDay[] => {
+    const days: TimesheetDay[] = []
+    const daysInMonth = new Date(yearNum, monthNum, 0).getDate()
+
+    for (let i = 1; i <= daysInMonth; i++) {
+      const date = new Date(yearNum, monthNum - 1, i)
+      const dateStr = date.toISOString().split('T')[0]
+      const dayOfWeek = date.getDay()
+      const isWeekend = dayOfWeek === 0 || dayOfWeek === 6
+      const hours = daysObj?.[dateStr] ?? (isWeekend ? 0 : 8)
+
+      days.push({
+        date: dateStr,
+        dayName: date.toLocaleDateString('fr-FR', { weekday: 'short' }),
+        dayNumber: i,
+        isWeekend,
+        hours,
+        type: isWeekend ? '' : (hours > 0 ? 'worked' : ''),
+        comment: ''
+      })
+    }
+
+    return days
+  }
+
   useEffect(() => {
     const fetchTimesheet = async () => {
       setLoading(true)
       try {
-        const res = await fetch(`/api/freelance/timesheets?month=${month + 1}&year=${year}`, {
+        const monthParam = `${year}-${String(month + 1).padStart(2, '0')}`
+        const res = await fetch(`/api/freelance/timesheets?month=${monthParam}`, {
           credentials: 'include'
         })
 
         if (res.ok) {
           const data = await res.json()
           if (data.timesheet) {
-            setTimesheet(data.timesheet)
+            // Convert days object to array if needed
+            const apiTimesheet = data.timesheet
+            const daysArray = Array.isArray(apiTimesheet.days)
+              ? apiTimesheet.days
+              : convertDaysToArray(apiTimesheet.days, month + 1, year)
+
+            const totalHours = daysArray.reduce((sum: number, day: TimesheetDay) =>
+              sum + (day.type === 'worked' ? day.hours : 0), 0)
+
+            setTimesheet({
+              id: apiTimesheet._id?.toString() || apiTimesheet.id,
+              month: month + 1,
+              year,
+              status: apiTimesheet.status || 'draft',
+              days: daysArray,
+              totalHours,
+              submittedAt: apiTimesheet.submittedAt,
+              validatedAt: apiTimesheet.validatedAt
+            })
           } else {
             // Create new timesheet template
             setTimesheet({
@@ -134,16 +179,30 @@ export default function TimesheetsPage() {
     setSaving(true)
 
     try {
+      // Convert days array to object format for API
+      const daysObj: Record<string, number> = {}
+      timesheet.days.forEach(day => {
+        daysObj[day.date] = day.type === 'worked' ? day.hours : 0
+      })
+
+      const monthParam = `${timesheet.year}-${String(timesheet.month).padStart(2, '0')}`
+
       const res = await fetch('/api/freelance/timesheets', {
-        method: timesheet.id ? 'PUT' : 'POST',
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify(timesheet)
+        body: JSON.stringify({
+          month: monthParam,
+          days: daysObj
+        })
       })
 
       if (res.ok) {
         const data = await res.json()
-        setTimesheet(data.timesheet)
+        // Update with saved data, keeping local array format
+        if (data.success) {
+          setTimesheet(prev => prev ? { ...prev, totalHours: data.totalHours } : null)
+        }
       }
     } catch (error) {
       console.error('Error saving timesheet:', error)
@@ -268,7 +327,7 @@ export default function TimesheetsPage() {
               </tr>
             </thead>
             <tbody>
-              {timesheet?.days.map((day, index) => (
+              {(timesheet?.days ?? []).map((day, index) => (
                 <tr
                   key={day.date}
                   className={`border-b border-gray-50 ${day.isWeekend ? 'bg-gray-50/50' : ''}`}
@@ -340,7 +399,7 @@ export default function TimesheetsPage() {
             <span className="ml-2 text-xl font-bold text-gray-900">{timesheet?.totalHours || 0}h</span>
           </div>
           <div className="text-sm text-gray-500">
-            {timesheet?.days.filter(d => d.type === 'worked').length || 0} jours travaillés
+            {(timesheet?.days ?? []).filter(d => d.type === 'worked').length || 0} jours travaillés
           </div>
         </div>
       </motion.div>
