@@ -346,10 +346,10 @@ export default function TimesheetsPage() {
                     <select
                       value={day.type}
                       onChange={(e) => updateDay(index, 'type', e.target.value)}
-                      disabled={timesheet.status !== 'draft' || day.isWeekend}
+                      disabled={timesheet?.status !== 'draft' || day.isWeekend}
                       className={`text-sm px-3 py-1.5 rounded-lg border-0 ${
                         dayTypes.find(t => t.value === day.type)?.color || 'bg-gray-100'
-                      } ${timesheet.status !== 'draft' ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
+                      } ${timesheet?.status !== 'draft' ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
                     >
                       {dayTypes.map(type => (
                         <option key={type.value} value={type.value}>{type.label}</option>
@@ -364,9 +364,9 @@ export default function TimesheetsPage() {
                       step="0.5"
                       value={day.hours}
                       onChange={(e) => updateDay(index, 'hours', parseFloat(e.target.value) || 0)}
-                      disabled={timesheet.status !== 'draft' || day.type !== 'worked'}
+                      disabled={timesheet?.status !== 'draft' || day.type !== 'worked'}
                       className={`w-16 text-center text-sm px-2 py-1.5 border border-gray-200 rounded-lg ${
-                        timesheet.status !== 'draft' || day.type !== 'worked'
+                        timesheet?.status !== 'draft' || day.type !== 'worked'
                           ? 'bg-gray-50 text-gray-400 cursor-not-allowed'
                           : 'focus:border-ebmc-turquoise focus:ring-1 focus:ring-ebmc-turquoise'
                       }`}
@@ -377,10 +377,10 @@ export default function TimesheetsPage() {
                       type="text"
                       value={day.comment}
                       onChange={(e) => updateDay(index, 'comment', e.target.value)}
-                      disabled={timesheet.status !== 'draft'}
+                      disabled={timesheet?.status !== 'draft'}
                       placeholder={day.isWeekend ? '' : 'Optionnel...'}
                       className={`w-full text-sm px-3 py-1.5 border border-gray-200 rounded-lg ${
-                        timesheet.status !== 'draft'
+                        timesheet?.status !== 'draft'
                           ? 'bg-gray-50 text-gray-400 cursor-not-allowed'
                           : 'focus:border-ebmc-turquoise focus:ring-1 focus:ring-ebmc-turquoise'
                       }`}
