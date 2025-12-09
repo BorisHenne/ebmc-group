@@ -91,6 +91,9 @@ export interface Candidate {
   // Notes
   notes?: string
   cvUrl?: string
+
+  // User account binding (for hired consultants)
+  userId?: string // Links to user account for portal access
 }
 
 // Helper to check if a candidate is now a consultant (hired)
