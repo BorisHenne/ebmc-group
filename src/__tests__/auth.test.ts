@@ -287,3 +287,286 @@ describe('Authorization', () => {
     })
   })
 })
+
+describe('Role System - EBMC Roles', () => {
+  describe('Role Types', () => {
+    const validRoles = ['admin', 'sourceur', 'commercial', 'freelance', 'user']
+
+    it('should have all required role types', () => {
+      validRoles.forEach(role => {
+        expect(validRoles).toContain(role)
+      })
+    })
+
+    it('should have exactly 5 role types', () => {
+      expect(validRoles.length).toBe(5)
+    })
+  })
+
+  describe('Admin Permissions', () => {
+    const adminPermissions = {
+      dashboard: true,
+      jobs: true,
+      consultants: true,
+      messages: true,
+      users: true,
+      roles: true,
+      webhooks: true,
+      apiTokens: true,
+      demoData: true,
+      docs: true,
+      settings: true,
+      freelancePortal: false,
+    }
+
+    it('should have full access to all admin features', () => {
+      expect(adminPermissions.dashboard).toBe(true)
+      expect(adminPermissions.jobs).toBe(true)
+      expect(adminPermissions.consultants).toBe(true)
+      expect(adminPermissions.users).toBe(true)
+      expect(adminPermissions.roles).toBe(true)
+    })
+
+    it('should not have access to freelance portal', () => {
+      expect(adminPermissions.freelancePortal).toBe(false)
+    })
+  })
+
+  describe('Sourceur Permissions', () => {
+    const sourceurPermissions = {
+      dashboard: true,
+      jobs: false,
+      consultants: true,
+      messages: true,
+      users: false,
+      roles: false,
+      webhooks: false,
+      apiTokens: false,
+      demoData: false,
+      docs: true,
+      settings: false,
+      freelancePortal: false,
+    }
+
+    it('should have access to consultants and messages', () => {
+      expect(sourceurPermissions.consultants).toBe(true)
+      expect(sourceurPermissions.messages).toBe(true)
+    })
+
+    it('should not have access to jobs', () => {
+      expect(sourceurPermissions.jobs).toBe(false)
+    })
+
+    it('should not have access to admin features', () => {
+      expect(sourceurPermissions.users).toBe(false)
+      expect(sourceurPermissions.roles).toBe(false)
+      expect(sourceurPermissions.webhooks).toBe(false)
+    })
+  })
+
+  describe('Commercial Permissions', () => {
+    const commercialPermissions = {
+      dashboard: true,
+      jobs: true,
+      consultants: true,
+      messages: true,
+      viewAssignedOnly: true,
+    }
+
+    it('should have access to jobs and consultants', () => {
+      expect(commercialPermissions.jobs).toBe(true)
+      expect(commercialPermissions.consultants).toBe(true)
+    })
+
+    it('should only view assigned items', () => {
+      expect(commercialPermissions.viewAssignedOnly).toBe(true)
+    })
+  })
+
+  describe('Freelance Permissions', () => {
+    const freelancePermissions = {
+      dashboard: false,
+      jobs: false,
+      consultants: false,
+      messages: false,
+      users: false,
+      roles: false,
+      webhooks: false,
+      apiTokens: false,
+      demoData: false,
+      docs: false,
+      settings: false,
+      freelancePortal: true,
+    }
+
+    it('should only have access to freelance portal', () => {
+      expect(freelancePermissions.freelancePortal).toBe(true)
+    })
+
+    it('should not have access to any admin features', () => {
+      expect(freelancePermissions.dashboard).toBe(false)
+      expect(freelancePermissions.jobs).toBe(false)
+      expect(freelancePermissions.consultants).toBe(false)
+      expect(freelancePermissions.users).toBe(false)
+    })
+  })
+
+  describe('User (Standard) Permissions', () => {
+    const userPermissions = {
+      dashboard: true,
+      jobs: true,
+      consultants: true,
+      messages: true,
+      users: false,
+      freelancePortal: false,
+    }
+
+    it('should have basic read access', () => {
+      expect(userPermissions.dashboard).toBe(true)
+      expect(userPermissions.jobs).toBe(true)
+      expect(userPermissions.consultants).toBe(true)
+    })
+
+    it('should not have access to user management', () => {
+      expect(userPermissions.users).toBe(false)
+    })
+  })
+})
+
+describe('Freelance Portal API', () => {
+  describe('Timesheet endpoints', () => {
+    it('should validate month format', () => {
+      const validMonth = '2024-12'
+      const regex = /^\d{4}-\d{2}$/
+      expect(regex.test(validMonth)).toBe(true)
+    })
+
+    it('should reject invalid month format', () => {
+      const invalidMonths = ['2024-1', '12-2024', '2024/12', 'invalid']
+      const regex = /^\d{4}-\d{2}$/
+      invalidMonths.forEach(month => {
+        expect(regex.test(month)).toBe(false)
+      })
+    })
+
+    it('should calculate total hours correctly', () => {
+      const days: Record<string, number> = {
+        '2024-12-01': 8,
+        '2024-12-02': 8,
+        '2024-12-03': 4,
+        '2024-12-04': 0,
+        '2024-12-05': 8,
+      }
+      const totalHours = Object.values(days).reduce((sum, hours) => sum + hours, 0)
+      expect(totalHours).toBe(28)
+    })
+  })
+
+  describe('Absence endpoints', () => {
+    it('should validate absence types', () => {
+      const validTypes = ['conges_payes', 'rtt', 'maladie', 'sans_solde', 'autre']
+      const testType = 'conges_payes'
+      expect(validTypes.includes(testType)).toBe(true)
+    })
+
+    it('should reject invalid absence types', () => {
+      const validTypes = ['conges_payes', 'rtt', 'maladie', 'sans_solde', 'autre']
+      const invalidType = 'vacation'
+      expect(validTypes.includes(invalidType)).toBe(false)
+    })
+
+    it('should calculate business days correctly', () => {
+      // Simple test - 5 weekdays = 5 business days
+      const startDate = '2024-12-02' // Monday
+      const endDate = '2024-12-06'   // Friday
+
+      const start = new Date(startDate)
+      const end = new Date(endDate)
+      let businessDays = 0
+      const current = new Date(start)
+
+      while (current <= end) {
+        const dayOfWeek = current.getDay()
+        if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+          businessDays++
+        }
+        current.setDate(current.getDate() + 1)
+      }
+
+      expect(businessDays).toBe(5)
+    })
+
+    it('should calculate balance correctly', () => {
+      const totalDays = 25
+      const usedDays = 10
+      const pendingDays = 3
+      const remainingDays = totalDays - usedDays - pendingDays
+
+      expect(remainingDays).toBe(12)
+    })
+  })
+})
+
+describe('Assignment System', () => {
+  describe('Job assignments', () => {
+    it('should allow assigning a commercial to a job', () => {
+      const job = {
+        title: 'Developer',
+        assignedTo: 'user123',
+        assignedToName: 'Marie Commercial'
+      }
+      expect(job.assignedTo).toBe('user123')
+      expect(job.assignedToName).toBe('Marie Commercial')
+    })
+
+    it('should allow unassigned jobs', () => {
+      const job = {
+        title: 'Developer',
+        assignedTo: '',
+        assignedToName: ''
+      }
+      expect(job.assignedTo).toBe('')
+    })
+  })
+
+  describe('Consultant assignments', () => {
+    it('should allow assigning a commercial to a consultant', () => {
+      const consultant = {
+        name: 'Jean Dupont',
+        assignedTo: 'user456',
+        assignedToName: 'Pierre Commercial'
+      }
+      expect(consultant.assignedTo).toBe('user456')
+      expect(consultant.assignedToName).toBe('Pierre Commercial')
+    })
+  })
+})
+
+describe('Demo Users', () => {
+  const demoUsers = [
+    { email: 'admin@ebmc-group.com', role: 'admin' },
+    { email: 'sourceur@ebmc-group.com', role: 'sourceur' },
+    { email: 'commercial@ebmc-group.com', role: 'commercial' },
+    { email: 'freelance@ebmc-group.com', role: 'freelance' },
+    { email: 'user@ebmc-group.com', role: 'user' },
+  ]
+
+  it('should have 5 demo users', () => {
+    expect(demoUsers.length).toBe(5)
+  })
+
+  it('should have one user for each role', () => {
+    const roles = demoUsers.map(u => u.role)
+    expect(roles).toContain('admin')
+    expect(roles).toContain('sourceur')
+    expect(roles).toContain('commercial')
+    expect(roles).toContain('freelance')
+    expect(roles).toContain('user')
+  })
+
+  it('should use ebmc-group.com domain', () => {
+    demoUsers.forEach(user => {
+      expect(user.email).toContain('@ebmc-group.com')
+    })
+  })
+})

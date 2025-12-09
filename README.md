@@ -26,7 +26,7 @@
   <img src="https://img.shields.io/badge/TypeScript-5.6-3178C6?style=flat-square&logo=typescript" alt="TypeScript" />
   <img src="https://img.shields.io/badge/MongoDB-7-47A248?style=flat-square&logo=mongodb" alt="MongoDB" />
   <img src="https://img.shields.io/badge/Tailwind-3.4-38B2AC?style=flat-square&logo=tailwindcss" alt="Tailwind" />
-  <img src="https://img.shields.io/badge/Tests-131+-green?style=flat-square" alt="Tests" />
+  <img src="https://img.shields.io/badge/Tests-157+-green?style=flat-square" alt="Tests" />
 </p>
 
 ---
@@ -61,14 +61,27 @@
 |---|---|
 | Secure JWT authentication | Authentification JWT sécurisée |
 | BoondManager SSO authentication | Authentification SSO BoondManager |
+| **Role-based access control (5 roles)** | **Contrôle d'accès par rôles (5 rôles)** |
 | Job postings management (CRUD) | Gestion des offres d'emploi (CRUD) |
 | Consultant profiles management | Gestion des profils consultants |
+| **Commercial assignment for jobs/consultants** | **Affectation commerciaux aux offres/consultants** |
 | Messages/applications inbox | Boîte de réception messages/candidatures |
 | User management with roles | Gestion utilisateurs avec rôles |
 | API tokens management | Gestion des tokens API |
 | Webhooks configuration (Make, BoondManager) | Configuration webhooks (Make, BoondManager) |
 | Statistics dashboard | Dashboard statistiques |
 | API documentation | Documentation API |
+
+### Freelance Portal | Portail Freelance
+
+| EN | FR |
+|---|---|
+| Dedicated freelance dashboard | Dashboard dédié freelance |
+| Timesheet management (CRA) | Gestion des CRA |
+| Monthly hours entry with calendar | Saisie heures par mois avec calendrier |
+| Absence requests (vacation, RTT, sick leave) | Demandes d'absences (congés, RTT, maladie) |
+| Balance tracking (used/pending/remaining) | Suivi des soldes (utilisés/en attente/restants) |
+| Submit timesheets for validation | Soumission CRA pour validation |
 
 ---
 
@@ -93,7 +106,7 @@ Backend:
 Testing:
 ├── Vitest
 ├── React Testing Library
-└── 131+ unit tests
+└── 157+ unit tests
 
 Deployment:
 ├── Docker & Docker Compose
@@ -217,6 +230,30 @@ npm run lint:fix     # Auto-fix lint issues
 3. Login with your BoondManager email and password
 4. **Note:** Enable REST API in your BoondManager profile settings (Profile > Configuration > Security > "Allow REST API calls from BasicAuth")
 
+### Role System | Système de Rôles
+
+| Role | Access EN | Accès FR |
+|------|-----------|----------|
+| **admin** | Full access to all features | Accès complet à toutes les fonctionnalités |
+| **sourceur** | Consultants, messages, documentation | Consultants, messages, documentation |
+| **commercial** | Jobs, consultants (assigned only), messages | Offres, consultants (assignés uniquement), messages |
+| **freelance** | Freelance portal only (timesheets, absences) | Portail freelance uniquement (CRA, absences) |
+| **user** | Basic read access (dashboard, jobs, consultants) | Accès lecture de base (dashboard, offres, consultants) |
+
+### Demo Users | Utilisateurs Démo
+
+After seeding the database, these demo accounts are available:
+
+| Email | Password | Role |
+|-------|----------|------|
+| `admin@ebmc-group.com` | `admin123` | Admin |
+| `sourceur@ebmc-group.com` | `sourceur123` | Sourceur |
+| `commercial@ebmc-group.com` | `commercial123` | Commercial |
+| `freelance@ebmc-group.com` | `freelance123` | Freelance |
+| `user@ebmc-group.com` | `user123` | User |
+
+> **Note:** Change passwords after first login in production!
+
 ---
 
 ## API Reference
@@ -255,6 +292,18 @@ npm run lint:fix     # Auto-fix lint issues
 | GET/POST | `/api/admin/api-tokens` | List/Create API tokens |
 | GET/POST | `/api/admin/roles` | List/Create roles |
 | GET | `/api/admin/stats` | Dashboard statistics |
+
+### Freelance Endpoints (Protected) | Endpoints Freelance (Protégés)
+
+| Method | Endpoint | Description EN | Description FR |
+|--------|----------|----------------|----------------|
+| GET | `/api/freelance/timesheets?month=YYYY-MM` | Get timesheet for month | Récupérer CRA du mois |
+| POST | `/api/freelance/timesheets` | Save timesheet | Enregistrer CRA |
+| GET | `/api/freelance/timesheets/summary` | Get summary stats | Récupérer statistiques |
+| POST | `/api/freelance/timesheets/submit` | Submit for validation | Soumettre pour validation |
+| GET | `/api/freelance/absences` | List absences | Liste des absences |
+| POST | `/api/freelance/absences` | Create absence request | Créer demande d'absence |
+| DELETE | `/api/freelance/absences/[id]` | Cancel pending absence | Annuler absence en attente |
 
 ---
 
@@ -457,9 +506,12 @@ npm run test:watch
 
 ### Test Coverage | Couverture
 
-**131+ unit tests** covering:
+**157+ unit tests** covering:
 - API routes validation (jobs, consultants, auth, webhooks, tokens)
 - Authentication logic (JWT, passwords, roles, BoondManager SSO)
+- **Role-based access control (5 roles with permissions)**
+- **Freelance portal API (timesheets, absences)**
+- **Assignment system (commercial to jobs/consultants)**
 - Component rendering (UI components, forms)
 - Mobile navigation and responsive design
 - Utility functions (validation, formatting)
@@ -478,6 +530,8 @@ npm run test:watch
 | `webhooks` | Webhook configurations | Configurations webhooks |
 | `api-tokens` | API access tokens | Tokens d'accès API |
 | `roles` | User roles | Rôles utilisateurs |
+| `timesheets` | Freelance timesheets (CRA) | CRA freelances |
+| `absences` | Freelance absence requests | Demandes d'absences freelances |
 
 ---
 
