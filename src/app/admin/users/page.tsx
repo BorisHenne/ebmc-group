@@ -178,8 +178,8 @@ export default function UsersPage() {
               <Users className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Utilisateurs</h1>
-              <p className="text-gray-500 text-sm mt-1">{users.length} utilisateur{users.length > 1 ? 's' : ''} au total</p>
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">Utilisateurs</h1>
+              <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">{users.length} utilisateur{users.length > 1 ? 's' : ''} au total</p>
             </div>
           </div>
         </div>
@@ -196,19 +196,19 @@ export default function UsersPage() {
       <div className="glass-card p-4 mb-6">
         <div className="flex flex-col md:flex-row gap-4">
           <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500" />
             <input
               type="text"
               placeholder="Rechercher par nom ou email..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition"
+              className="w-full pl-10 pr-4 py-2.5 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-800 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
             />
           </div>
           <select
             value={filterRole}
             onChange={(e) => setFilterRole(e.target.value)}
-            className="px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white"
+            className="px-4 py-2.5 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-800 text-gray-900 dark:text-white"
           >
             <option value="all">Tous les rôles</option>
             {Object.entries(ROLE_LABELS).map(([key, label]) => (
@@ -226,8 +226,8 @@ export default function UsersPage() {
           </div>
         ) : filteredUsers.length === 0 ? (
           <div className="text-center py-12">
-            <Users className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500">
+            <Users className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+            <p className="text-gray-500 dark:text-gray-400">
               {searchTerm || filterRole !== 'all'
                 ? 'Aucun utilisateur ne correspond aux critères'
                 : 'Aucun utilisateur trouvé'}
@@ -236,23 +236,23 @@ export default function UsersPage() {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50/80 border-b border-gray-100">
+              <thead className="bg-gray-50/80 dark:bg-slate-800/80 border-b border-gray-100 dark:border-slate-700">
                 <tr>
-                  <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Utilisateur</th>
-                  <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Email</th>
-                  <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Rôle</th>
-                  <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Créé le</th>
-                  <th className="text-right px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
+                  <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Utilisateur</th>
+                  <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Email</th>
+                  <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Rôle</th>
+                  <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Créé le</th>
+                  <th className="text-right px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
                 {filteredUsers.map((user, index) => (
                   <motion.tr
                     key={user._id}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.03 }}
-                    className="hover:bg-gray-50/50 transition"
+                    className="hover:bg-gray-50/50 dark:hover:bg-slate-700/50 transition"
                   >
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
@@ -261,12 +261,12 @@ export default function UsersPage() {
                             {user.name?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase()}
                           </span>
                         </div>
-                        <span className="font-medium text-gray-900">{user.name}</span>
+                        <span className="font-medium text-gray-900 dark:text-white">{user.name}</span>
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-2 text-gray-600">
-                        <Mail className="w-4 h-4 text-gray-400" />
+                      <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
+                        <Mail className="w-4 h-4 text-gray-400 dark:text-gray-500" />
                         {user.email}
                       </div>
                     </td>
@@ -276,7 +276,7 @@ export default function UsersPage() {
                         {ROLE_LABELS[user.role as RoleType] || user.role}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-gray-500 text-sm">
+                    <td className="px-6 py-4 text-gray-500 dark:text-gray-400 text-sm">
                       {new Date(user.createdAt).toLocaleDateString('fr-FR', {
                         day: 'numeric',
                         month: 'short',
@@ -287,14 +287,14 @@ export default function UsersPage() {
                       <div className="flex justify-end gap-2">
                         <button
                           onClick={() => openEditModal(user)}
-                          className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition"
+                          className="p-2 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition"
                           title="Modifier"
                         >
                           <Edit className="w-5 h-5" />
                         </button>
                         <button
                           onClick={() => handleDelete(user)}
-                          className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition"
+                          className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition"
                           title="Supprimer"
                         >
                           <Trash2 className="w-5 h-5" />
@@ -317,23 +317,23 @@ export default function UsersPage() {
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
+              className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
             >
               {/* Modal Header */}
-              <div className="flex justify-between items-center p-6 border-b border-gray-100">
+              <div className="flex justify-between items-center p-6 border-b border-gray-100 dark:border-slate-700">
                 <div className="flex items-center gap-3">
                   <div className={`p-2 rounded-xl bg-gradient-to-r ${editingUser ? 'from-blue-500 to-indigo-500' : 'from-ebmc-turquoise to-cyan-500'}`}>
                     {editingUser ? <Edit className="w-5 h-5 text-white" /> : <Plus className="w-5 h-5 text-white" />}
                   </div>
-                  <h2 className="text-xl font-semibold text-gray-900">
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
                     {editingUser ? 'Modifier l\'utilisateur' : 'Nouvel utilisateur'}
                   </h2>
                 </div>
                 <button
                   onClick={closeModal}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition"
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition"
                 >
-                  <X className="w-5 h-5 text-gray-400" />
+                  <X className="w-5 h-5 text-gray-400 dark:text-gray-500" />
                 </button>
               </div>
 
@@ -344,7 +344,7 @@ export default function UsersPage() {
                   <motion.div
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="flex items-center gap-3 p-4 bg-red-50 border border-red-100 rounded-xl text-red-600"
+                    className="flex items-center gap-3 p-4 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 rounded-xl text-red-600 dark:text-red-400"
                   >
                     <AlertCircle className="w-5 h-5 flex-shrink-0" />
                     <span className="text-sm">{error}</span>
@@ -353,14 +353,14 @@ export default function UsersPage() {
 
                 {/* Name */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Nom complet
                   </label>
                   <input
                     type="text"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition"
+                    className="w-full px-4 py-3 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
                     placeholder="Jean Dupont"
                     required
                   />
@@ -368,14 +368,14 @@ export default function UsersPage() {
 
                 {/* Email */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Adresse email
                   </label>
                   <input
                     type="email"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition"
+                    className="w-full px-4 py-3 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
                     placeholder="jean@exemple.com"
                     required
                   />
@@ -383,15 +383,15 @@ export default function UsersPage() {
 
                 {/* Password */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Mot de passe
-                    {editingUser && <span className="text-gray-400 font-normal ml-1">(laisser vide pour ne pas changer)</span>}
+                    {editingUser && <span className="text-gray-400 dark:text-gray-500 font-normal ml-1">(laisser vide pour ne pas changer)</span>}
                   </label>
                   <input
                     type="password"
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition"
+                    className="w-full px-4 py-3 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
                     placeholder="••••••••"
                     required={!editingUser}
                   />
@@ -399,19 +399,19 @@ export default function UsersPage() {
 
                 {/* Role */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Rôle
                   </label>
                   <select
                     value={formData.role}
                     onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white"
+                    className="w-full px-4 py-3 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
                   >
                     {Object.entries(ROLE_LABELS).map(([key, label]) => (
                       <option key={key} value={key}>{label}</option>
                     ))}
                   </select>
-                  <p className="mt-2 text-xs text-gray-500">
+                  <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
                     {formData.role === 'admin' && 'Accès complet à toutes les fonctionnalités'}
                     {formData.role === 'sourceur' && 'Accès aux consultants, messages et scraper CV'}
                     {formData.role === 'commercial' && 'Accès aux offres et consultants assignés'}
@@ -425,7 +425,7 @@ export default function UsersPage() {
                   <button
                     type="button"
                     onClick={closeModal}
-                    className="flex-1 px-4 py-3 border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition font-medium"
+                    className="flex-1 px-4 py-3 border border-gray-200 dark:border-slate-700 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-700 transition font-medium"
                   >
                     Annuler
                   </button>
