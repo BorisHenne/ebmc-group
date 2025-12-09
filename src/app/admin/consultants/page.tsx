@@ -27,7 +27,11 @@ import {
   Phone,
   FileText,
   Shield,
-  ChevronRight
+  ChevronRight,
+  UserPlus,
+  Link2,
+  Unlink,
+  Key
 } from 'lucide-react'
 import {
   Candidate,
@@ -57,7 +61,7 @@ const MOBILITY_OPTIONS = ['IDF', 'France', 'Luxembourg', 'Locale', 'Nationale', 
 const SENIORITY_LEVELS = ['Junior', 'Confirmé', 'Senior', 'Expert'] as const
 
 // Modal tabs
-type ModalTab = 'identity' | 'skills' | 'experience' | 'availability' | 'financial' | 'notes'
+type ModalTab = 'identity' | 'skills' | 'experience' | 'availability' | 'financial' | 'account' | 'notes'
 
 const MODAL_TABS: { id: ModalTab; label: string; icon: React.ReactNode }[] = [
   { id: 'identity', label: 'Identité', icon: <User className="w-4 h-4" /> },
@@ -65,6 +69,7 @@ const MODAL_TABS: { id: ModalTab; label: string; icon: React.ReactNode }[] = [
   { id: 'experience', label: 'Expérience', icon: <Award className="w-4 h-4" /> },
   { id: 'availability', label: 'Disponibilité', icon: <Calendar className="w-4 h-4" /> },
   { id: 'financial', label: 'Rémunération', icon: <Euro className="w-4 h-4" /> },
+  { id: 'account', label: 'Compte', icon: <Key className="w-4 h-4" /> },
   { id: 'notes', label: 'Notes', icon: <FileText className="w-4 h-4" /> },
 ]
 
@@ -89,7 +94,8 @@ const emptyCandidate: Partial<Candidate> = {
   securityClearance: '',
   status: 'embauche', // Consultants are hired candidates
   notes: '',
-  commercialId: ''
+  commercialId: '',
+  userId: undefined
 }
 
 export default function ConsultantsPage() {
@@ -101,7 +107,10 @@ export default function ConsultantsPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [commerciaux, setCommerciaux] = useState<UserAccount[]>([])
+  const [allUsers, setAllUsers] = useState<UserAccount[]>([])
   const [activeTab, setActiveTab] = useState<ModalTab>('identity')
+  const [creatingUser, setCreatingUser] = useState(false)
+  const [newUserPassword, setNewUserPassword] = useState('')
 
   // Search and filters
   const [searchTerm, setSearchTerm] = useState('')
@@ -110,7 +119,7 @@ export default function ConsultantsPage() {
 
   useEffect(() => {
     initializeData()
-    fetchCommerciaux()
+    fetchUsers()
   }, [])
 
   const initializeData = () => {
@@ -124,18 +133,20 @@ export default function ConsultantsPage() {
     setLoading(false)
   }
 
-  const fetchCommerciaux = async () => {
+  const fetchUsers = async () => {
     try {
       const res = await fetch('/api/admin/users', { credentials: 'include' })
       if (res.ok) {
         const data = await res.json()
-        const commercialUsers = (data.users || []).filter(
+        const users = data.users || []
+        setAllUsers(users)
+        const commercialUsers = users.filter(
           (u: UserAccount) => u.role === 'commercial' || u.role === 'admin'
         )
         setCommerciaux(commercialUsers)
       }
     } catch (error) {
-      console.error('Error fetching commerciaux:', error)
+      console.error('Error fetching users:', error)
     }
   }
 
@@ -252,6 +263,66 @@ export default function ConsultantsPage() {
   // Count candidates in recruitment pipeline
   const recruitmentCount = allCandidates.filter(c => c.status !== 'embauche').length
 
+  // Get linked user for a consultant
+  const getLinkedUser = (consultant: Candidate) => {
+    if (!consultant.userId) return null
+    return allUsers.find(u => u._id === consultant.userId) || null
+  }
+
+  // Get available users (not already linked to another consultant)
+  const getAvailableUsers = () => {
+    const linkedUserIds = consultants.filter(c => c.userId && c.id !== editingConsultant?.id).map(c => c.userId)
+    return allUsers.filter(u => !linkedUserIds.includes(u._id))
+  }
+
+  // Create user account for consultant
+  const handleCreateUserAccount = async () => {
+    if (!editingConsultant?.email || !newUserPassword) {
+      setError('Email et mot de passe requis pour créer un compte')
+      return
+    }
+
+    setCreatingUser(true)
+    setError('')
+
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          email: editingConsultant.email,
+          name: `${editingConsultant.firstName} ${editingConsultant.lastName}`,
+          password: newUserPassword,
+          role: 'consultant'
+        })
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        setError(data.error || 'Erreur lors de la création du compte')
+        setCreatingUser(false)
+        return
+      }
+
+      // Link the new user to the consultant
+      updateField('userId', data.user._id)
+      setNewUserPassword('')
+      await fetchUsers()
+    } catch (error) {
+      console.error('Error creating user:', error)
+      setError('Erreur de connexion au serveur')
+    } finally {
+      setCreatingUser(false)
+    }
+  }
+
+  // Unlink user from consultant
+  const handleUnlinkUser = () => {
+    updateField('userId', undefined)
+  }
+
   return (
     <div>
       {/* Header */}
@@ -355,6 +426,7 @@ export default function ConsultantsPage() {
                   <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Localisation</th>
                   <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Modules SAP</th>
                   <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">TJM</th>
+                  <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Compte</th>
                   <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Statut</th>
                   <th className="text-right px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
                 </tr>
@@ -366,7 +438,8 @@ export default function ConsultantsPage() {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.03 }}
-                    className="hover:bg-gray-50/50 dark:hover:bg-slate-700/50 transition"
+                    onClick={() => openEditModal(consultant)}
+                    className="hover:bg-gray-50/50 dark:hover:bg-slate-700/50 transition cursor-pointer"
                   >
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
@@ -417,6 +490,27 @@ export default function ConsultantsPage() {
                       )}
                     </td>
                     <td className="px-6 py-4">
+                      {(() => {
+                        const linkedUser = getLinkedUser(consultant)
+                        if (linkedUser) {
+                          return (
+                            <div className="flex items-center gap-2">
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-medium rounded-full">
+                                <Link2 className="w-3 h-3" />
+                                {linkedUser.name || linkedUser.email}
+                              </span>
+                            </div>
+                          )
+                        }
+                        return (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gray-100 dark:bg-slate-700 text-gray-500 dark:text-gray-400 text-xs rounded-full">
+                            <Unlink className="w-3 h-3" />
+                            Non lié
+                          </span>
+                        )
+                      })()}
+                    </td>
+                    <td className="px-6 py-4">
                       <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
                         consultant.availability?.isAvailable
                           ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
@@ -431,14 +525,7 @@ export default function ConsultantsPage() {
                     <td className="px-6 py-4">
                       <div className="flex justify-end gap-2">
                         <button
-                          onClick={() => openEditModal(consultant)}
-                          className="p-2 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition"
-                          title="Modifier"
-                        >
-                          <Edit className="w-5 h-5" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(consultant)}
+                          onClick={(e) => { e.stopPropagation(); handleDelete(consultant); }}
                           className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition"
                           title="Supprimer"
                         >
@@ -639,16 +726,16 @@ export default function ConsultantsPage() {
                       <div className="flex flex-wrap gap-2">
                         {JOB_FAMILIES.map(jf => (
                           <button
-                            key={jf}
+                            key={jf.id}
                             type="button"
-                            onClick={() => updateField('jobFamily', editingConsultant.jobFamily === jf ? undefined : jf)}
+                            onClick={() => updateField('jobFamily', editingConsultant.jobFamily === jf.id ? undefined : jf.id)}
                             className={`px-3 py-1.5 text-xs font-medium rounded-lg transition ${
-                              editingConsultant.jobFamily === jf
+                              editingConsultant.jobFamily === jf.id
                                 ? 'bg-purple-500 text-white'
                                 : 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-600'
                             }`}
                           >
-                            {jf}
+                            {jf.label}
                           </button>
                         ))}
                       </div>
@@ -938,6 +1025,159 @@ export default function ConsultantsPage() {
                         </div>
                       </div>
                     </div>
+                  </div>
+                )}
+
+                {/* Tab: Account */}
+                {activeTab === 'account' && (
+                  <div className="space-y-6">
+                    {editingConsultant.userId ? (
+                      // User is linked
+                      <div className="space-y-4">
+                        <div className="p-5 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl">
+                          <div className="flex items-center gap-3 mb-4">
+                            <div className="p-2 bg-green-500 rounded-xl">
+                              <Link2 className="w-5 h-5 text-white" />
+                            </div>
+                            <div>
+                              <h3 className="font-semibold text-green-800 dark:text-green-300">Compte utilisateur lié</h3>
+                              <p className="text-sm text-green-600 dark:text-green-400">Ce consultant a un accès au portail</p>
+                            </div>
+                          </div>
+
+                          {(() => {
+                            const linkedUser = allUsers.find(u => u._id === editingConsultant.userId)
+                            if (linkedUser) {
+                              return (
+                                <div className="bg-white dark:bg-slate-800 rounded-lg p-4 space-y-3">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-full bg-gradient-to-r from-green-500 to-emerald-500 flex items-center justify-center">
+                                      <span className="text-white font-bold text-sm">
+                                        {linkedUser.name?.charAt(0).toUpperCase() || linkedUser.email?.charAt(0).toUpperCase()}
+                                      </span>
+                                    </div>
+                                    <div>
+                                      <p className="font-medium text-gray-900 dark:text-white">{linkedUser.name}</p>
+                                      <p className="text-sm text-gray-500 dark:text-gray-400">{linkedUser.email}</p>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-2 text-sm">
+                                    <span className="text-gray-500 dark:text-gray-400">Rôle:</span>
+                                    <span className="px-2 py-0.5 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 rounded text-xs font-medium">
+                                      {linkedUser.role}
+                                    </span>
+                                  </div>
+                                </div>
+                              )
+                            }
+                            return null
+                          })()}
+
+                          <button
+                            type="button"
+                            onClick={handleUnlinkUser}
+                            className="mt-4 flex items-center gap-2 px-4 py-2 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50 transition text-sm font-medium"
+                          >
+                            <Unlink className="w-4 h-4" />
+                            Délier le compte
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      // No user linked - show options to link or create
+                      <div className="space-y-6">
+                        {/* Link existing user */}
+                        <div className="p-5 bg-gray-50 dark:bg-slate-700/50 rounded-xl">
+                          <div className="flex items-center gap-3 mb-4">
+                            <div className="p-2 bg-blue-500 rounded-xl">
+                              <Link2 className="w-5 h-5 text-white" />
+                            </div>
+                            <div>
+                              <h3 className="font-semibold text-gray-900 dark:text-white">Lier un compte existant</h3>
+                              <p className="text-sm text-gray-500 dark:text-gray-400">Associer à un compte utilisateur déjà créé</p>
+                            </div>
+                          </div>
+
+                          <select
+                            value={editingConsultant.userId || ''}
+                            onChange={(e) => updateField('userId', e.target.value || undefined)}
+                            className="w-full px-4 py-3 border border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
+                          >
+                            <option value="">Sélectionner un utilisateur...</option>
+                            {getAvailableUsers().map(user => (
+                              <option key={user._id} value={user._id}>
+                                {user.name || user.email} ({user.role})
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div className="relative">
+                          <div className="absolute inset-0 flex items-center">
+                            <div className="w-full border-t border-gray-200 dark:border-slate-600"></div>
+                          </div>
+                          <div className="relative flex justify-center text-sm">
+                            <span className="px-3 bg-white dark:bg-slate-800 text-gray-500 dark:text-gray-400">ou</span>
+                          </div>
+                        </div>
+
+                        {/* Create new user */}
+                        <div className="p-5 bg-gray-50 dark:bg-slate-700/50 rounded-xl">
+                          <div className="flex items-center gap-3 mb-4">
+                            <div className="p-2 bg-purple-500 rounded-xl">
+                              <UserPlus className="w-5 h-5 text-white" />
+                            </div>
+                            <div>
+                              <h3 className="font-semibold text-gray-900 dark:text-white">Créer un nouveau compte</h3>
+                              <p className="text-sm text-gray-500 dark:text-gray-400">
+                                Utilise l&apos;email: {editingConsultant.email || '(non défini)'}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="space-y-4">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Mot de passe pour le compte
+                              </label>
+                              <input
+                                type="password"
+                                value={newUserPassword}
+                                onChange={(e) => setNewUserPassword(e.target.value)}
+                                className="w-full px-4 py-3 border border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
+                                placeholder="••••••••"
+                              />
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={handleCreateUserAccount}
+                              disabled={creatingUser || !editingConsultant.email || !newUserPassword}
+                              className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-purple-500 to-violet-500 text-white rounded-xl hover:shadow-lg hover:shadow-purple-500/25 transition disabled:opacity-50 font-medium"
+                            >
+                              {creatingUser ? (
+                                <>
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                  Création...
+                                </>
+                              ) : (
+                                <>
+                                  <UserPlus className="w-4 h-4" />
+                                  Créer le compte
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        </div>
+
+                        {!editingConsultant.email && (
+                          <div className="flex items-center gap-3 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl text-amber-700 dark:text-amber-400">
+                            <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                            <span className="text-sm">Veuillez d&apos;abord définir l&apos;email du consultant dans l&apos;onglet Identité</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
 
