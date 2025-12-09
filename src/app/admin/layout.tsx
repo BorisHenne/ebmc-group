@@ -34,6 +34,7 @@ import {
 import { LightBackground } from '@/components/ui/TechBackground'
 import { hasPermission, RolePermissions, ROLE_LABELS, ROLE_COLORS, RoleType } from '@/lib/roles'
 import { ThemeToggle } from '@/components/ThemeToggle'
+import { useTheme } from '@/components/ThemeProvider'
 
 interface User {
   id: string
@@ -122,6 +123,7 @@ const freelanceMenuSections: MenuSection[] = [
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
+  const { resolvedTheme } = useTheme()
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -232,7 +234,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <div className="p-6 border-b border-slate-200/50 dark:border-slate-700/50">
         <Link href={(user?.role === 'freelance' || user?.role === 'consultant') ? '/admin/freelance' : '/admin'} className="flex items-center gap-3">
           <Image
-            src="/logo.svg"
+            src={resolvedTheme === 'dark' ? '/logo-dark.svg' : '/logo.svg'}
             alt="EBMC GROUP"
             width={120}
             height={36}

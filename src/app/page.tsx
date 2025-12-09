@@ -30,6 +30,7 @@ import {
 } from '@/components/ui/aceternity'
 import { TechBackground, TechSection } from '@/components/ui/TechBackground'
 import { Navigation } from '@/components/layout/Navigation'
+import { useTheme } from '@/components/ThemeProvider'
 
 const services = [
   { icon: Server, key: 'sap', gradient: 'from-ebmc-turquoise to-cyan-500' },
@@ -161,6 +162,7 @@ function ContactForm() {
 
 export default function Home() {
   const t = useTranslations()
+  const { resolvedTheme } = useTheme()
   const heroRef = useRef<HTMLDivElement>(null)
   const { scrollYProgress } = useScroll({
     target: heroRef,
@@ -516,7 +518,13 @@ export default function Home() {
           <div className="max-w-7xl mx-auto">
             <div className="flex flex-col md:flex-row items-center justify-between gap-6">
               <Link href="/">
-                <Image src="/logo.svg" alt="EBMC GROUP" width={100} height={30} className="h-7 w-auto" />
+                <Image
+                  src={resolvedTheme === 'dark' ? '/logo-dark.svg' : '/logo.svg'}
+                  alt="EBMC GROUP"
+                  width={100}
+                  height={30}
+                  className="h-7 w-auto"
+                />
               </Link>
               <div className="flex items-center gap-6 text-sm text-slate-500 dark:text-slate-400">
                 <Link href="/careers" className="hover:text-ebmc-turquoise transition">Carrières</Link>
