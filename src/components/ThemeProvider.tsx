@@ -12,20 +12,20 @@ interface ThemeContextType {
 }
 
 const ThemeContext = createContext<ThemeContextType>({
-  theme: 'system',
-  resolvedTheme: 'light',
+  theme: 'dark',
+  resolvedTheme: 'dark',
   setTheme: () => {},
   mounted: false
 })
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>('system')
-  const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>('light')
+  const [theme, setTheme] = useState<Theme>('dark')
+  const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>('dark')
   const [mounted, setMounted] = useState(false)
 
   // Get system preference
   const getSystemTheme = (): 'light' | 'dark' => {
-    if (typeof window === 'undefined') return 'light'
+    if (typeof window === 'undefined') return 'dark'
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
   }
 
@@ -40,7 +40,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   // Initialize theme
   useEffect(() => {
     const stored = localStorage.getItem('theme') as Theme | null
-    const initialTheme = stored || 'system'
+    // Default to 'dark' if no preference stored (save the planet!)
+    const initialTheme = stored || 'dark'
     setTheme(initialTheme)
 
     const resolved = initialTheme === 'system' ? getSystemTheme() : initialTheme

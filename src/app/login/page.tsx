@@ -8,6 +8,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { TechBackground } from '@/components/ui/TechBackground'
 import { ShimmerButton, TextGradient } from '@/components/ui/aceternity'
+import { useTheme } from '@/components/ThemeProvider'
 
 type AuthMode = 'standard' | 'boondmanager'
 
@@ -17,16 +18,18 @@ const demoUsers = [
   { email: 'sourceur@ebmc-group.com', password: 'sourceur123', role: 'Sourceur', color: 'from-purple-500 to-indigo-500' },
   { email: 'commercial@ebmc-group.com', password: 'commercial123', role: 'Commercial', color: 'from-blue-500 to-cyan-500' },
   { email: 'freelance@ebmc-group.com', password: 'freelance123', role: 'Freelance', color: 'from-green-500 to-emerald-500' },
-  { email: 'user@ebmc-group.com', password: 'user123', role: 'User', color: 'from-slate-500 to-slate-600' },
+  { email: 'consultant@ebmc-group.com', password: 'consultant123', role: 'Consultant', color: 'from-teal-500 to-cyan-500' },
 ]
 
 export default function LoginPage() {
   const router = useRouter()
+  const { resolvedTheme } = useTheme()
   const [authMode, setAuthMode] = useState<AuthMode>('boondmanager')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const isDark = resolvedTheme === 'dark'
 
   const handleStandardLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -103,7 +106,7 @@ export default function LoginPage() {
   }
 
   return (
-    <TechBackground variant="light">
+    <TechBackground variant="semi-light">
       <div className="min-h-screen flex items-center justify-center px-4 py-12 relative">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -113,7 +116,7 @@ export default function LoginPage() {
         >
           <Link
             href="/"
-            className="inline-flex items-center gap-2 text-slate-500 hover:text-ebmc-turquoise transition mb-8 group"
+            className="inline-flex items-center gap-2 text-slate-500 dark:text-slate-400 hover:text-ebmc-turquoise transition mb-8 group"
           >
             <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
             Retour à l&apos;accueil
@@ -129,7 +132,7 @@ export default function LoginPage() {
             <div className="text-center mb-8">
               <Link href="/" className="inline-block">
                 <Image
-                  src="/logo.svg"
+                  src={isDark ? '/logo-dark.svg' : '/logo.svg'}
                   alt="EBMC GROUP"
                   width={140}
                   height={42}
@@ -140,20 +143,20 @@ export default function LoginPage() {
                 <Sparkles className="w-3.5 h-3.5 text-ebmc-turquoise" />
                 <span className="text-xs font-medium text-ebmc-turquoise">Administration</span>
               </div>
-              <h1 className="text-2xl md:text-3xl font-bold text-slate-800">
+              <h1 className="text-2xl md:text-3xl font-bold text-slate-800 dark:text-white">
                 <TextGradient animate={false}>Connexion</TextGradient>
               </h1>
-              <p className="text-slate-500 mt-2 text-sm">Accédez au backoffice EBMC GROUP</p>
+              <p className="text-slate-500 dark:text-slate-400 mt-2 text-sm">Accédez au backoffice EBMC GROUP</p>
             </div>
 
             {/* Auth Mode Tabs */}
-            <div className="flex gap-2 p-1 bg-slate-100/80 rounded-xl mb-6">
+            <div className="flex gap-2 p-1 bg-slate-100/80 dark:bg-slate-700/50 rounded-xl mb-6">
               <button
                 onClick={() => switchMode('standard')}
                 className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-all ${
                   authMode === 'standard'
-                    ? 'bg-white text-slate-800 shadow-sm'
-                    : 'text-slate-500 hover:text-slate-700'
+                    ? 'bg-white dark:bg-slate-600 text-slate-800 dark:text-white shadow-sm'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
                 }`}
               >
                 Standard
@@ -162,8 +165,8 @@ export default function LoginPage() {
                 onClick={() => switchMode('boondmanager')}
                 className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${
                   authMode === 'boondmanager'
-                    ? 'bg-white text-slate-800 shadow-sm'
-                    : 'text-slate-500 hover:text-slate-700'
+                    ? 'bg-white dark:bg-slate-600 text-slate-800 dark:text-white shadow-sm'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
                 }`}
               >
                 <Building2 className="w-4 h-4" />
@@ -178,12 +181,12 @@ export default function LoginPage() {
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
-                  className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6 flex items-center gap-3"
+                  className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-xl p-4 mb-6 flex items-center gap-3"
                 >
-                  <div className="p-1.5 rounded-full bg-red-100">
-                    <AlertCircle className="w-4 h-4 text-red-500" />
+                  <div className="p-1.5 rounded-full bg-red-100 dark:bg-red-800/50">
+                    <AlertCircle className="w-4 h-4 text-red-500 dark:text-red-400" />
                   </div>
-                  <span className="text-red-600 text-sm">{error}</span>
+                  <span className="text-red-600 dark:text-red-400 text-sm">{error}</span>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -201,7 +204,7 @@ export default function LoginPage() {
                   className="space-y-5"
                 >
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                       Adresse email
                     </label>
                     <div className="relative group">
@@ -210,7 +213,7 @@ export default function LoginPage() {
                         type="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        className="w-full pl-12 pr-4 py-3.5 bg-white/50 border border-slate-200 rounded-xl text-slate-800 placeholder:text-slate-400 focus:border-ebmc-turquoise focus:ring-2 focus:ring-ebmc-turquoise/20 outline-none transition-all"
+                        className="w-full pl-12 pr-4 py-3.5 bg-white/50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-800 dark:text-white placeholder:text-slate-400 focus:border-ebmc-turquoise focus:ring-2 focus:ring-ebmc-turquoise/20 outline-none transition-all"
                         placeholder="admin@ebmc-group.com"
                         required
                         autoComplete="email"
@@ -219,7 +222,7 @@ export default function LoginPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                       Mot de passe
                     </label>
                     <div className="relative group">
@@ -228,7 +231,7 @@ export default function LoginPage() {
                         type="password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="w-full pl-12 pr-4 py-3.5 bg-white/50 border border-slate-200 rounded-xl text-slate-800 placeholder:text-slate-400 focus:border-ebmc-turquoise focus:ring-2 focus:ring-ebmc-turquoise/20 outline-none transition-all"
+                        className="w-full pl-12 pr-4 py-3.5 bg-white/50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-800 dark:text-white placeholder:text-slate-400 focus:border-ebmc-turquoise focus:ring-2 focus:ring-ebmc-turquoise/20 outline-none transition-all"
                         placeholder="••••••••"
                         required
                         autoComplete="current-password"
@@ -262,17 +265,17 @@ export default function LoginPage() {
                   className="space-y-5"
                 >
                   {/* BoondManager Info */}
-                  <div className="flex items-center gap-3 p-3 bg-blue-50/80 border border-blue-100 rounded-xl mb-2">
-                    <div className="p-2 bg-blue-100 rounded-lg">
-                      <Building2 className="w-4 h-4 text-blue-600" />
+                  <div className="flex items-center gap-3 p-3 bg-blue-50/80 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800 rounded-xl mb-2">
+                    <div className="p-2 bg-blue-100 dark:bg-blue-800/50 rounded-lg">
+                      <Building2 className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                     </div>
-                    <p className="text-xs text-blue-700">
+                    <p className="text-xs text-blue-700 dark:text-blue-300">
                       Connectez-vous avec vos identifiants BoondManager
                     </p>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                       Email BoondManager
                     </label>
                     <div className="relative group">
@@ -281,7 +284,7 @@ export default function LoginPage() {
                         type="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        className="w-full pl-12 pr-4 py-3.5 bg-white/50 border border-slate-200 rounded-xl text-slate-800 placeholder:text-slate-400 focus:border-ebmc-turquoise focus:ring-2 focus:ring-ebmc-turquoise/20 outline-none transition-all"
+                        className="w-full pl-12 pr-4 py-3.5 bg-white/50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-800 dark:text-white placeholder:text-slate-400 focus:border-ebmc-turquoise focus:ring-2 focus:ring-ebmc-turquoise/20 outline-none transition-all"
                         placeholder="vous@entreprise.com"
                         required
                         autoComplete="email"
@@ -290,7 +293,7 @@ export default function LoginPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                       Mot de passe BoondManager
                     </label>
                     <div className="relative group">
@@ -299,7 +302,7 @@ export default function LoginPage() {
                         type="password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="w-full pl-12 pr-4 py-3.5 bg-white/50 border border-slate-200 rounded-xl text-slate-800 placeholder:text-slate-400 focus:border-ebmc-turquoise focus:ring-2 focus:ring-ebmc-turquoise/20 outline-none transition-all"
+                        className="w-full pl-12 pr-4 py-3.5 bg-white/50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-800 dark:text-white placeholder:text-slate-400 focus:border-ebmc-turquoise focus:ring-2 focus:ring-ebmc-turquoise/20 outline-none transition-all"
                         placeholder="••••••••"
                         required
                         autoComplete="current-password"
@@ -343,24 +346,24 @@ export default function LoginPage() {
 
             {/* Demo Users Section - only shown in standard mode */}
             {authMode === 'standard' && (
-              <div className="mt-8 pt-6 border-t border-slate-200/60">
+              <div className="mt-8 pt-6 border-t border-slate-200/60 dark:border-slate-700">
                 <div className="flex items-center gap-2 mb-4">
                   <Users className="w-4 h-4 text-slate-400" />
-                  <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">Comptes de test</span>
+                  <span className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Comptes de test</span>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   {demoUsers.map((user) => (
                     <button
                       key={user.email}
                       onClick={() => fillDemoCredentials(user.email, user.password)}
-                      className="group p-2.5 rounded-lg bg-slate-50 hover:bg-white border border-slate-100 hover:border-slate-200 transition-all text-left"
+                      className="group p-2.5 rounded-lg bg-slate-50 dark:bg-slate-700/50 hover:bg-white dark:hover:bg-slate-600/50 border border-slate-100 dark:border-slate-600 hover:border-slate-200 dark:hover:border-slate-500 transition-all text-left"
                     >
                       <div className="flex items-center gap-2">
                         <div className={`w-6 h-6 rounded-full bg-gradient-to-r ${user.color} flex items-center justify-center`}>
                           <span className="text-white text-xs font-bold">{user.role.charAt(0)}</span>
                         </div>
                         <div className="min-w-0">
-                          <p className="text-xs font-medium text-slate-700 truncate">{user.role}</p>
+                          <p className="text-xs font-medium text-slate-700 dark:text-slate-200 truncate">{user.role}</p>
                           <p className="text-[10px] text-slate-400 truncate">{user.email.split('@')[0]}</p>
                         </div>
                       </div>
@@ -372,7 +375,7 @@ export default function LoginPage() {
 
             {/* BoondManager hint */}
             {authMode === 'boondmanager' && (
-              <div className="mt-8 pt-6 border-t border-slate-200/60 text-center">
+              <div className="mt-8 pt-6 border-t border-slate-200/60 dark:border-slate-700 text-center">
                 <p className="text-slate-400 text-xs">
                   Activez l&apos;API REST dans votre profil BoondManager
                 </p>
