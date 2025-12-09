@@ -16,7 +16,10 @@ import {
   CheckCircle,
   Clock,
   Target,
-  Kanban
+  Kanban,
+  Filter,
+  X,
+  ChevronDown
 } from 'lucide-react'
 import {
   BarChart,
@@ -104,6 +107,9 @@ export default function SourceurDashboard() {
   const [isDemo, setIsDemo] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [userName, setUserName] = useState<string>('')
+  const [statusFilter, setStatusFilter] = useState<number | null>(null)
+  const [sourceFilter, setSourceFilter] = useState<string | null>(null)
+  const [showFilters, setShowFilters] = useState(false)
 
   const fetchData = async () => {
     setLoading(true)
@@ -140,11 +146,28 @@ export default function SourceurDashboard() {
     fetchData()
   }, [])
 
-  const filteredCandidates = candidates.filter(c =>
-    `${c.attributes.firstName} ${c.attributes.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    c.attributes.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    c.attributes.title?.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  // Get unique sources for filter dropdown
+  const uniqueSources = Array.from(new Set(candidates.map(c => c.attributes.source).filter(Boolean))) as string[]
+
+  const filteredCandidates = candidates.filter(c => {
+    const matchesSearch = searchQuery === '' ||
+      `${c.attributes.firstName} ${c.attributes.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      c.attributes.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      c.attributes.title?.toLowerCase().includes(searchQuery.toLowerCase())
+
+    const matchesStatus = statusFilter === null || c.attributes.state === statusFilter
+    const matchesSource = sourceFilter === null || c.attributes.source === sourceFilter
+
+    return matchesSearch && matchesStatus && matchesSource
+  })
+
+  const clearFilters = () => {
+    setStatusFilter(null)
+    setSourceFilter(null)
+    setSearchQuery('')
+  }
+
+  const hasActiveFilters = statusFilter !== null || sourceFilter !== null || searchQuery !== ''
 
   const pieData = stats?.candidates?.byState
     ? Object.entries(stats.candidates.byState).map(([state, count]) => ({
@@ -423,6 +446,125 @@ export default function SourceurDashboard() {
         </motion.div>
       </div>
 
+      {/* Search and Filters Section */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.75 }}
+        className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100"
+      >
+        <div className="flex flex-col gap-4">
+          {/* Search Bar */}
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Rechercher un candidat (nom, email, poste)..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise text-lg"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-100 rounded-full"
+                >
+                  <X className="w-4 h-4 text-gray-400" />
+                </button>
+              )}
+            </div>
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className={`flex items-center gap-2 px-4 py-3 border rounded-xl transition ${
+                showFilters || hasActiveFilters
+                  ? 'bg-ebmc-turquoise text-white border-ebmc-turquoise'
+                  : 'border-gray-200 hover:bg-gray-50 text-gray-700'
+              }`}
+            >
+              <Filter className="w-5 h-5" />
+              Filtres
+              {hasActiveFilters && (
+                <span className="ml-1 px-2 py-0.5 bg-white/20 rounded-full text-xs">
+                  {[statusFilter !== null, sourceFilter !== null].filter(Boolean).length}
+                </span>
+              )}
+              <ChevronDown className={`w-4 h-4 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
+            </button>
+          </div>
+
+          {/* Filters Panel */}
+          {showFilters && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="flex flex-wrap gap-4 pt-4 border-t border-gray-100"
+            >
+              {/* Status Filter */}
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium text-gray-600">Statut</label>
+                <select
+                  value={statusFilter ?? ''}
+                  onChange={(e) => setStatusFilter(e.target.value ? parseInt(e.target.value) : null)}
+                  className="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise min-w-[180px]"
+                >
+                  <option value="">Tous les statuts</option>
+                  {Object.entries(CANDIDATE_STATES).map(([key, label]) => (
+                    <option key={key} value={key}>{label}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Source Filter */}
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium text-gray-600">Source</label>
+                <select
+                  value={sourceFilter ?? ''}
+                  onChange={(e) => setSourceFilter(e.target.value || null)}
+                  className="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise min-w-[180px]"
+                >
+                  <option value="">Toutes les sources</option>
+                  {uniqueSources.map(source => (
+                    <option key={source} value={source}>{source}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Clear Filters */}
+              {hasActiveFilters && (
+                <div className="flex items-end">
+                  <button
+                    onClick={clearFilters}
+                    className="flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition"
+                  >
+                    <X className="w-4 h-4" />
+                    Effacer les filtres
+                  </button>
+                </div>
+              )}
+            </motion.div>
+          )}
+
+          {/* Results count */}
+          {hasActiveFilters && (
+            <div className="flex items-center gap-2 text-sm text-gray-500">
+              <span>{filteredCandidates.length} candidat{filteredCandidates.length > 1 ? 's' : ''} trouve{filteredCandidates.length > 1 ? 's' : ''}</span>
+              {statusFilter !== null && (
+                <span className="px-2 py-1 bg-gray-100 rounded-full text-xs">
+                  {CANDIDATE_STATES[statusFilter]}
+                </span>
+              )}
+              {sourceFilter && (
+                <span className="px-2 py-1 bg-gray-100 rounded-full text-xs">
+                  {sourceFilter}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+      </motion.div>
+
       {/* Candidates List */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -431,18 +573,9 @@ export default function SourceurDashboard() {
         className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
       >
         <div className="p-6 border-b border-gray-100">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold text-gray-900">Mes candidats</h3>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Rechercher..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise"
-              />
-            </div>
+            <span className="text-sm text-gray-500">{filteredCandidates.length} sur {candidates.length}</span>
           </div>
         </div>
 

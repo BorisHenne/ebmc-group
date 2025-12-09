@@ -18,7 +18,10 @@ import {
   Target,
   Building2,
   Calendar,
-  Kanban
+  Kanban,
+  Filter,
+  X,
+  ChevronDown
 } from 'lucide-react'
 import {
   BarChart,
@@ -115,6 +118,12 @@ export default function CommercialDashboard() {
   const [searchQuery, setSearchQuery] = useState('')
   const [activeTab, setActiveTab] = useState<'opportunities' | 'resources'>('opportunities')
   const [userName, setUserName] = useState<string>('')
+  // Filters for opportunities
+  const [oppStatusFilter, setOppStatusFilter] = useState<number | null>(null)
+  const [tjmMinFilter, setTjmMinFilter] = useState<string>('')
+  // Filters for resources
+  const [resourceStatusFilter, setResourceStatusFilter] = useState<number | null>(null)
+  const [showFilters, setShowFilters] = useState(false)
 
   const fetchData = async () => {
     setLoading(true)
@@ -157,15 +166,35 @@ export default function CommercialDashboard() {
     fetchData()
   }, [])
 
-  const filteredOpportunities = opportunities.filter(o =>
-    o.attributes.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    o.attributes.reference?.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  const filteredOpportunities = opportunities.filter(o => {
+    const matchesSearch = searchQuery === '' ||
+      o.attributes.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      o.attributes.reference?.toLowerCase().includes(searchQuery.toLowerCase())
 
-  const filteredResources = resources.filter(r =>
-    `${r.attributes.firstName} ${r.attributes.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    r.attributes.title?.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+    const matchesStatus = oppStatusFilter === null || o.attributes.state === oppStatusFilter
+    const matchesTjm = tjmMinFilter === '' || (o.attributes.dailyRate && o.attributes.dailyRate >= parseInt(tjmMinFilter))
+
+    return matchesSearch && matchesStatus && matchesTjm
+  })
+
+  const filteredResources = resources.filter(r => {
+    const matchesSearch = searchQuery === '' ||
+      `${r.attributes.firstName} ${r.attributes.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      r.attributes.title?.toLowerCase().includes(searchQuery.toLowerCase())
+
+    const matchesStatus = resourceStatusFilter === null || r.attributes.state === resourceStatusFilter
+
+    return matchesSearch && matchesStatus
+  })
+
+  const clearFilters = () => {
+    setSearchQuery('')
+    setOppStatusFilter(null)
+    setTjmMinFilter('')
+    setResourceStatusFilter(null)
+  }
+
+  const hasActiveFilters = searchQuery !== '' || oppStatusFilter !== null || tjmMinFilter !== '' || resourceStatusFilter !== null
 
   const opportunityPieData = stats?.opportunities?.byState
     ? Object.entries(stats.opportunities.byState).map(([state, count]) => ({
@@ -459,6 +488,177 @@ export default function CommercialDashboard() {
         </div>
       </motion.div>
 
+      {/* Search and Filters Section */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.65 }}
+        className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100"
+      >
+        <div className="flex flex-col gap-4">
+          {/* Search Bar */}
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <input
+                type="text"
+                placeholder={activeTab === 'opportunities'
+                  ? "Rechercher une opportunite (titre, reference)..."
+                  : "Rechercher un consultant (nom, poste)..."}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise text-lg"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-100 rounded-full"
+                >
+                  <X className="w-4 h-4 text-gray-400" />
+                </button>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setActiveTab('opportunities')}
+                className={`flex items-center gap-2 px-4 py-3 rounded-xl transition ${
+                  activeTab === 'opportunities'
+                    ? 'bg-blue-500 text-white'
+                    : 'border border-gray-200 hover:bg-gray-50 text-gray-700'
+                }`}
+              >
+                <Briefcase className="w-4 h-4" />
+                Opportunites
+              </button>
+              <button
+                onClick={() => setActiveTab('resources')}
+                className={`flex items-center gap-2 px-4 py-3 rounded-xl transition ${
+                  activeTab === 'resources'
+                    ? 'bg-purple-500 text-white'
+                    : 'border border-gray-200 hover:bg-gray-50 text-gray-700'
+                }`}
+              >
+                <Users className="w-4 h-4" />
+                Consultants
+              </button>
+            </div>
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className={`flex items-center gap-2 px-4 py-3 border rounded-xl transition ${
+                showFilters || hasActiveFilters
+                  ? 'bg-ebmc-turquoise text-white border-ebmc-turquoise'
+                  : 'border-gray-200 hover:bg-gray-50 text-gray-700'
+              }`}
+            >
+              <Filter className="w-5 h-5" />
+              Filtres
+              <ChevronDown className={`w-4 h-4 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
+            </button>
+          </div>
+
+          {/* Filters Panel */}
+          {showFilters && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="flex flex-wrap gap-4 pt-4 border-t border-gray-100"
+            >
+              {activeTab === 'opportunities' ? (
+                <>
+                  {/* Opportunity Status Filter */}
+                  <div className="flex flex-col gap-2">
+                    <label className="text-sm font-medium text-gray-600">Statut opportunite</label>
+                    <select
+                      value={oppStatusFilter ?? ''}
+                      onChange={(e) => setOppStatusFilter(e.target.value ? parseInt(e.target.value) : null)}
+                      className="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise min-w-[180px]"
+                    >
+                      <option value="">Tous les statuts</option>
+                      {Object.entries(OPPORTUNITY_STATES).map(([key, label]) => (
+                        <option key={key} value={key}>{label}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* TJM Min Filter */}
+                  <div className="flex flex-col gap-2">
+                    <label className="text-sm font-medium text-gray-600">TJM minimum</label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        placeholder="Ex: 500"
+                        value={tjmMinFilter}
+                        onChange={(e) => setTjmMinFilter(e.target.value)}
+                        className="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise w-[180px]"
+                      />
+                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400">€/j</span>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  {/* Resource Status Filter */}
+                  <div className="flex flex-col gap-2">
+                    <label className="text-sm font-medium text-gray-600">Statut consultant</label>
+                    <select
+                      value={resourceStatusFilter ?? ''}
+                      onChange={(e) => setResourceStatusFilter(e.target.value ? parseInt(e.target.value) : null)}
+                      className="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise min-w-[180px]"
+                    >
+                      <option value="">Tous les statuts</option>
+                      {Object.entries(RESOURCE_STATES).map(([key, label]) => (
+                        <option key={key} value={key}>{label}</option>
+                      ))}
+                    </select>
+                  </div>
+                </>
+              )}
+
+              {/* Clear Filters */}
+              {hasActiveFilters && (
+                <div className="flex items-end">
+                  <button
+                    onClick={clearFilters}
+                    className="flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition"
+                  >
+                    <X className="w-4 h-4" />
+                    Effacer les filtres
+                  </button>
+                </div>
+              )}
+            </motion.div>
+          )}
+
+          {/* Results count */}
+          {hasActiveFilters && (
+            <div className="flex items-center gap-2 text-sm text-gray-500">
+              <span>
+                {activeTab === 'opportunities'
+                  ? `${filteredOpportunities.length} opportunite${filteredOpportunities.length > 1 ? 's' : ''} trouvee${filteredOpportunities.length > 1 ? 's' : ''}`
+                  : `${filteredResources.length} consultant${filteredResources.length > 1 ? 's' : ''} trouve${filteredResources.length > 1 ? 's' : ''}`
+                }
+              </span>
+              {activeTab === 'opportunities' && oppStatusFilter !== null && (
+                <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs">
+                  {OPPORTUNITY_STATES[oppStatusFilter]}
+                </span>
+              )}
+              {activeTab === 'opportunities' && tjmMinFilter && (
+                <span className="px-2 py-1 bg-amber-100 text-amber-700 rounded-full text-xs">
+                  TJM &ge; {tjmMinFilter}€
+                </span>
+              )}
+              {activeTab === 'resources' && resourceStatusFilter !== null && (
+                <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs">
+                  {RESOURCE_STATES[resourceStatusFilter]}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+      </motion.div>
+
       {/* Data Tables */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Opportunities List */}
@@ -474,7 +674,7 @@ export default function CommercialDashboard() {
                 <Target className="w-5 h-5 text-blue-500" />
                 Mes opportunites
               </h3>
-              <span className="text-sm text-gray-500">{opportunities.length} total</span>
+              <span className="text-sm text-gray-500">{filteredOpportunities.length} sur {opportunities.length}</span>
             </div>
           </div>
 
@@ -519,7 +719,7 @@ export default function CommercialDashboard() {
                 <Users className="w-5 h-5 text-purple-500" />
                 Mes consultants
               </h3>
-              <span className="text-sm text-gray-500">{resources.length} total</span>
+              <span className="text-sm text-gray-500">{filteredResources.length} sur {resources.length}</span>
             </div>
           </div>
 

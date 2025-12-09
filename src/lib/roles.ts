@@ -55,7 +55,7 @@ export const ROLE_PERMISSIONS: Record<RoleType, RolePermissions> = {
     dashboard: false, // Sourceur uses their specific dashboard
     sourceurDashboard: true,
     commercialDashboard: false,
-    jobs: false,
+    jobs: true, // Access to job offers management
     consultants: true,
     messages: true,
     users: false,
