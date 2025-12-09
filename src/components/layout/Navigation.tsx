@@ -81,7 +81,7 @@ export function Navigation({ currentPage = 'home', variant = 'dark' }: Navigatio
 
             {/* Right side */}
             <div className="hidden lg:flex items-center gap-4">
-              <LanguageSwitcher locale={locale} />
+              <LanguageSwitcher locale={locale} variant={variant} />
               <Link
                 href="/login"
                 className={`flex items-center gap-2 px-4 py-2 text-sm transition ${
@@ -101,7 +101,7 @@ export function Navigation({ currentPage = 'home', variant = 'dark' }: Navigatio
 
             {/* Mobile menu button */}
             <div className="flex items-center gap-4 lg:hidden">
-              <LanguageSwitcher locale={locale} />
+              <LanguageSwitcher locale={locale} variant={variant} />
               <button
                 className={`p-2 ${isLight ? 'text-slate-800' : 'text-white'}`}
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
