@@ -1,5 +1,93 @@
 import { NextResponse } from 'next/server'
 import { connectToDatabase } from '@/lib/mongodb'
+import { generateDemoCandidates } from '@/types/candidate'
+import bcrypt from 'bcryptjs'
+
+// ============================================================================
+// DEMO USERS - All roles represented
+// ============================================================================
+
+const defaultUsers = [
+  // Bureau roles
+  {
+    name: 'Admin Demo',
+    email: 'admin@ebmc.fr',
+    password: 'demo123',
+    role: 'admin',
+    active: true
+  },
+  {
+    name: 'Sophie Martin',
+    email: 'sophie.martin@ebmc.fr',
+    password: 'demo123',
+    role: 'commercial',
+    active: true
+  },
+  {
+    name: 'Lucas Bernard',
+    email: 'lucas.bernard@ebmc.fr',
+    password: 'demo123',
+    role: 'commercial',
+    active: true
+  },
+  {
+    name: 'Emma Dubois',
+    email: 'emma.dubois@ebmc.fr',
+    password: 'demo123',
+    role: 'sourceur',
+    active: true
+  },
+  {
+    name: 'Thomas Petit',
+    email: 'thomas.petit@ebmc.fr',
+    password: 'demo123',
+    role: 'sourceur',
+    active: true
+  },
+  {
+    name: 'Marie Leroy',
+    email: 'marie.leroy@ebmc.fr',
+    password: 'demo123',
+    role: 'rh',
+    active: true
+  },
+  // Terrain roles
+  {
+    name: 'Alexandre Martin',
+    email: 'alexandre.martin@consultant.ebmc.fr',
+    password: 'demo123',
+    role: 'consultant_cdi',
+    active: true
+  },
+  {
+    name: 'Julie Moreau',
+    email: 'julie.moreau@consultant.ebmc.fr',
+    password: 'demo123',
+    role: 'consultant_cdi',
+    active: true
+  },
+  {
+    name: 'Nicolas Laurent',
+    email: 'nicolas.laurent@freelance.ebmc.fr',
+    password: 'demo123',
+    role: 'freelance',
+    active: true
+  },
+  {
+    name: 'Camille Roux',
+    email: 'camille.roux@freelance.ebmc.fr',
+    password: 'demo123',
+    role: 'freelance',
+    active: true
+  },
+  {
+    name: 'Pierre Dupont',
+    email: 'pierre.dupont@candidat.ebmc.fr',
+    password: 'demo123',
+    role: 'candidat',
+    active: true
+  }
+]
 
 // Default jobs data
 const defaultJobs = [
@@ -261,14 +349,34 @@ export async function GET() {
   try {
     const db = await connectToDatabase()
 
+    // Total counts
     const jobsCount = await db.collection('jobs').countDocuments()
     const consultantsCount = await db.collection('consultants').countDocuments()
     const messagesCount = await db.collection('messages').countDocuments()
     const usersCount = await db.collection('users').countDocuments()
+    const candidatesCount = await db.collection('candidates').countDocuments()
+
+    // Demo counts
+    const demoJobsCount = await db.collection('jobs').countDocuments({ isDemo: true })
+    const demoConsultantsCount = await db.collection('consultants').countDocuments({ isDemo: true })
+    const demoUsersCount = await db.collection('users').countDocuments({ isDemo: true })
+    const demoCandidatesCount = await db.collection('candidates').countDocuments({ isDemo: true })
 
     // Get sample data
     const jobs = await db.collection('jobs').find({}).limit(5).toArray()
     const consultants = await db.collection('consultants').find({}).limit(5).toArray()
+    const users = await db.collection('users').find({}).limit(10).toArray()
+    const candidates = await db.collection('candidates').find({}).limit(5).toArray()
+
+    // Count users by role
+    const usersByRole = await db.collection('users').aggregate([
+      { $group: { _id: '$role', count: { $sum: 1 } } }
+    ]).toArray()
+
+    // Count candidates by status
+    const candidatesByStatus = await db.collection('candidates').aggregate([
+      { $group: { _id: '$status', count: { $sum: 1 } } }
+    ]).toArray()
 
     return NextResponse.json({
       status: 'ok',
@@ -277,14 +385,35 @@ export async function GET() {
         consultants: consultantsCount,
         messages: messagesCount,
         users: usersCount,
+        candidates: candidatesCount,
+      },
+      demoCounts: {
+        jobs: demoJobsCount,
+        consultants: demoConsultantsCount,
+        users: demoUsersCount,
+        candidates: demoCandidatesCount,
+      },
+      realCounts: {
+        jobs: jobsCount - demoJobsCount,
+        consultants: consultantsCount - demoConsultantsCount,
+        users: usersCount - demoUsersCount,
+        candidates: candidatesCount - demoCandidatesCount,
       },
       samples: {
-        jobs: jobs.map(j => ({ id: j._id.toString(), title: j.title, active: j.active })),
-        consultants: consultants.map(c => ({ id: c._id.toString(), name: c.name, available: c.available })),
+        jobs: jobs.map(j => ({ id: j._id.toString(), title: j.title, active: j.active, isDemo: j.isDemo || false })),
+        consultants: consultants.map(c => ({ id: c._id.toString(), name: c.name, available: c.available, isDemo: c.isDemo || false })),
+        users: users.map(u => ({ id: u._id.toString(), name: u.name, email: u.email, role: u.role, isDemo: u.isDemo || false })),
+        candidates: candidates.map(c => ({ id: c.id, name: `${c.firstName} ${c.lastName}`, status: c.status, isDemo: c.isDemo || false })),
+      },
+      breakdowns: {
+        usersByRole: usersByRole.reduce((acc, r) => ({ ...acc, [r._id]: r.count }), {}),
+        candidatesByStatus: candidatesByStatus.reduce((acc, s) => ({ ...acc, [s._id]: s.count }), {}),
       },
       defaultDataAvailable: {
         jobs: defaultJobs.length,
         consultants: defaultConsultants.length,
+        users: defaultUsers.length,
+        candidates: '30 (généré dynamiquement)',
       },
     })
   } catch (error) {
@@ -304,56 +433,133 @@ export async function POST(request: Request) {
 
     switch (action) {
       case 'seed':
-        // Only add if collections are empty
-        const existingJobs = await db.collection('jobs').countDocuments()
-        const existingConsultants = await db.collection('consultants').countDocuments()
+        // Only add if no demo data exists (check for isDemo flag)
+        const existingDemoJobs = await db.collection('jobs').countDocuments({ isDemo: true })
+        const existingDemoConsultants = await db.collection('consultants').countDocuments({ isDemo: true })
+        const existingDemoUsers = await db.collection('users').countDocuments({ isDemo: true })
+        const existingDemoCandidates = await db.collection('candidates').countDocuments({ isDemo: true })
 
-        if (existingJobs === 0) {
+        // Seed jobs with demo tag
+        if (existingDemoJobs === 0) {
           const jobsWithDates = defaultJobs.map(job => ({
             ...job,
+            isDemo: true,
             createdAt: new Date(),
             updatedAt: new Date(),
           }))
           const jobsResult = await db.collection('jobs').insertMany(jobsWithDates)
           results.jobs = { inserted: jobsResult.insertedCount }
         } else {
-          results.jobs = { skipped: true, existing: existingJobs }
+          results.jobs = { skipped: true, existing: existingDemoJobs }
         }
 
-        if (existingConsultants === 0) {
+        // Seed consultants with demo tag
+        if (existingDemoConsultants === 0) {
           const consultantsWithDates = defaultConsultants.map(consultant => ({
             ...consultant,
+            isDemo: true,
             createdAt: new Date(),
             updatedAt: new Date(),
           }))
           const consultantsResult = await db.collection('consultants').insertMany(consultantsWithDates)
           results.consultants = { inserted: consultantsResult.insertedCount }
         } else {
-          results.consultants = { skipped: true, existing: existingConsultants }
+          results.consultants = { skipped: true, existing: existingDemoConsultants }
+        }
+
+        // Seed users with demo tag
+        if (existingDemoUsers === 0) {
+          const usersWithHash = await Promise.all(defaultUsers.map(async user => ({
+            name: user.name,
+            email: user.email,
+            password: await bcrypt.hash(user.password, 10),
+            role: user.role,
+            active: user.active,
+            isDemo: true,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          })))
+          const usersResult = await db.collection('users').insertMany(usersWithHash)
+          results.users = { inserted: usersResult.insertedCount }
+        } else {
+          results.users = { skipped: true, existing: existingDemoUsers }
+        }
+
+        // Seed candidates with demo tag
+        if (existingDemoCandidates === 0) {
+          const demoCandidates = generateDemoCandidates(30, 42).map(c => ({
+            ...c,
+            isDemo: true,
+          }))
+          const candidatesResult = await db.collection('candidates').insertMany(demoCandidates)
+          results.candidates = { inserted: candidatesResult.insertedCount }
+        } else {
+          results.candidates = { skipped: true, existing: existingDemoCandidates }
         }
         break
 
       case 'reset':
-        // Delete all and re-insert default data
-        await db.collection('jobs').deleteMany({})
-        await db.collection('consultants').deleteMany({})
+        // Delete only demo data and re-insert
+        await db.collection('jobs').deleteMany({ isDemo: true })
+        await db.collection('consultants').deleteMany({ isDemo: true })
+        await db.collection('users').deleteMany({ isDemo: true })
+        await db.collection('candidates').deleteMany({ isDemo: true })
 
+        // Insert jobs with demo tag
         const jobsWithDates = defaultJobs.map(job => ({
           ...job,
+          isDemo: true,
           createdAt: new Date(),
           updatedAt: new Date(),
         }))
+        const jobsInsert = await db.collection('jobs').insertMany(jobsWithDates)
+
+        // Insert consultants with demo tag
         const consultantsWithDates = defaultConsultants.map(consultant => ({
           ...consultant,
+          isDemo: true,
           createdAt: new Date(),
           updatedAt: new Date(),
         }))
-
-        const jobsInsert = await db.collection('jobs').insertMany(jobsWithDates)
         const consultantsInsert = await db.collection('consultants').insertMany(consultantsWithDates)
+
+        // Insert users with hashed passwords and demo tag
+        const usersWithHash = await Promise.all(defaultUsers.map(async user => ({
+          name: user.name,
+          email: user.email,
+          password: await bcrypt.hash(user.password, 10),
+          role: user.role,
+          active: user.active,
+          isDemo: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })))
+        const usersInsert = await db.collection('users').insertMany(usersWithHash)
+
+        // Insert generated candidates with demo tag
+        const demoCandidates = generateDemoCandidates(30, 42).map(c => ({
+          ...c,
+          isDemo: true,
+        }))
+        const candidatesInsert = await db.collection('candidates').insertMany(demoCandidates)
 
         results.jobs = { reset: true, inserted: jobsInsert.insertedCount }
         results.consultants = { reset: true, inserted: consultantsInsert.insertedCount }
+        results.users = { reset: true, inserted: usersInsert.insertedCount }
+        results.candidates = { reset: true, inserted: candidatesInsert.insertedCount }
+        break
+
+      case 'clear-demo':
+        // Clear only demo data (preserves real data)
+        const demoJobsDel = await db.collection('jobs').deleteMany({ isDemo: true })
+        const demoConsultantsDel = await db.collection('consultants').deleteMany({ isDemo: true })
+        const demoUsersDel = await db.collection('users').deleteMany({ isDemo: true })
+        const demoCandidatesDel = await db.collection('candidates').deleteMany({ isDemo: true })
+
+        results.jobs = { cleared: true, deleted: demoJobsDel.deletedCount, demoOnly: true }
+        results.consultants = { cleared: true, deleted: demoConsultantsDel.deletedCount, demoOnly: true }
+        results.users = { cleared: true, deleted: demoUsersDel.deletedCount, demoOnly: true }
+        results.candidates = { cleared: true, deleted: demoCandidatesDel.deletedCount, demoOnly: true }
         break
 
       case 'clear':
@@ -368,13 +574,23 @@ export async function POST(request: Request) {
         } else if (collection === 'messages') {
           const deleted = await db.collection('messages').deleteMany({})
           results.messages = { cleared: true, deleted: deleted.deletedCount }
+        } else if (collection === 'users') {
+          const deleted = await db.collection('users').deleteMany({})
+          results.users = { cleared: true, deleted: deleted.deletedCount }
+        } else if (collection === 'candidates') {
+          const deleted = await db.collection('candidates').deleteMany({})
+          results.candidates = { cleared: true, deleted: deleted.deletedCount }
         } else if (collection === 'all') {
           const jobsDel = await db.collection('jobs').deleteMany({})
           const consultantsDel = await db.collection('consultants').deleteMany({})
           const messagesDel = await db.collection('messages').deleteMany({})
+          const usersDel = await db.collection('users').deleteMany({})
+          const candidatesDel = await db.collection('candidates').deleteMany({})
           results.jobs = { cleared: true, deleted: jobsDel.deletedCount }
           results.consultants = { cleared: true, deleted: consultantsDel.deletedCount }
           results.messages = { cleared: true, deleted: messagesDel.deletedCount }
+          results.users = { cleared: true, deleted: usersDel.deletedCount }
+          results.candidates = { cleared: true, deleted: candidatesDel.deletedCount }
         }
         break
 
