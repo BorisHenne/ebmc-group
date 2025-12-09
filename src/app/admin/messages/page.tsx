@@ -66,29 +66,29 @@ export default function MessagesPage() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Messages</h1>
-        <p className="text-gray-600 mt-2">Messages reçus via le formulaire de contact</p>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Messages</h1>
+        <p className="text-gray-600 dark:text-gray-300 mt-2">Messages reçus via le formulaire de contact</p>
       </div>
 
       {/* Messages List */}
-      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm overflow-hidden">
         {loading ? (
           <div className="flex justify-center py-12">
             <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
           </div>
         ) : messages.length === 0 ? (
-          <div className="text-center py-12 text-gray-500">
+          <div className="text-center py-12 text-gray-500 dark:text-gray-400">
             <Mail className="w-12 h-12 mx-auto mb-4 opacity-50" />
             Aucun message reçu
           </div>
         ) : (
-          <div className="divide-y">
+          <div className="divide-y divide-gray-100 dark:divide-slate-700">
             {messages.map((message) => (
               <motion.div
                 key={message._id}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className={`p-6 hover:bg-gray-50 cursor-pointer ${!message.read ? 'bg-blue-50' : ''}`}
+                className={`p-6 hover:bg-gray-50 dark:hover:bg-slate-700 cursor-pointer ${!message.read ? 'bg-blue-50 dark:bg-blue-900/20' : ''}`}
                 onClick={() => {
                   setSelectedMessage(message)
                   if (!message.read) markAsRead(message._id)
@@ -97,19 +97,19 @@ export default function MessagesPage() {
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
                     <div className="flex items-center gap-3">
-                      <span className="font-medium text-gray-900">{message.name}</span>
+                      <span className="font-medium text-gray-900 dark:text-white">{message.name}</span>
                       {!message.read && (
                         <span className="px-2 py-0.5 bg-blue-600 text-white text-xs rounded-full">
                           Nouveau
                         </span>
                       )}
                     </div>
-                    <p className="text-sm text-gray-500">{message.email}</p>
-                    <p className="text-gray-700 mt-2 font-medium">{message.subject}</p>
-                    <p className="text-gray-500 text-sm mt-1 line-clamp-2">{message.message}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{message.email}</p>
+                    <p className="text-gray-700 dark:text-gray-300 mt-2 font-medium">{message.subject}</p>
+                    <p className="text-gray-500 dark:text-gray-400 text-sm mt-1 line-clamp-2">{message.message}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm text-gray-400">
+                    <p className="text-sm text-gray-400 dark:text-gray-500">
                       {new Date(message.createdAt).toLocaleDateString('fr-FR')}
                     </p>
                     <div className="flex gap-2 mt-2">
@@ -140,30 +140,30 @@ export default function MessagesPage() {
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[80vh] overflow-hidden"
+            className="bg-white dark:bg-slate-800 rounded-xl shadow-xl w-full max-w-2xl max-h-[80vh] overflow-hidden"
           >
-            <div className="flex justify-between items-center p-6 border-b">
-              <h2 className="text-xl font-semibold">{selectedMessage.subject}</h2>
+            <div className="flex justify-between items-center p-6 border-b border-gray-200 dark:border-slate-700">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{selectedMessage.subject}</h2>
               <button onClick={() => setSelectedMessage(null)}>
-                <X className="w-6 h-6 text-gray-400 hover:text-gray-600" />
+                <X className="w-6 h-6 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:bg-slate-700" />
               </button>
             </div>
             <div className="p-6 overflow-y-auto">
               <div className="mb-4">
-                <p className="text-gray-500 text-sm">De</p>
-                <p className="font-medium">{selectedMessage.name}</p>
+                <p className="text-gray-500 dark:text-gray-400 text-sm">De</p>
+                <p className="font-medium text-gray-900 dark:text-white">{selectedMessage.name}</p>
                 <p className="text-blue-600">{selectedMessage.email}</p>
               </div>
               <div className="mb-4">
-                <p className="text-gray-500 text-sm">Date</p>
-                <p>{new Date(selectedMessage.createdAt).toLocaleString('fr-FR')}</p>
+                <p className="text-gray-500 dark:text-gray-400 text-sm">Date</p>
+                <p className="text-gray-900 dark:text-white">{new Date(selectedMessage.createdAt).toLocaleString('fr-FR')}</p>
               </div>
               <div>
-                <p className="text-gray-500 text-sm mb-2">Message</p>
-                <p className="whitespace-pre-wrap">{selectedMessage.message}</p>
+                <p className="text-gray-500 dark:text-gray-400 text-sm mb-2">Message</p>
+                <p className="whitespace-pre-wrap text-gray-900 dark:text-white">{selectedMessage.message}</p>
               </div>
             </div>
-            <div className="flex justify-end gap-3 p-6 border-t bg-gray-50">
+            <div className="flex justify-end gap-3 p-6 border-t border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800">
               <a
                 href={`mailto:${selectedMessage.email}?subject=Re: ${selectedMessage.subject}`}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"

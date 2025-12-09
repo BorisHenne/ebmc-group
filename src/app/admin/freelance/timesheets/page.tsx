@@ -431,8 +431,8 @@ export default function TimesheetsPage() {
             <Clock className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Mes CRA</h1>
-            <p className="text-gray-500">Compte Rendu d&apos;Activité</p>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Mes CRA</h1>
+            <p className="text-gray-500 dark:text-gray-400">Compte Rendu d&apos;Activité</p>
           </div>
         </div>
         {timesheet && getStatusBadge(timesheet.status)}
@@ -442,21 +442,21 @@ export default function TimesheetsPage() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4"
+        className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700 p-4"
       >
         <div className="flex items-center justify-between">
           <button
             onClick={() => navigateMonth(-1)}
-            className="p-2 hover:bg-gray-100 rounded-lg transition"
+            className="p-2 hover:bg-gray-100 dark:hover:bg-slate-600 rounded-lg transition"
           >
-            <ChevronLeft className="w-5 h-5 text-gray-600" />
+            <ChevronLeft className="w-5 h-5 text-gray-600 dark:text-gray-300" />
           </button>
           <span className="text-lg font-semibold capitalize">{monthName}</span>
           <button
             onClick={() => navigateMonth(1)}
-            className="p-2 hover:bg-gray-100 rounded-lg transition"
+            className="p-2 hover:bg-gray-100 dark:hover:bg-slate-600 rounded-lg transition"
           >
-            <ChevronRight className="w-5 h-5 text-gray-600" />
+            <ChevronRight className="w-5 h-5 text-gray-600 dark:text-gray-300" />
           </button>
         </div>
       </motion.div>
@@ -466,14 +466,14 @@ export default function TimesheetsPage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.05 }}
-        className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4"
+        className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700 p-4"
       >
         <div className="flex flex-wrap items-center gap-4">
-          <span className="text-sm font-medium text-gray-600">Légende:</span>
+          <span className="text-sm font-medium text-gray-600 dark:text-gray-300">Légende:</span>
           {dayTypes.slice(0, 3).map(type => (
             <div key={type.value} className="flex items-center gap-2">
               <div className="w-4 h-4 rounded" style={{ backgroundColor: type.color }} />
-              <span className="text-sm text-gray-600">{type.label}</span>
+              <span className="text-sm text-gray-600 dark:text-gray-300">{type.label}</span>
             </div>
           ))}
         </div>
@@ -484,7 +484,7 @@ export default function TimesheetsPage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6"
+        className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700 p-6"
       >
         <FullCalendar
           ref={calendarRef}
@@ -502,7 +502,7 @@ export default function TimesheetsPage() {
           eventDisplay="block"
           dayCellClassNames={(arg) => {
             const dayOfWeek = arg.date.getDay()
-            return dayOfWeek === 0 || dayOfWeek === 6 ? 'bg-gray-50' : ''
+            return dayOfWeek === 0 || dayOfWeek === 6 ? 'bg-gray-50 dark:bg-slate-800' : ''
           }}
         />
 
@@ -556,7 +556,7 @@ export default function TimesheetsPage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.15 }}
-        className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6"
+        className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700 p-6"
       >
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="text-center p-4 bg-blue-50 rounded-xl">
@@ -583,10 +583,10 @@ export default function TimesheetsPage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6"
+        className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700 p-6"
       >
-        <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-          <FileText className="w-5 h-5 text-gray-600" />
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+          <FileText className="w-5 h-5 text-gray-600 dark:text-gray-300" />
           Documents justificatifs
         </h2>
 
@@ -596,7 +596,7 @@ export default function TimesheetsPage() {
             className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors ${
               dragOver
                 ? 'border-ebmc-turquoise bg-ebmc-turquoise/5'
-                : 'border-gray-200 hover:border-gray-300'
+                : 'border-gray-200 dark:border-slate-700 hover:border-gray-300'
             }`}
             onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
             onDragLeave={() => setDragOver(false)}
@@ -615,9 +615,9 @@ export default function TimesheetsPage() {
               onChange={(e) => handleFileUpload(e.target.files)}
             />
 
-            <Upload className={`w-10 h-10 mx-auto mb-3 ${dragOver ? 'text-ebmc-turquoise' : 'text-gray-400'}`} />
+            <Upload className={`w-10 h-10 mx-auto mb-3 ${dragOver ? 'text-ebmc-turquoise' : 'text-gray-400 dark:text-gray-500'}`} />
 
-            <p className="text-gray-600 mb-2">
+            <p className="text-gray-600 dark:text-gray-300 mb-2">
               Glissez-déposez vos fichiers ici ou{' '}
               <button
                 onClick={() => fileInputRef.current?.click()}
@@ -626,7 +626,7 @@ export default function TimesheetsPage() {
                 parcourez
               </button>
             </p>
-            <p className="text-sm text-gray-400">PDF, DOCX (max 10MB)</p>
+            <p className="text-sm text-gray-400 dark:text-gray-500">PDF, DOCX (max 10MB)</p>
 
             {uploading && (
               <div className="mt-4 flex items-center justify-center gap-2 text-ebmc-turquoise">
@@ -643,15 +643,15 @@ export default function TimesheetsPage() {
             {timesheet.documents.map((doc) => (
               <div
                 key={doc.id}
-                className="flex items-center justify-between p-3 bg-gray-50 rounded-lg group"
+                className="flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-800 rounded-lg group"
               >
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-white rounded-lg">
-                    <FileText className="w-5 h-5 text-gray-600" />
+                    <FileText className="w-5 h-5 text-gray-600 dark:text-gray-300" />
                   </div>
                   <div>
-                    <p className="font-medium text-gray-900 text-sm">{doc.name}</p>
-                    <p className="text-xs text-gray-500">
+                    <p className="font-medium text-gray-900 dark:text-white text-sm">{doc.name}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
                       {formatFileSize(doc.size)} - {new Date(doc.uploadedAt).toLocaleDateString('fr-FR')}
                     </p>
                   </div>
@@ -662,9 +662,9 @@ export default function TimesheetsPage() {
                     href={doc.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="p-2 hover:bg-gray-200 rounded-lg transition"
+                    className="p-2 hover:bg-gray-200 dark:hover:bg-slate-600 rounded-lg transition"
                   >
-                    <Download className="w-4 h-4 text-gray-600" />
+                    <Download className="w-4 h-4 text-gray-600 dark:text-gray-300" />
                   </a>
                   {timesheet.status === 'draft' && (
                     <button
@@ -681,7 +681,7 @@ export default function TimesheetsPage() {
         )}
 
         {(!timesheet?.documents || timesheet.documents.length === 0) && timesheet?.status !== 'draft' && (
-          <p className="text-gray-500 text-sm">Aucun document joint</p>
+          <p className="text-gray-500 dark:text-gray-400 text-sm">Aucun document joint</p>
         )}
       </motion.div>
 
@@ -696,7 +696,7 @@ export default function TimesheetsPage() {
           <button
             onClick={handleSave}
             disabled={saving}
-            className="flex items-center justify-center gap-2 px-6 py-3 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition disabled:opacity-50"
+            className="flex items-center justify-center gap-2 px-6 py-3 bg-white border border-gray-200 dark:border-slate-700 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-700 transition disabled:opacity-50"
           >
             {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
             Enregistrer brouillon
@@ -754,11 +754,11 @@ export default function TimesheetsPage() {
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl"
+              className="bg-white dark:bg-slate-800 rounded-2xl p-6 w-full max-w-md shadow-xl"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-semibold text-gray-900">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                   {new Date(selectedDay.date).toLocaleDateString('fr-FR', {
                     weekday: 'long',
                     day: 'numeric',
@@ -767,15 +767,15 @@ export default function TimesheetsPage() {
                 </h3>
                 <button
                   onClick={() => setSelectedDay(null)}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition"
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-slate-600 rounded-lg transition"
                 >
-                  <X className="w-5 h-5 text-gray-500" />
+                  <X className="w-5 h-5 text-gray-500 dark:text-gray-400" />
                 </button>
               </div>
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Type</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Type</label>
                   <div className="grid grid-cols-2 gap-2">
                     {dayTypes.slice(0, 3).map(type => (
                       <button
@@ -787,7 +787,7 @@ export default function TimesheetsPage() {
                         className={`p-3 rounded-lg border-2 transition ${
                           selectedDay.day.type === type.value
                             ? 'border-ebmc-turquoise bg-ebmc-turquoise/10'
-                            : 'border-gray-200 hover:border-gray-300'
+                            : 'border-gray-200 dark:border-slate-700 hover:border-gray-300'
                         }`}
                       >
                         <div className="flex items-center gap-2">
@@ -801,7 +801,7 @@ export default function TimesheetsPage() {
 
                 {selectedDay.day.type === 'worked' && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Heures</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Heures</label>
                     <input
                       type="number"
                       min="0"
@@ -812,13 +812,13 @@ export default function TimesheetsPage() {
                         ...selectedDay,
                         day: { ...selectedDay.day, hours: parseFloat(e.target.value) || 0 }
                       })}
-                      className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:border-ebmc-turquoise focus:ring-1 focus:ring-ebmc-turquoise"
+                      className="w-full px-4 py-2 border border-gray-200 dark:border-slate-700 rounded-lg focus:border-ebmc-turquoise focus:ring-1 focus:ring-ebmc-turquoise"
                     />
                   </div>
                 )}
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Commentaire</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Commentaire</label>
                   <textarea
                     value={selectedDay.day.comment}
                     onChange={(e) => setSelectedDay({
@@ -827,7 +827,7 @@ export default function TimesheetsPage() {
                     })}
                     placeholder="Optionnel..."
                     rows={2}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:border-ebmc-turquoise focus:ring-1 focus:ring-ebmc-turquoise resize-none"
+                    className="w-full px-4 py-2 border border-gray-200 dark:border-slate-700 rounded-lg focus:border-ebmc-turquoise focus:ring-1 focus:ring-ebmc-turquoise resize-none"
                   />
                 </div>
               </div>
@@ -835,7 +835,7 @@ export default function TimesheetsPage() {
               <div className="flex gap-3 mt-6">
                 <button
                   onClick={() => setSelectedDay(null)}
-                  className="flex-1 px-4 py-2 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition"
+                  className="flex-1 px-4 py-2 border border-gray-200 dark:border-slate-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition"
                 >
                   Annuler
                 </button>

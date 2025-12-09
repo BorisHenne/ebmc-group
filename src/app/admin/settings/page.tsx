@@ -216,7 +216,7 @@ export default function SettingsPage() {
     help?: string
   }) => (
     <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">
+      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
         {label}
       </label>
       <input
@@ -224,9 +224,9 @@ export default function SettingsPage() {
         value={settings[field] as string}
         onChange={(e) => updateSetting(field, e.target.value)}
         placeholder={placeholder}
-        className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-ebmc-turquoise focus:border-transparent transition"
+        className="w-full px-4 py-2 border border-gray-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-ebmc-turquoise focus:border-transparent transition"
       />
-      {help && <p className="mt-1 text-xs text-gray-500">{help}</p>}
+      {help && <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{help}</p>}
     </div>
   )
 
@@ -241,13 +241,13 @@ export default function SettingsPage() {
   }) => (
     <div className="flex items-center justify-between py-3">
       <div>
-        <p className="font-medium text-gray-900">{label}</p>
-        <p className="text-sm text-gray-500">{description}</p>
+        <p className="font-medium text-gray-900 dark:text-white">{label}</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400">{description}</p>
       </div>
       <button
         onClick={() => updateSetting(field, !settings[field])}
         className={`relative w-12 h-6 rounded-full transition ${
-          settings[field] ? 'bg-ebmc-turquoise' : 'bg-gray-300'
+          settings[field] ? 'bg-ebmc-turquoise' : 'bg-gray-300 dark:bg-slate-600'
         }`}
       >
         <span
@@ -271,8 +271,8 @@ export default function SettingsPage() {
     <div>
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Paramètres</h1>
-          <p className="text-gray-600 mt-2">Configuration du site et du backoffice</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Paramètres</h1>
+          <p className="text-gray-600 dark:text-gray-300 mt-2">Configuration du site et du backoffice</p>
         </div>
         <button
           onClick={handleSave}
@@ -293,7 +293,7 @@ export default function SettingsPage() {
       <div className="flex gap-6">
         {/* Sidebar */}
         <div className="w-64 flex-shrink-0">
-          <nav className="bg-white rounded-xl shadow-sm p-2 sticky top-24">
+          <nav className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-2 sticky top-24">
             {sections.map((section) => (
               <button
                 key={section.id}
@@ -301,7 +301,7 @@ export default function SettingsPage() {
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition ${
                   activeSection === section.id
                     ? 'bg-ebmc-turquoise text-white'
-                    : 'text-gray-600 hover:bg-gray-50'
+                    : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700'
                 }`}
               >
                 <section.icon className="w-5 h-5" />
@@ -318,9 +318,9 @@ export default function SettingsPage() {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-white rounded-xl shadow-sm p-6"
+              className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-6"
             >
-              <h2 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
                 <Building2 className="w-5 h-5 text-ebmc-turquoise" />
                 Informations de l&apos;entreprise
               </h2>
@@ -342,14 +342,14 @@ export default function SettingsPage() {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-white rounded-xl shadow-sm p-6"
+              className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-6"
             >
-              <h2 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
                 <Mail className="w-5 h-5 text-ebmc-turquoise" />
                 Coordonnées de contact
               </h2>
 
-              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">Emails</h3>
+              <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">Emails</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                 <InputField label="Email principal" field="emailContact" type="email" />
                 <InputField label="Email support" field="emailSupport" type="email" />
@@ -358,7 +358,7 @@ export default function SettingsPage() {
                 <InputField label="Email administration" field="emailAdmin" type="email" />
               </div>
 
-              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">Téléphones</h3>
+              <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">Téléphones</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <InputField label="Téléphone principal" field="phoneMain" type="tel" placeholder="+352 621 123 456" />
                 <InputField label="Téléphone mobile" field="phoneMobile" type="tel" />
@@ -372,9 +372,9 @@ export default function SettingsPage() {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-white rounded-xl shadow-sm p-6"
+              className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-6"
             >
-              <h2 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
                 <MapPin className="w-5 h-5 text-ebmc-turquoise" />
                 Adresse du siège social
               </h2>
@@ -398,20 +398,20 @@ export default function SettingsPage() {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-white rounded-xl shadow-sm p-6"
+              className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-6"
             >
-              <h2 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
                 <Globe className="w-5 h-5 text-ebmc-turquoise" />
                 Web & Réseaux sociaux
               </h2>
 
-              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">Site web</h3>
+              <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">Site web</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                 <InputField label="Nom de domaine" field="domain" placeholder="exemple.com" />
                 <InputField label="URL du site" field="websiteUrl" type="url" placeholder="https://www.exemple.com" />
               </div>
 
-              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">Réseaux sociaux</h3>
+              <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">Réseaux sociaux</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <InputField label="LinkedIn" field="linkedinUrl" type="url" placeholder="https://linkedin.com/company/..." />
                 <InputField label="Twitter / X" field="twitterUrl" type="url" placeholder="https://twitter.com/..." />
@@ -427,9 +427,9 @@ export default function SettingsPage() {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-white rounded-xl shadow-sm p-6"
+              className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-6"
             >
-              <h2 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
                 <FileText className="w-5 h-5 text-ebmc-turquoise" />
                 Informations légales
               </h2>
@@ -450,19 +450,19 @@ export default function SettingsPage() {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-white rounded-xl shadow-sm p-6"
+              className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-6"
             >
-              <h2 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
                 <CreditCard className="w-5 h-5 text-ebmc-turquoise" />
                 Paramètres métier
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Devise par défaut</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Devise par défaut</label>
                   <select
                     value={settings.defaultCurrency}
                     onChange={(e) => updateSetting('defaultCurrency', e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-ebmc-turquoise"
+                    className="w-full px-4 py-2 border border-gray-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-ebmc-turquoise"
                   >
                     <option value="EUR">EUR - Euro (€)</option>
                     <option value="USD">USD - Dollar ($)</option>
@@ -471,11 +471,11 @@ export default function SettingsPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Fuseau horaire</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Fuseau horaire</label>
                   <select
                     value={settings.defaultTimezone}
                     onChange={(e) => updateSetting('defaultTimezone', e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-ebmc-turquoise"
+                    className="w-full px-4 py-2 border border-gray-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-ebmc-turquoise"
                   >
                     <option value="Europe/Luxembourg">Europe/Luxembourg</option>
                     <option value="Europe/Paris">Europe/Paris</option>
@@ -485,11 +485,11 @@ export default function SettingsPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Langue par défaut</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Langue par défaut</label>
                   <select
                     value={settings.defaultLanguage}
                     onChange={(e) => updateSetting('defaultLanguage', e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-ebmc-turquoise"
+                    className="w-full px-4 py-2 border border-gray-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-ebmc-turquoise"
                   >
                     <option value="fr">Français</option>
                     <option value="en">English</option>
@@ -512,9 +512,9 @@ export default function SettingsPage() {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-white rounded-xl shadow-sm p-6"
+              className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-6"
             >
-              <h2 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
                 <Bell className="w-5 h-5 text-ebmc-turquoise" />
                 Notifications
               </h2>
@@ -556,14 +556,14 @@ export default function SettingsPage() {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-white rounded-xl shadow-sm p-6"
+              className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-6"
             >
-              <h2 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
                 <Link2 className="w-5 h-5 text-ebmc-turquoise" />
                 Intégrations
               </h2>
 
-              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">BoondManager</h3>
+              <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">BoondManager</h3>
               <div className="grid grid-cols-1 gap-6 mb-8">
                 <InputField
                   label="Sous-domaine Boond"
@@ -573,7 +573,7 @@ export default function SettingsPage() {
                 />
               </div>
 
-              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">Analytics</h3>
+              <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">Analytics</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <InputField
                   label="Google Analytics ID"
@@ -594,9 +594,9 @@ export default function SettingsPage() {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-white rounded-xl shadow-sm p-6"
+              className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-6"
             >
-              <h2 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
                 <Settings2 className="w-5 h-5 text-ebmc-turquoise" />
                 SEO & Métadonnées
               </h2>
@@ -607,16 +607,16 @@ export default function SettingsPage() {
                   help="Recommandé: 50-60 caractères"
                 />
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Description SEO (meta description)
                   </label>
                   <textarea
                     value={settings.metaDescription}
                     onChange={(e) => updateSetting('metaDescription', e.target.value)}
                     rows={3}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-ebmc-turquoise resize-none"
+                    className="w-full px-4 py-2 border border-gray-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-ebmc-turquoise resize-none"
                   />
-                  <p className="mt-1 text-xs text-gray-500">Recommandé: 150-160 caractères</p>
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Recommandé: 150-160 caractères</p>
                 </div>
                 <InputField
                   label="Mots-clés (meta keywords)"
@@ -632,18 +632,18 @@ export default function SettingsPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="bg-white rounded-xl shadow-sm p-6"
+            className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-6"
           >
-            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
               <Shield className="w-5 h-5 text-ebmc-turquoise" />
               Sécurité
             </h2>
-            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+            <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-800 rounded-lg">
               <div>
-                <p className="font-medium text-gray-900">Authentification à deux facteurs</p>
-                <p className="text-sm text-gray-500">Ajouter une couche de sécurité supplémentaire</p>
+                <p className="font-medium text-gray-900 dark:text-white">Authentification à deux facteurs</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Ajouter une couche de sécurité supplémentaire</p>
               </div>
-              <span className="px-3 py-1 bg-gray-200 text-gray-600 rounded-full text-sm">
+              <span className="px-3 py-1 bg-gray-200 dark:bg-slate-700 text-gray-600 dark:text-gray-300 rounded-full text-sm">
                 Bientôt disponible
               </span>
             </div>

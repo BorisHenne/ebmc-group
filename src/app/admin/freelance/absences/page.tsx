@@ -173,8 +173,8 @@ export default function AbsencesPage() {
             <Calendar className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Mes Absences</h1>
-            <p className="text-gray-500">Gérez vos demandes de congés</p>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Mes Absences</h1>
+            <p className="text-gray-500 dark:text-gray-400">Gérez vos demandes de congés</p>
           </div>
         </div>
 
@@ -193,20 +193,20 @@ export default function AbsencesPage() {
         animate={{ opacity: 1, y: 0 }}
         className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8"
       >
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-          <p className="text-sm text-gray-500">Solde total</p>
-          <p className="text-2xl font-bold text-gray-900">{balance.total}j</p>
+        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 p-4">
+          <p className="text-sm text-gray-500 dark:text-gray-400">Solde total</p>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white">{balance.total}j</p>
         </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-          <p className="text-sm text-gray-500">Utilisés</p>
+        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 p-4">
+          <p className="text-sm text-gray-500 dark:text-gray-400">Utilisés</p>
           <p className="text-2xl font-bold text-blue-600">{balance.used}j</p>
         </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-          <p className="text-sm text-gray-500">En attente</p>
+        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 p-4">
+          <p className="text-sm text-gray-500 dark:text-gray-400">En attente</p>
           <p className="text-2xl font-bold text-amber-600">{balance.pending}j</p>
         </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-          <p className="text-sm text-gray-500">Restants</p>
+        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 p-4">
+          <p className="text-sm text-gray-500 dark:text-gray-400">Restants</p>
           <p className="text-2xl font-bold text-green-600">{balance.remaining}j</p>
         </div>
       </motion.div>
@@ -216,16 +216,16 @@ export default function AbsencesPage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
+        className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700 overflow-hidden"
       >
-        <div className="px-6 py-4 border-b border-gray-100">
-          <h2 className="font-semibold text-gray-900">Historique des demandes</h2>
+        <div className="px-6 py-4 border-b border-gray-100 dark:border-slate-700">
+          <h2 className="font-semibold text-gray-900 dark:text-white">Historique des demandes</h2>
         </div>
 
         {absences.length === 0 ? (
           <div className="px-6 py-12 text-center">
             <Calendar className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500">Aucune demande d&apos;absence</p>
+            <p className="text-gray-500 dark:text-gray-400">Aucune demande d&apos;absence</p>
             <button
               onClick={() => setShowModal(true)}
               className="mt-4 text-ebmc-turquoise hover:underline"
@@ -234,18 +234,18 @@ export default function AbsencesPage() {
             </button>
           </div>
         ) : (
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-gray-100 dark:divide-slate-700">
             {absences.map((absence) => (
-              <div key={absence.id} className="px-6 py-4 flex items-center justify-between hover:bg-gray-50">
+              <div key={absence.id} className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700">
                 <div className="flex items-center gap-4">
                   <div>
                     {getTypeBadge(absence.type)}
                   </div>
                   <div>
-                    <p className="font-medium text-gray-900">
+                    <p className="font-medium text-gray-900 dark:text-white">
                       {new Date(absence.startDate).toLocaleDateString('fr-FR')} - {new Date(absence.endDate).toLocaleDateString('fr-FR')}
                     </p>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
                       {absence.days} jour{absence.days > 1 ? 's' : ''} • {absence.reason || 'Pas de motif'}
                     </p>
                   </div>
@@ -256,7 +256,7 @@ export default function AbsencesPage() {
                   {absence.status === 'pending' && (
                     <button
                       onClick={() => handleDelete(absence.id)}
-                      className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition"
+                      className="p-2 text-gray-400 dark:text-gray-500 hover:text-red-500 hover:bg-red-50 rounded-lg transition"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -282,14 +282,14 @@ export default function AbsencesPage() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6"
+              className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl max-w-md w-full p-6"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold text-gray-900">Nouvelle demande</h2>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">Nouvelle demande</h2>
                 <button
                   onClick={() => setShowModal(false)}
-                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition"
+                  className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-slate-600 rounded-lg transition"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -297,13 +297,13 @@ export default function AbsencesPage() {
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                     Type d&apos;absence
                   </label>
                   <select
                     value={formData.type}
                     onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:border-ebmc-turquoise focus:ring-1 focus:ring-ebmc-turquoise"
+                    className="w-full px-4 py-2.5 border border-gray-200 dark:border-slate-700 rounded-xl focus:border-ebmc-turquoise focus:ring-1 focus:ring-ebmc-turquoise"
                   >
                     {absenceTypes.map(type => (
                       <option key={type.value} value={type.value}>{type.label}</option>
@@ -313,7 +313,7 @@ export default function AbsencesPage() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                       Date de début
                     </label>
                     <input
@@ -321,11 +321,11 @@ export default function AbsencesPage() {
                       value={formData.startDate}
                       onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
                       required
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:border-ebmc-turquoise focus:ring-1 focus:ring-ebmc-turquoise"
+                      className="w-full px-4 py-2.5 border border-gray-200 dark:border-slate-700 rounded-xl focus:border-ebmc-turquoise focus:ring-1 focus:ring-ebmc-turquoise"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                       Date de fin
                     </label>
                     <input
@@ -334,7 +334,7 @@ export default function AbsencesPage() {
                       onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
                       required
                       min={formData.startDate}
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:border-ebmc-turquoise focus:ring-1 focus:ring-ebmc-turquoise"
+                      className="w-full px-4 py-2.5 border border-gray-200 dark:border-slate-700 rounded-xl focus:border-ebmc-turquoise focus:ring-1 focus:ring-ebmc-turquoise"
                     />
                   </div>
                 </div>
@@ -348,7 +348,7 @@ export default function AbsencesPage() {
                 )}
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                     Motif (optionnel)
                   </label>
                   <textarea
@@ -356,7 +356,7 @@ export default function AbsencesPage() {
                     onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
                     rows={3}
                     placeholder="Décrivez la raison de votre absence..."
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:border-ebmc-turquoise focus:ring-1 focus:ring-ebmc-turquoise resize-none"
+                    className="w-full px-4 py-2.5 border border-gray-200 dark:border-slate-700 rounded-xl focus:border-ebmc-turquoise focus:ring-1 focus:ring-ebmc-turquoise resize-none"
                   />
                 </div>
 
@@ -364,7 +364,7 @@ export default function AbsencesPage() {
                   <button
                     type="button"
                     onClick={() => setShowModal(false)}
-                    className="flex-1 px-4 py-2.5 border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition"
+                    className="flex-1 px-4 py-2.5 border border-gray-200 dark:border-slate-700 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-700 transition"
                   >
                     Annuler
                   </button>

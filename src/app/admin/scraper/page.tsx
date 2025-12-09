@@ -186,7 +186,7 @@ export default function ScraperPage() {
       case 'MALT':
         return <Globe className="w-4 h-4 text-[#FC5757]" />
       default:
-        return <User className="w-4 h-4 text-gray-500" />
+        return <User className="w-4 h-4 text-gray-500 dark:text-gray-400" />
     }
   }
 
@@ -197,7 +197,7 @@ export default function ScraperPage() {
       case 'MALT':
         return 'bg-[#FC5757]/10 text-[#FC5757] border-[#FC5757]/20'
       default:
-        return 'bg-gray-100 text-gray-600 border-gray-200'
+        return 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-slate-700'
     }
   }
 
@@ -210,8 +210,8 @@ export default function ScraperPage() {
             <Search className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Recherche de Candidats</h1>
-            <p className="text-gray-500">Recherchez dans la base de CVs scrappés</p>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Recherche de Candidats</h1>
+            <p className="text-gray-500 dark:text-gray-400">Recherchez dans la base de CVs scrappés</p>
           </div>
         </div>
       </div>
@@ -220,35 +220,35 @@ export default function ScraperPage() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6"
+        className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700 p-6 mb-6"
       >
         <div className="flex flex-col md:flex-row gap-4">
           <div className="flex-1 relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500" />
             <input
               type="text"
               value={filters.query}
               onChange={(e) => setFilters(prev => ({ ...prev, query: e.target.value }))}
               onKeyPress={handleKeyPress}
               placeholder="Rechercher par nom, titre, compétences..."
-              className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+              className="w-full pl-12 pr-4 py-3 border border-gray-200 dark:border-slate-700 rounded-xl focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
             />
           </div>
           <div className="relative md:w-64">
-            <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500" />
             <input
               type="text"
               value={filters.location}
               onChange={(e) => setFilters(prev => ({ ...prev, location: e.target.value }))}
               onKeyPress={handleKeyPress}
               placeholder="Localisation..."
-              className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+              className="w-full pl-12 pr-4 py-3 border border-gray-200 dark:border-slate-700 rounded-xl focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
             />
           </div>
           <button
             onClick={() => setShowFilters(!showFilters)}
             className={`flex items-center gap-2 px-4 py-3 border rounded-xl transition ${
-              showFilters ? 'border-indigo-500 bg-indigo-50 text-indigo-600' : 'border-gray-200 hover:bg-gray-50'
+              showFilters ? 'border-indigo-500 bg-indigo-50 text-indigo-600' : 'border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700'
             }`}
           >
             <Filter className="w-5 h-5" />
@@ -276,11 +276,11 @@ export default function ScraperPage() {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
-              className="mt-6 pt-6 border-t border-gray-100 space-y-4"
+              className="mt-6 pt-6 border-t border-gray-100 dark:border-slate-700 space-y-4"
             >
               {/* Categories */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Catégories de poste
                 </label>
                 <div className="flex flex-wrap gap-2">
@@ -291,7 +291,7 @@ export default function ScraperPage() {
                       className={`px-3 py-1.5 text-sm rounded-lg border transition ${
                         filters.job_categories.includes(cat.value)
                           ? 'bg-indigo-50 border-indigo-500 text-indigo-600'
-                          : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                          : 'border-gray-200 dark:border-slate-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700'
                       }`}
                     >
                       {cat.label}
@@ -303,13 +303,13 @@ export default function ScraperPage() {
               {/* Source & Availability */}
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Source
                   </label>
                   <select
                     value={filters.source}
                     onChange={(e) => setFilters(prev => ({ ...prev, source: e.target.value }))}
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                    className="w-full px-4 py-2.5 border border-gray-200 dark:border-slate-700 rounded-xl focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
                   >
                     {SOURCES.map(src => (
                       <option key={src.value} value={src.value}>{src.label}</option>
@@ -317,7 +317,7 @@ export default function ScraperPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Disponibilité
                   </label>
                   <div className="flex gap-2">
@@ -326,7 +326,7 @@ export default function ScraperPage() {
                       className={`flex-1 px-4 py-2.5 text-sm rounded-xl border transition ${
                         filters.open_to_work === null
                           ? 'bg-indigo-50 border-indigo-500 text-indigo-600'
-                          : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                          : 'border-gray-200 dark:border-slate-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700'
                       }`}
                     >
                       Tous
@@ -336,7 +336,7 @@ export default function ScraperPage() {
                       className={`flex-1 px-4 py-2.5 text-sm rounded-xl border transition ${
                         filters.open_to_work === true
                           ? 'bg-green-50 border-green-500 text-green-600'
-                          : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                          : 'border-gray-200 dark:border-slate-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700'
                       }`}
                     >
                       <CheckCircle className="w-4 h-4 inline mr-1" />
@@ -347,7 +347,7 @@ export default function ScraperPage() {
                       className={`flex-1 px-4 py-2.5 text-sm rounded-xl border transition ${
                         filters.open_to_work === false
                           ? 'bg-orange-50 border-orange-500 text-orange-600'
-                          : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                          : 'border-gray-200 dark:border-slate-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700'
                       }`}
                     >
                       En poste
@@ -376,19 +376,19 @@ export default function ScraperPage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
+        className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700 overflow-hidden"
       >
         {/* Results Header */}
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+        <div className="px-6 py-4 border-b border-gray-100 dark:border-slate-700 flex items-center justify-between">
           <div>
-            <h2 className="font-semibold text-gray-900">
+            <h2 className="font-semibold text-gray-900 dark:text-white">
               {pagination.total > 0
                 ? `${pagination.total} résultat${pagination.total > 1 ? 's' : ''}`
                 : 'Résultats'
               }
             </h2>
             {pagination.total > 0 && (
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-gray-500 dark:text-gray-400">
                 Page {pagination.page} sur {pagination.total_pages}
               </p>
             )}
@@ -396,7 +396,7 @@ export default function ScraperPage() {
           {results.length > 0 && (
             <button
               onClick={() => handleSearch(pagination.page)}
-              className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700"
+              className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700"
             >
               <RefreshCw className="w-4 h-4" />
               Actualiser
@@ -412,20 +412,20 @@ export default function ScraperPage() {
         ) : results.length === 0 ? (
           <div className="text-center py-16">
             <Search className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500">
+            <p className="text-gray-500 dark:text-gray-400">
               {pagination.total === 0 && filters.query
                 ? 'Aucun résultat pour cette recherche'
                 : 'Lancez une recherche pour trouver des candidats'}
             </p>
           </div>
         ) : (
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-gray-100 dark:divide-slate-700">
             {results.map((cv) => (
               <motion.div
                 key={cv.id}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="p-6 hover:bg-gray-50 cursor-pointer transition"
+                className="p-6 hover:bg-gray-50 dark:hover:bg-slate-700 cursor-pointer transition"
                 onClick={() => setSelectedCV(cv)}
               >
                 <div className="flex items-start gap-4">
@@ -441,7 +441,7 @@ export default function ScraperPage() {
                   {/* Info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3 flex-wrap">
-                      <h3 className="font-semibold text-gray-900">{cv.fullName}</h3>
+                      <h3 className="font-semibold text-gray-900 dark:text-white">{cv.fullName}</h3>
                       {cv.openToWork && (
                         <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full flex items-center gap-1">
                           <CheckCircle className="w-3 h-3" />
@@ -454,9 +454,9 @@ export default function ScraperPage() {
                       </span>
                     </div>
                     {cv.jobTitle && (
-                      <p className="text-gray-600 mt-1">{cv.jobTitle}</p>
+                      <p className="text-gray-600 dark:text-gray-300 mt-1">{cv.jobTitle}</p>
                     )}
-                    <div className="flex flex-wrap gap-4 mt-2 text-sm text-gray-500">
+                    <div className="flex flex-wrap gap-4 mt-2 text-sm text-gray-500 dark:text-gray-400">
                       {cv.location && (
                         <span className="flex items-center gap-1">
                           <MapPin className="w-4 h-4" />
@@ -478,12 +478,12 @@ export default function ScraperPage() {
                     {cv.skills && cv.skills.length > 0 && (
                       <div className="flex flex-wrap gap-1 mt-3">
                         {cv.skills.slice(0, 6).map((skill, i) => (
-                          <span key={i} className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded">
+                          <span key={i} className="px-2 py-0.5 bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 text-xs rounded">
                             {skill}
                           </span>
                         ))}
                         {cv.skills.length > 6 && (
-                          <span className="text-xs text-gray-400">+{cv.skills.length - 6}</span>
+                          <span className="text-xs text-gray-400 dark:text-gray-500">+{cv.skills.length - 6}</span>
                         )}
                       </div>
                     )}
@@ -522,22 +522,22 @@ export default function ScraperPage() {
 
         {/* Pagination */}
         {pagination.total_pages > 1 && (
-          <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between">
+          <div className="px-6 py-4 border-t border-gray-100 dark:border-slate-700 flex items-center justify-between">
             <button
               onClick={() => handleSearch(pagination.page - 1)}
               disabled={pagination.page <= 1 || loading}
-              className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-600 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <ChevronLeft className="w-5 h-5" />
               Précédent
             </button>
-            <span className="text-sm text-gray-500">
+            <span className="text-sm text-gray-500 dark:text-gray-400">
               Page {pagination.page} sur {pagination.total_pages}
             </span>
             <button
               onClick={() => handleSearch(pagination.page + 1)}
               disabled={!pagination.has_more || loading}
-              className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-600 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Suivant
               <ChevronRight className="w-5 h-5" />
@@ -560,11 +560,11 @@ export default function ScraperPage() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col"
+              className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Header */}
-              <div className="p-6 border-b border-gray-100 flex items-start gap-4">
+              <div className="p-6 border-b border-gray-100 dark:border-slate-700 flex items-start gap-4">
                 <div className="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white text-xl font-bold overflow-hidden flex-shrink-0">
                   {selectedCV.profileImageUrl ? (
                     <img src={selectedCV.profileImageUrl} alt={selectedCV.fullName} className="w-full h-full object-cover" />
@@ -574,7 +574,7 @@ export default function ScraperPage() {
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-3 flex-wrap">
-                    <h2 className="text-xl font-bold text-gray-900">{selectedCV.fullName}</h2>
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-white">{selectedCV.fullName}</h2>
                     {selectedCV.openToWork && (
                       <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full flex items-center gap-1">
                         <CheckCircle className="w-3 h-3" />
@@ -583,9 +583,9 @@ export default function ScraperPage() {
                     )}
                   </div>
                   {selectedCV.jobTitle && (
-                    <p className="text-gray-600 mt-1">{selectedCV.jobTitle}</p>
+                    <p className="text-gray-600 dark:text-gray-300 mt-1">{selectedCV.jobTitle}</p>
                   )}
-                  <div className="flex flex-wrap gap-3 mt-2 text-sm text-gray-500">
+                  <div className="flex flex-wrap gap-3 mt-2 text-sm text-gray-500 dark:text-gray-400">
                     {selectedCV.location && (
                       <span className="flex items-center gap-1">
                         <MapPin className="w-4 h-4" />
@@ -600,7 +600,7 @@ export default function ScraperPage() {
                 </div>
                 <button
                   onClick={() => setSelectedCV(null)}
-                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition"
+                  className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-slate-600 rounded-lg transition"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -613,18 +613,18 @@ export default function ScraperPage() {
                   {selectedCV.email && (
                     <a
                       href={`mailto:${selectedCV.email}`}
-                      className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition"
+                      className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 rounded-lg transition"
                     >
-                      <Mail className="w-4 h-4 text-gray-600" />
+                      <Mail className="w-4 h-4 text-gray-600 dark:text-gray-300" />
                       {selectedCV.email}
                     </a>
                   )}
                   {selectedCV.phone && (
                     <a
                       href={`tel:${selectedCV.phone}`}
-                      className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition"
+                      className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 rounded-lg transition"
                     >
-                      <Phone className="w-4 h-4 text-gray-600" />
+                      <Phone className="w-4 h-4 text-gray-600 dark:text-gray-300" />
                       {selectedCV.phone}
                     </a>
                   )}
@@ -681,15 +681,15 @@ export default function ScraperPage() {
                 {/* Summary */}
                 {selectedCV.summary && (
                   <div>
-                    <h3 className="font-semibold text-gray-900 mb-2">Résumé</h3>
-                    <p className="text-gray-600 text-sm leading-relaxed">{selectedCV.summary}</p>
+                    <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Résumé</h3>
+                    <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed">{selectedCV.summary}</p>
                   </div>
                 )}
 
                 {/* Skills */}
                 {selectedCV.skills && selectedCV.skills.length > 0 && (
                   <div>
-                    <h3 className="font-semibold text-gray-900 mb-2">Compétences</h3>
+                    <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Compétences</h3>
                     <div className="flex flex-wrap gap-2">
                       {selectedCV.skills.map((skill, i) => (
                         <span key={i} className="px-3 py-1 bg-indigo-100 text-indigo-700 text-sm rounded-lg">
@@ -703,16 +703,16 @@ export default function ScraperPage() {
                 {/* Experiences */}
                 {selectedCV.experiences && selectedCV.experiences.length > 0 && (
                   <div>
-                    <h3 className="font-semibold text-gray-900 mb-3">Expériences</h3>
+                    <h3 className="font-semibold text-gray-900 dark:text-white mb-3">Expériences</h3>
                     <div className="space-y-3">
                       {selectedCV.experiences.slice(0, 5).map((exp, i) => (
                         <div key={i} className="flex items-start gap-3">
                           <div className="w-2 h-2 bg-indigo-500 rounded-full mt-2" />
                           <div>
-                            <p className="font-medium text-gray-900">{exp.title}</p>
-                            <p className="text-sm text-gray-600">{exp.company}</p>
+                            <p className="font-medium text-gray-900 dark:text-white">{exp.title}</p>
+                            <p className="text-sm text-gray-600 dark:text-gray-300">{exp.company}</p>
                             {exp.duration && (
-                              <p className="text-xs text-gray-400 flex items-center gap-1 mt-1">
+                              <p className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1 mt-1">
                                 <Clock className="w-3 h-3" />
                                 {exp.duration}
                               </p>
@@ -727,12 +727,12 @@ export default function ScraperPage() {
                 {/* Languages */}
                 {selectedCV.languages && selectedCV.languages.length > 0 && (
                   <div>
-                    <h3 className="font-semibold text-gray-900 mb-2">Langues</h3>
+                    <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Langues</h3>
                     <div className="flex flex-wrap gap-2">
                       {selectedCV.languages.map((lang, i) => (
-                        <span key={i} className="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded-lg">
+                        <span key={i} className="px-3 py-1 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 text-sm rounded-lg">
                           {lang.name}
-                          {lang.level && <span className="text-gray-400 ml-1">({lang.level})</span>}
+                          {lang.level && <span className="text-gray-400 dark:text-gray-500 ml-1">({lang.level})</span>}
                         </span>
                       ))}
                     </div>
@@ -740,7 +740,7 @@ export default function ScraperPage() {
                 )}
 
                 {/* Metadata */}
-                <div className="text-xs text-gray-400 pt-4 border-t border-gray-100">
+                <div className="text-xs text-gray-400 dark:text-gray-500 pt-4 border-t border-gray-100 dark:border-slate-700">
                   <p>Profil ajouté le {new Date(selectedCV.createdAt).toLocaleDateString('fr-FR')}</p>
                   <p>Dernière mise à jour le {new Date(selectedCV.updatedAt).toLocaleDateString('fr-FR')}</p>
                 </div>
