@@ -21,7 +21,9 @@ import {
   Globe,
   ChevronDown,
   Send,
-  Users
+  Users,
+  Menu,
+  X
 } from 'lucide-react'
 import {
   TextGradient,
@@ -160,6 +162,7 @@ function ContactForm() {
 
 export default function Home() {
   const t = useTranslations()
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const heroRef = useRef<HTMLDivElement>(null)
   const { scrollYProgress } = useScroll({
     target: heroRef,
@@ -180,22 +183,87 @@ export default function Home() {
             <motion.div
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="glass-card px-6 py-3 flex items-center justify-between"
+              className="glass-card px-4 sm:px-6 py-3"
             >
-              <Link href="/" className="flex items-center">
-                <Image src="/logo.svg" alt="EBMC GROUP" width={120} height={36} className="h-8 w-auto" />
-              </Link>
-              <div className="hidden md:flex items-center gap-8">
-                <a href="#services" className="text-sm font-medium text-slate-600 hover:text-ebmc-turquoise transition">Services</a>
-                <a href="#a-propos" className="text-sm font-medium text-slate-600 hover:text-ebmc-turquoise transition">À propos</a>
-                <a href="#contact" className="text-sm font-medium text-slate-600 hover:text-ebmc-turquoise transition">Contact</a>
-                <Link href="/careers" className="text-sm font-medium text-slate-600 hover:text-ebmc-turquoise transition">Carrières</Link>
+              <div className="flex items-center justify-between">
+                <Link href="/" className="flex items-center">
+                  <Image src="/logo.svg" alt="EBMC GROUP" width={120} height={36} className="h-8 w-auto" />
+                </Link>
+
+                {/* Desktop Nav */}
+                <div className="hidden md:flex items-center gap-8">
+                  <a href="#services" className="text-sm font-medium text-slate-600 hover:text-ebmc-turquoise transition">Services</a>
+                  <Link href="/consultants" className="text-sm font-medium text-slate-600 hover:text-ebmc-turquoise transition">Consultants</Link>
+                  <Link href="/careers" className="text-sm font-medium text-slate-600 hover:text-ebmc-turquoise transition">Carrières</Link>
+                  <a href="#contact" className="text-sm font-medium text-slate-600 hover:text-ebmc-turquoise transition">Contact</a>
+                </div>
+
+                {/* Desktop Login Button */}
+                <div className="hidden md:block">
+                  <Link href="/login">
+                    <ShimmerButton className="text-sm py-2 px-5">
+                      Connexion
+                    </ShimmerButton>
+                  </Link>
+                </div>
+
+                {/* Mobile Menu Button */}
+                <button
+                  className="md:hidden p-2 text-slate-700 hover:text-ebmc-turquoise transition"
+                  onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                  aria-label="Menu"
+                >
+                  {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+                </button>
               </div>
-              <Link href="/login">
-                <ShimmerButton className="text-sm py-2 px-5">
-                  Connexion
-                </ShimmerButton>
-              </Link>
+
+              {/* Mobile Menu */}
+              {mobileMenuOpen && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="md:hidden mt-4 pt-4 border-t border-slate-200/60"
+                >
+                  <div className="flex flex-col gap-1">
+                    <a
+                      href="#services"
+                      className="py-3 px-2 text-sm font-medium text-slate-600 hover:text-ebmc-turquoise hover:bg-slate-50 rounded-lg transition"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      Services
+                    </a>
+                    <Link
+                      href="/consultants"
+                      className="py-3 px-2 text-sm font-medium text-slate-600 hover:text-ebmc-turquoise hover:bg-slate-50 rounded-lg transition"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      Consultants
+                    </Link>
+                    <Link
+                      href="/careers"
+                      className="py-3 px-2 text-sm font-medium text-slate-600 hover:text-ebmc-turquoise hover:bg-slate-50 rounded-lg transition"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      Carrières
+                    </Link>
+                    <a
+                      href="#contact"
+                      className="py-3 px-2 text-sm font-medium text-slate-600 hover:text-ebmc-turquoise hover:bg-slate-50 rounded-lg transition"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      Contact
+                    </a>
+                    <div className="pt-3 mt-2 border-t border-slate-200/60">
+                      <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
+                        <ShimmerButton className="text-sm py-2 px-5 w-full justify-center">
+                          Connexion
+                        </ShimmerButton>
+                      </Link>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
             </motion.div>
           </div>
         </nav>
