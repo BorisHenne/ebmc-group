@@ -11,8 +11,16 @@ import {
   X,
   MapPin,
   Clock,
-  Save
+  Save,
+  UserCheck
 } from 'lucide-react'
+
+interface User {
+  _id: string
+  email: string
+  name: string
+  role: string
+}
 
 interface Job {
   _id: string
@@ -31,6 +39,8 @@ interface Job {
   requirements: string[]
   requirementsEn: string[]
   active: boolean
+  assignedTo?: string
+  assignedToName?: string
   createdAt: string
 }
 
@@ -49,7 +59,8 @@ const emptyJob: Omit<Job, '_id' | 'createdAt'> = {
   missionsEn: [''],
   requirements: [''],
   requirementsEn: [''],
-  active: true
+  active: true,
+  assignedTo: ''
 }
 
 export default function JobsPage() {
@@ -57,10 +68,28 @@ export default function JobsPage() {
   const [loading, setLoading] = useState(true)
   const [editingJob, setEditingJob] = useState<Partial<Job> | null>(null)
   const [saving, setSaving] = useState(false)
+  const [commerciaux, setCommerciaux] = useState<User[]>([])
 
   useEffect(() => {
     fetchJobs()
+    fetchCommerciaux()
   }, [])
+
+  const fetchCommerciaux = async () => {
+    try {
+      const res = await fetch('/api/admin/users', { credentials: 'include' })
+      if (res.ok) {
+        const data = await res.json()
+        // Filter only commercial users
+        const commercialUsers = (data.users || []).filter(
+          (u: User) => u.role === 'commercial' || u.role === 'admin'
+        )
+        setCommerciaux(commercialUsers)
+      }
+    } catch (error) {
+      console.error('Error fetching commerciaux:', error)
+    }
+  }
 
   const fetchJobs = async () => {
     try {
@@ -196,6 +225,12 @@ export default function JobsPage() {
                         <Clock className="w-4 h-4" />
                         {job.type}
                       </span>
+                      {job.assignedTo && (
+                        <span className="flex items-center gap-1 text-purple-600">
+                          <UserCheck className="w-4 h-4" />
+                          {job.assignedToName || 'Assigné'}
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div className="flex gap-2">
@@ -259,7 +294,7 @@ export default function JobsPage() {
                 </div>
               </div>
 
-              <div className="grid md:grid-cols-3 gap-4">
+              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Localisation</label>
                   <input
@@ -295,6 +330,30 @@ export default function JobsPage() {
                     <option value="CDI">CDI</option>
                     <option value="CDD">CDD</option>
                     <option value="Freelance">Freelance</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <span className="flex items-center gap-1">
+                      <UserCheck className="w-4 h-4 text-purple-500" />
+                      Commercial assigné
+                    </span>
+                  </label>
+                  <select
+                    value={editingJob.assignedTo || ''}
+                    onChange={(e) => {
+                      const selectedUser = commerciaux.find(u => u._id === e.target.value)
+                      updateField('assignedTo', e.target.value)
+                      updateField('assignedToName', selectedUser?.name || selectedUser?.email || '')
+                    }}
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
+                  >
+                    <option value="">Non assigné</option>
+                    {commerciaux.map(user => (
+                      <option key={user._id} value={user._id}>
+                        {user.name || user.email}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>

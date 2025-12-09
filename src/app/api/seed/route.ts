@@ -1,5 +1,40 @@
 import { NextResponse } from 'next/server'
 import { connectToDatabase } from '@/lib/mongodb'
+import bcrypt from 'bcryptjs'
+
+// Default demo users for each role
+const defaultUsers = [
+  {
+    email: 'admin@ebmc-group.com',
+    password: 'admin123',
+    name: 'Administrateur',
+    role: 'admin',
+  },
+  {
+    email: 'sourceur@ebmc-group.com',
+    password: 'sourceur123',
+    name: 'Jean Sourceur',
+    role: 'sourceur',
+  },
+  {
+    email: 'commercial@ebmc-group.com',
+    password: 'commercial123',
+    name: 'Marie Commercial',
+    role: 'commercial',
+  },
+  {
+    email: 'freelance@ebmc-group.com',
+    password: 'freelance123',
+    name: 'Pierre Freelance',
+    role: 'freelance',
+  },
+  {
+    email: 'user@ebmc-group.com',
+    password: 'user123',
+    name: 'Sophie User',
+    role: 'user',
+  },
+]
 
 // Default jobs data
 const defaultJobs = [
@@ -294,10 +329,16 @@ export async function POST(request: Request) {
     // Check if data already exists
     const existingJobs = await db.collection('jobs').countDocuments()
     const existingConsultants = await db.collection('consultants').countDocuments()
+    const existingUsers = await db.collection('users').countDocuments()
 
-    const results = {
+    const results: {
+      jobs: { inserted: number; existing: number }
+      consultants: { inserted: number; existing: number }
+      users: { inserted: number; existing: number; demo: string[] }
+    } = {
       jobs: { inserted: 0, existing: existingJobs },
       consultants: { inserted: 0, existing: existingConsultants },
+      users: { inserted: 0, existing: existingUsers, demo: [] },
     }
 
     // Only seed if collections are empty
@@ -311,10 +352,33 @@ export async function POST(request: Request) {
       results.consultants.inserted = consultantsResult.insertedCount
     }
 
+    // Create demo users if they don't exist
+    const usersCollection = db.collection('users')
+    for (const user of defaultUsers) {
+      const existing = await usersCollection.findOne({ email: user.email })
+      if (!existing) {
+        const hashedPassword = await bcrypt.hash(user.password, 12)
+        await usersCollection.insertOne({
+          email: user.email,
+          password: hashedPassword,
+          name: user.name,
+          role: user.role,
+          createdAt: new Date(),
+        })
+        results.users.inserted++
+        results.users.demo.push(`${user.email} (${user.role})`)
+      }
+    }
+
     return NextResponse.json({
       success: true,
       message: 'Database seeded successfully',
       results,
+      demoCredentials: defaultUsers.map(u => ({
+        email: u.email,
+        password: u.password,
+        role: u.role,
+      })),
     })
   } catch (error) {
     console.error('Error seeding database:', error)
@@ -329,14 +393,26 @@ export async function GET() {
 
     const jobsCount = await db.collection('jobs').countDocuments()
     const consultantsCount = await db.collection('consultants').countDocuments()
+    const usersCount = await db.collection('users').countDocuments()
 
     return NextResponse.json({
       status: 'ok',
       counts: {
         jobs: jobsCount,
         consultants: consultantsCount,
+        users: usersCount,
       },
-      needsSeed: jobsCount === 0 || consultantsCount === 0,
+      needsSeed: jobsCount === 0 || consultantsCount === 0 || usersCount === 0,
+      demoCredentials: defaultUsers.map(u => ({
+        email: u.email,
+        password: u.password,
+        role: u.role,
+        description: u.role === 'admin' ? 'Accès complet' :
+                     u.role === 'sourceur' ? 'Accès consultants et messages' :
+                     u.role === 'commercial' ? 'Accès offres et consultants assignés' :
+                     u.role === 'freelance' ? 'Portail freelance uniquement' :
+                     'Accès de base'
+      })),
     })
   } catch (error) {
     console.error('Error checking seed status:', error)

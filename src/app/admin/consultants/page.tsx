@@ -11,8 +11,16 @@ import {
   X,
   MapPin,
   Award,
-  Save
+  Save,
+  UserCheck
 } from 'lucide-react'
+
+interface UserAccount {
+  _id: string
+  email: string
+  name: string
+  role: string
+}
 
 interface Consultant {
   _id: string
@@ -26,6 +34,8 @@ interface Consultant {
   available: boolean
   skills: string[]
   certifications: string[]
+  assignedTo?: string
+  assignedToName?: string
   createdAt: string
 }
 
@@ -39,7 +49,8 @@ const emptyConsultant: Omit<Consultant, '_id' | 'createdAt'> = {
   category: 'sap',
   available: true,
   skills: [''],
-  certifications: ['']
+  certifications: [''],
+  assignedTo: ''
 }
 
 export default function ConsultantsPage() {
@@ -47,10 +58,27 @@ export default function ConsultantsPage() {
   const [loading, setLoading] = useState(true)
   const [editingConsultant, setEditingConsultant] = useState<Partial<Consultant> | null>(null)
   const [saving, setSaving] = useState(false)
+  const [commerciaux, setCommerciaux] = useState<UserAccount[]>([])
 
   useEffect(() => {
     fetchConsultants()
+    fetchCommerciaux()
   }, [])
+
+  const fetchCommerciaux = async () => {
+    try {
+      const res = await fetch('/api/admin/users', { credentials: 'include' })
+      if (res.ok) {
+        const data = await res.json()
+        const commercialUsers = (data.users || []).filter(
+          (u: UserAccount) => u.role === 'commercial' || u.role === 'admin'
+        )
+        setCommerciaux(commercialUsers)
+      }
+    } catch (error) {
+      console.error('Error fetching commerciaux:', error)
+    }
+  }
 
   const fetchConsultants = async () => {
     try {
@@ -193,6 +221,12 @@ export default function ConsultantsPage() {
                           <Award className="w-4 h-4" />
                           {consultant.certifications?.length || 0} certifications
                         </span>
+                        {consultant.assignedTo && (
+                          <span className="flex items-center gap-1 text-purple-600">
+                            <UserCheck className="w-4 h-4" />
+                            {consultant.assignedToName || 'Assigné'}
+                          </span>
+                        )}
                       </div>
                       <div className="flex flex-wrap gap-1 mt-2">
                         {consultant.skills?.slice(0, 4).map((skill, i) => (
@@ -278,7 +312,7 @@ export default function ConsultantsPage() {
                 </div>
               </div>
 
-              <div className="grid md:grid-cols-2 gap-4">
+              <div className="grid md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Localisation</label>
                   <input
@@ -300,6 +334,30 @@ export default function ConsultantsPage() {
                     <option value="security">Sécurité</option>
                     <option value="dev">Développement</option>
                     <option value="data">Data</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <span className="flex items-center gap-1">
+                      <UserCheck className="w-4 h-4 text-purple-500" />
+                      Commercial assigné
+                    </span>
+                  </label>
+                  <select
+                    value={editingConsultant.assignedTo || ''}
+                    onChange={(e) => {
+                      const selectedUser = commerciaux.find(u => u._id === e.target.value)
+                      updateField('assignedTo', e.target.value)
+                      updateField('assignedToName', selectedUser?.name || selectedUser?.email || '')
+                    }}
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
+                  >
+                    <option value="">Non assigné</option>
+                    {commerciaux.map(user => (
+                      <option key={user._id} value={user._id}>
+                        {user.name || user.email}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>
