@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import Link from 'next/link'
 import {
   UserCheck,
   Plus,
@@ -19,8 +20,28 @@ import {
   Calendar,
   Globe2,
   Award,
-  Home
+  Home,
+  Users,
+  User,
+  Mail,
+  Phone,
+  FileText,
+  Shield,
+  ChevronRight
 } from 'lucide-react'
+import {
+  Candidate,
+  CandidateStatus,
+  SAP_MODULES,
+  SAP_SUB_MODULES,
+  JOB_FAMILIES,
+  LANGUAGES,
+  STATUS_LABELS,
+  STATUS_COLORS,
+  generateDemoCandidates,
+  getFullName,
+  getInitials
+} from '@/types/candidate'
 
 interface UserAccount {
   _id: string
@@ -29,97 +50,58 @@ interface UserAccount {
   role: string
 }
 
-// SAP Modules
-const SAP_MODULES = ['SAP FI CO', 'SD', 'MM', 'PP', 'PM', 'QM', 'HR', 'WM', 'EWM', 'TM', 'APO', 'BW', 'ABAP', 'BASIS', 'HANA', 'S/4HANA']
-const SAP_SUB_MODULES = ['OTC', 'JVA', 'FIORI', 'AA', 'AR', 'AP', 'GL', 'CO-PA', 'CO-PC', 'PS', 'IM', 'RE-FX', 'TRM', 'CML', 'Interco', 'Consolidation']
-
-// Job families
-const JOB_FAMILIES = ['AMOA', 'AMOE', 'Chef de projet', 'Team Lead', 'PMO', 'Consultant fonctionnel', 'Consultant technique', 'Architecte', 'Développeur', 'Support']
-
 // Mobility options
-const MOBILITY_OPTIONS = ['IDF', 'France', 'Luxembourg', 'Locale', 'Nationale', 'Internationale']
+const MOBILITY_OPTIONS = ['IDF', 'France', 'Luxembourg', 'Locale', 'Nationale', 'Internationale'] as const
 
 // Seniority levels
-const SENIORITY_LEVELS = ['Junior', 'Confirmé', 'Senior', 'Expert']
+const SENIORITY_LEVELS = ['Junior', 'Confirmé', 'Senior', 'Expert'] as const
 
-// Languages
-const LANGUAGE_OPTIONS = ['Français', 'Anglais', 'Allemand', 'Espagnol', 'Italien', 'Néerlandais', 'Portugais']
+// Modal tabs
+type ModalTab = 'identity' | 'skills' | 'experience' | 'availability' | 'financial' | 'notes'
 
-interface Consultant {
-  _id: string
-  name: string
-  title: string
-  titleEn: string
-  // Location
-  location: {
-    city: string
-    country: string
-  }
-  // SAP Modules
-  modules: string[]
-  subModules: string[]
-  // Job family
-  jobFamilies: string[]
-  // Experience
-  experience: {
-    years: number
-    seniority: string
-  }
-  // Availability
-  availability: {
-    isAvailable: boolean
-    availableDate?: string
-    availableIn?: string
-  }
-  // Mobility
-  mobility: string[]
-  // Daily rate (TJM)
-  dailyRate: {
-    min: number
-    max: number
-    currency: string
-  }
-  // Languages
-  languages: string[]
-  // Other criteria
-  certifications: string[]
-  remoteWork: boolean
-  nationality?: string
-  clearance?: string
-  // Assignment
-  assignedTo?: string
-  assignedToName?: string
-  createdAt: string
-}
+const MODAL_TABS: { id: ModalTab; label: string; icon: React.ReactNode }[] = [
+  { id: 'identity', label: 'Identité', icon: <User className="w-4 h-4" /> },
+  { id: 'skills', label: 'Compétences', icon: <Briefcase className="w-4 h-4" /> },
+  { id: 'experience', label: 'Expérience', icon: <Award className="w-4 h-4" /> },
+  { id: 'availability', label: 'Disponibilité', icon: <Calendar className="w-4 h-4" /> },
+  { id: 'financial', label: 'Rémunération', icon: <Euro className="w-4 h-4" /> },
+  { id: 'notes', label: 'Notes', icon: <FileText className="w-4 h-4" /> },
+]
 
-const emptyConsultant: Omit<Consultant, '_id' | 'createdAt'> = {
-  name: '',
+const emptyCandidate: Partial<Candidate> = {
+  firstName: '',
+  lastName: '',
+  email: '',
+  phone: '',
   title: '',
-  titleEn: '',
-  location: { city: '', country: 'France' },
+  nationality: '',
   modules: [],
   subModules: [],
-  jobFamilies: [],
+  jobFamily: undefined,
   experience: { years: 0, seniority: 'Confirmé' },
-  availability: { isAvailable: true, availableDate: '', availableIn: 'Immédiat' },
+  certifications: [],
+  availability: { isAvailable: true, availableIn: 'Immédiat' },
+  location: { city: '', country: 'France' },
   mobility: [],
+  remoteWork: false,
   dailyRate: { min: 0, max: 0, currency: 'EUR' },
   languages: ['Français'],
-  certifications: [],
-  remoteWork: false,
-  nationality: '',
-  clearance: '',
-  assignedTo: ''
+  securityClearance: '',
+  status: 'embauche', // Consultants are hired candidates
+  notes: '',
+  commercialId: ''
 }
 
 export default function ConsultantsPage() {
-  const [consultants, setConsultants] = useState<Consultant[]>([])
+  const [consultants, setConsultants] = useState<Candidate[]>([])
+  const [allCandidates, setAllCandidates] = useState<Candidate[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
-  const [editingConsultant, setEditingConsultant] = useState<Partial<Consultant> | null>(null)
+  const [editingConsultant, setEditingConsultant] = useState<Partial<Candidate> | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [commerciaux, setCommerciaux] = useState<UserAccount[]>([])
+  const [activeTab, setActiveTab] = useState<ModalTab>('identity')
 
   // Search and filters
   const [searchTerm, setSearchTerm] = useState('')
@@ -127,9 +109,20 @@ export default function ConsultantsPage() {
   const [filterAvailability, setFilterAvailability] = useState<string>('all')
 
   useEffect(() => {
-    fetchConsultants()
+    initializeData()
     fetchCommerciaux()
   }, [])
+
+  const initializeData = () => {
+    // Generate demo candidates using shared function
+    const candidates = generateDemoCandidates(30)
+    setAllCandidates(candidates)
+
+    // Filter only hired candidates (consultants)
+    const hired = candidates.filter(c => c.status === 'embauche')
+    setConsultants(hired)
+    setLoading(false)
+  }
 
   const fetchCommerciaux = async () => {
     try {
@@ -146,43 +139,16 @@ export default function ConsultantsPage() {
     }
   }
 
-  const fetchConsultants = async () => {
-    try {
-      const res = await fetch('/api/admin/consultants', { credentials: 'include' })
-      if (res.ok) {
-        const data = await res.json()
-        setConsultants(data.consultants || [])
-      }
-    } catch (error) {
-      console.error('Error fetching consultants:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
   const openCreateModal = () => {
-    setEditingConsultant(emptyConsultant)
+    setEditingConsultant({ ...emptyCandidate, id: `consultant-${Date.now()}` })
+    setActiveTab('identity')
     setError('')
     setShowModal(true)
   }
 
-  const openEditModal = (consultant: Consultant) => {
-    // Ensure all nested objects exist for backwards compatibility
-    const normalized = {
-      ...consultant,
-      location: consultant.location || { city: '', country: 'France' },
-      modules: consultant.modules || [],
-      subModules: consultant.subModules || [],
-      jobFamilies: consultant.jobFamilies || [],
-      experience: consultant.experience || { years: 0, seniority: 'Confirmé' },
-      availability: consultant.availability || { isAvailable: true, availableDate: '', availableIn: 'Immédiat' },
-      mobility: consultant.mobility || [],
-      dailyRate: consultant.dailyRate || { min: 0, max: 0, currency: 'EUR' },
-      languages: consultant.languages || ['Français'],
-      certifications: consultant.certifications || [],
-      remoteWork: consultant.remoteWork || false
-    }
-    setEditingConsultant(normalized)
+  const openEditModal = (consultant: Candidate) => {
+    setEditingConsultant({ ...consultant })
+    setActiveTab('identity')
     setError('')
     setShowModal(true)
   }
@@ -198,58 +164,32 @@ export default function ConsultantsPage() {
     setSaving(true)
     setError('')
 
-    try {
-      const method = editingConsultant._id ? 'PUT' : 'POST'
-      const url = editingConsultant._id
-        ? `/api/admin/consultants/${editingConsultant._id}`
-        : '/api/admin/consultants'
-
-      const res = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(editingConsultant)
-      })
-
-      const data = await res.json()
-
-      if (!res.ok) {
-        setError(data.error || 'Une erreur est survenue')
-        setSaving(false)
-        return
+    // Simulate save (in real app, call API)
+    setTimeout(() => {
+      if (editingConsultant.id && consultants.find(c => c.id === editingConsultant.id)) {
+        // Update existing
+        setConsultants(prev => prev.map(c =>
+          c.id === editingConsultant.id ? { ...c, ...editingConsultant } as Candidate : c
+        ))
+      } else {
+        // Add new
+        const newConsultant: Candidate = {
+          ...emptyCandidate,
+          ...editingConsultant,
+          id: editingConsultant.id || `consultant-${Date.now()}`,
+          createdAt: new Date().toISOString(),
+          status: 'embauche'
+        } as Candidate
+        setConsultants(prev => [newConsultant, ...prev])
       }
-
       closeModal()
-      fetchConsultants()
-    } catch (error) {
-      console.error('Error saving consultant:', error)
-      setError('Erreur de connexion au serveur')
-    } finally {
       setSaving(false)
-    }
+    }, 500)
   }
 
-  const handleDelete = async (consultant: Consultant) => {
-    if (!confirm(`Êtes-vous sûr de vouloir supprimer le consultant "${consultant.name}" ?`)) return
-
-    try {
-      const res = await fetch(`/api/admin/consultants/${consultant._id}`, {
-        method: 'DELETE',
-        credentials: 'include'
-      })
-
-      const data = await res.json()
-
-      if (!res.ok) {
-        alert(data.error || 'Erreur lors de la suppression')
-        return
-      }
-
-      fetchConsultants()
-    } catch (error) {
-      console.error('Error deleting consultant:', error)
-      alert('Erreur de connexion au serveur')
-    }
+  const handleDelete = async (consultant: Candidate) => {
+    if (!confirm(`Êtes-vous sûr de vouloir supprimer ${getFullName(consultant)} ?`)) return
+    setConsultants(prev => prev.filter(c => c.id !== consultant.id))
   }
 
   const updateField = (field: string, value: unknown) => {
@@ -259,15 +199,18 @@ export default function ConsultantsPage() {
   const updateNestedField = (parent: string, field: string, value: unknown) => {
     setEditingConsultant(prev => {
       if (!prev) return null
-      const parentObj = (prev[parent as keyof typeof prev] as Record<string, unknown>) || {}
+      const currentValue = prev[parent as keyof typeof prev]
+      const parentObj = (typeof currentValue === 'object' && currentValue !== null && !Array.isArray(currentValue))
+        ? (currentValue as unknown as Record<string, unknown>)
+        : {}
       return { ...prev, [parent]: { ...parentObj, [field]: value } }
     })
   }
 
-  const toggleArrayItem = (field: string, value: string) => {
+  const toggleArrayItem = (field: keyof Candidate, value: string) => {
     setEditingConsultant(prev => {
       if (!prev) return null
-      const arr = (prev[field as keyof typeof prev] as string[]) || []
+      const arr = (prev[field] as string[]) || []
       if (arr.includes(value)) {
         return { ...prev, [field]: arr.filter(v => v !== value) }
       } else {
@@ -276,40 +219,18 @@ export default function ConsultantsPage() {
     })
   }
 
-  const addCertification = () => {
-    setEditingConsultant(prev => {
-      if (!prev) return null
-      return { ...prev, certifications: [...(prev.certifications || []), ''] }
-    })
-  }
-
-  const updateCertification = (index: number, value: string) => {
-    setEditingConsultant(prev => {
-      if (!prev) return null
-      const certs = [...(prev.certifications || [])]
-      certs[index] = value
-      return { ...prev, certifications: certs }
-    })
-  }
-
-  const removeCertification = (index: number) => {
-    setEditingConsultant(prev => {
-      if (!prev) return null
-      return { ...prev, certifications: (prev.certifications || []).filter((_, i) => i !== index) }
-    })
-  }
-
   // Filter consultants
   const filteredConsultants = consultants.filter(consultant => {
     const searchLower = searchTerm.toLowerCase()
+    const fullName = getFullName(consultant).toLowerCase()
     const matchesSearch = !searchTerm ||
-      consultant.name?.toLowerCase().includes(searchLower) ||
+      fullName.includes(searchLower) ||
       consultant.title?.toLowerCase().includes(searchLower) ||
       consultant.location?.city?.toLowerCase().includes(searchLower) ||
       consultant.modules?.some(m => m.toLowerCase().includes(searchLower)) ||
       consultant.certifications?.some(c => c.toLowerCase().includes(searchLower))
 
-    const matchesModule = filterModule === 'all' || consultant.modules?.includes(filterModule)
+    const matchesModule = filterModule === 'all' || consultant.modules?.includes(filterModule as typeof SAP_MODULES[number])
 
     const matchesAvailability = filterAvailability === 'all' ||
       (filterAvailability === 'available' && consultant.availability?.isAvailable) ||
@@ -328,6 +249,9 @@ export default function ConsultantsPage() {
     }
   }
 
+  // Count candidates in recruitment pipeline
+  const recruitmentCount = allCandidates.filter(c => c.status !== 'embauche').length
+
   return (
     <div>
       {/* Header */}
@@ -339,17 +263,29 @@ export default function ConsultantsPage() {
             </div>
             <div>
               <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">Consultants</h1>
-              <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">{consultants.length} consultant{consultants.length > 1 ? 's' : ''} au total</p>
+              <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">{consultants.length} consultant{consultants.length > 1 ? 's' : ''} embauchés</p>
             </div>
           </div>
         </div>
-        <button
-          onClick={openCreateModal}
-          className="flex items-center justify-center gap-2 bg-gradient-to-r from-ebmc-turquoise to-cyan-500 text-white px-5 py-2.5 rounded-xl hover:shadow-lg hover:shadow-ebmc-turquoise/25 transition-all font-medium"
-        >
-          <Plus className="w-5 h-5" />
-          Nouveau consultant
-        </button>
+        <div className="flex items-center gap-3">
+          {/* Link to recruitment */}
+          <Link
+            href="/admin/recrutement"
+            className="flex items-center gap-2 px-4 py-2.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-xl hover:bg-purple-200 dark:hover:bg-purple-900/50 transition font-medium"
+          >
+            <Users className="w-5 h-5" />
+            Recrutement
+            <span className="px-2 py-0.5 bg-purple-500 text-white text-xs rounded-full">{recruitmentCount}</span>
+            <ChevronRight className="w-4 h-4" />
+          </Link>
+          <button
+            onClick={openCreateModal}
+            className="flex items-center justify-center gap-2 bg-gradient-to-r from-ebmc-turquoise to-cyan-500 text-white px-5 py-2.5 rounded-xl hover:shadow-lg hover:shadow-ebmc-turquoise/25 transition-all font-medium"
+          >
+            <Plus className="w-5 h-5" />
+            Nouveau consultant
+          </button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -426,7 +362,7 @@ export default function ConsultantsPage() {
               <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
                 {filteredConsultants.map((consultant, index) => (
                   <motion.tr
-                    key={consultant._id}
+                    key={consultant.id}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.03 }}
@@ -436,11 +372,11 @@ export default function ConsultantsPage() {
                       <div className="flex items-center gap-3">
                         <div className={`w-10 h-10 rounded-full bg-gradient-to-r ${getSeniorityColor(consultant.experience?.seniority)} flex items-center justify-center`}>
                           <span className="text-white font-bold text-sm">
-                            {consultant.name?.charAt(0).toUpperCase()}
+                            {getInitials(consultant)}
                           </span>
                         </div>
                         <div>
-                          <span className="font-medium text-gray-900 dark:text-white block">{consultant.name}</span>
+                          <span className="font-medium text-gray-900 dark:text-white block">{getFullName(consultant)}</span>
                           <span className="text-sm text-gray-500 dark:text-gray-400">{consultant.title}</span>
                           {consultant.experience?.seniority && (
                             <span className="ml-2 text-xs text-gray-400">• {consultant.experience.seniority} ({consultant.experience.years} ans)</span>
@@ -467,7 +403,7 @@ export default function ConsultantsPage() {
                           </span>
                         ))}
                         {(consultant.modules?.length || 0) > 3 && (
-                          <span className="px-2 py-0.5 text-xs text-gray-400 dark:text-gray-500">+{consultant.modules.length - 3}</span>
+                          <span className="px-2 py-0.5 text-xs text-gray-400 dark:text-gray-500">+{consultant.modules!.length - 3}</span>
                         )}
                       </div>
                     </td>
@@ -518,7 +454,7 @@ export default function ConsultantsPage() {
         )}
       </div>
 
-      {/* Create/Edit Modal */}
+      {/* Create/Edit Modal with Tabs */}
       <AnimatePresence>
         {showModal && editingConsultant && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -531,11 +467,11 @@ export default function ConsultantsPage() {
               {/* Modal Header */}
               <div className="flex justify-between items-center p-6 border-b border-gray-100 dark:border-slate-700">
                 <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-xl bg-gradient-to-r ${editingConsultant._id ? 'from-blue-500 to-indigo-500' : 'from-ebmc-turquoise to-cyan-500'}`}>
-                    {editingConsultant._id ? <Edit className="w-5 h-5 text-white" /> : <Plus className="w-5 h-5 text-white" />}
+                  <div className={`p-2 rounded-xl bg-gradient-to-r ${editingConsultant.id && consultants.find(c => c.id === editingConsultant.id) ? 'from-blue-500 to-indigo-500' : 'from-ebmc-turquoise to-cyan-500'}`}>
+                    {editingConsultant.id && consultants.find(c => c.id === editingConsultant.id) ? <Edit className="w-5 h-5 text-white" /> : <Plus className="w-5 h-5 text-white" />}
                   </div>
                   <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                    {editingConsultant._id ? 'Modifier le consultant' : 'Nouveau consultant'}
+                    {editingConsultant.id && consultants.find(c => c.id === editingConsultant.id) ? 'Modifier le consultant' : 'Nouveau consultant'}
                   </h2>
                 </div>
                 <button
@@ -546,405 +482,504 @@ export default function ConsultantsPage() {
                 </button>
               </div>
 
+              {/* Tabs */}
+              <div className="flex border-b border-gray-100 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-800/50 overflow-x-auto">
+                {MODAL_TABS.map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 transition whitespace-nowrap ${
+                      activeTab === tab.id
+                        ? 'border-ebmc-turquoise text-ebmc-turquoise bg-white dark:bg-slate-700'
+                        : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                    }`}
+                  >
+                    {tab.icon}
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
               {/* Modal Body */}
-              <div className="p-6 overflow-y-auto flex-1 space-y-6">
+              <div className="p-6 overflow-y-auto flex-1">
                 {/* Error Alert */}
                 {error && (
                   <motion.div
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="flex items-center gap-3 p-4 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 rounded-xl text-red-600 dark:text-red-400"
+                    className="flex items-center gap-3 p-4 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 rounded-xl text-red-600 dark:text-red-400 mb-6"
                   >
                     <AlertCircle className="w-5 h-5 flex-shrink-0" />
                     <span className="text-sm">{error}</span>
                   </motion.div>
                 )}
 
-                {/* Name */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Nom complet
-                  </label>
-                  <input
-                    type="text"
-                    value={editingConsultant.name || ''}
-                    onChange={(e) => updateField('name', e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
-                    placeholder="Jean Dupont"
-                  />
-                </div>
-
-                {/* Titles */}
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Titre (FR)</label>
-                    <input
-                      type="text"
-                      value={editingConsultant.title || ''}
-                      onChange={(e) => updateField('title', e.target.value)}
-                      className="w-full px-4 py-3 border border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
-                      placeholder="Consultant SAP FI CO Senior"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Title (EN)</label>
-                    <input
-                      type="text"
-                      value={editingConsultant.titleEn || ''}
-                      onChange={(e) => updateField('titleEn', e.target.value)}
-                      className="w-full px-4 py-3 border border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
-                      placeholder="Senior SAP FI CO Consultant"
-                    />
-                  </div>
-                </div>
-
-                {/* Location & Commercial */}
-                <div className="grid md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      <MapPin className="w-4 h-4 inline mr-1" />Ville
-                    </label>
-                    <input
-                      type="text"
-                      value={editingConsultant.location?.city || ''}
-                      onChange={(e) => updateNestedField('location', 'city', e.target.value)}
-                      className="w-full px-4 py-3 border border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
-                      placeholder="Paris"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Pays</label>
-                    <input
-                      type="text"
-                      value={editingConsultant.location?.country || ''}
-                      onChange={(e) => updateNestedField('location', 'country', e.target.value)}
-                      className="w-full px-4 py-3 border border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
-                      placeholder="France"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Commercial assigné
-                    </label>
-                    <select
-                      value={editingConsultant.assignedTo || ''}
-                      onChange={(e) => {
-                        const selectedUser = commerciaux.find(u => u._id === e.target.value)
-                        updateField('assignedTo', e.target.value)
-                        updateField('assignedToName', selectedUser?.name || selectedUser?.email || '')
-                      }}
-                      className="w-full px-4 py-3 border border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
-                    >
-                      <option value="">Non assigné</option>
-                      {commerciaux.map(user => (
-                        <option key={user._id} value={user._id}>
-                          {user.name || user.email}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                {/* Experience */}
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      <Briefcase className="w-4 h-4 inline mr-1" />Années d&apos;expérience
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={editingConsultant.experience?.years || 0}
-                      onChange={(e) => updateNestedField('experience', 'years', parseInt(e.target.value) || 0)}
-                      className="w-full px-4 py-3 border border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Séniorité</label>
-                    <select
-                      value={editingConsultant.experience?.seniority || 'Confirmé'}
-                      onChange={(e) => updateNestedField('experience', 'seniority', e.target.value)}
-                      className="w-full px-4 py-3 border border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
-                    >
-                      {SENIORITY_LEVELS.map(level => (
-                        <option key={level} value={level}>{level}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                {/* SAP Modules */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Modules SAP
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    {SAP_MODULES.map(mod => (
-                      <button
-                        key={mod}
-                        type="button"
-                        onClick={() => toggleArrayItem('modules', mod)}
-                        className={`px-3 py-1.5 text-xs font-medium rounded-lg transition ${
-                          editingConsultant.modules?.includes(mod)
-                            ? 'bg-blue-500 text-white'
-                            : 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-600'
-                        }`}
-                      >
-                        {mod}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* SAP Sub-Modules */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Sous-modules SAP
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    {SAP_SUB_MODULES.map(sub => (
-                      <button
-                        key={sub}
-                        type="button"
-                        onClick={() => toggleArrayItem('subModules', sub)}
-                        className={`px-3 py-1.5 text-xs font-medium rounded-lg transition ${
-                          editingConsultant.subModules?.includes(sub)
-                            ? 'bg-cyan-500 text-white'
-                            : 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-600'
-                        }`}
-                      >
-                        {sub}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Job Families */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Métier / Famille de compétences
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    {JOB_FAMILIES.map(jf => (
-                      <button
-                        key={jf}
-                        type="button"
-                        onClick={() => toggleArrayItem('jobFamilies', jf)}
-                        className={`px-3 py-1.5 text-xs font-medium rounded-lg transition ${
-                          editingConsultant.jobFamilies?.includes(jf)
-                            ? 'bg-purple-500 text-white'
-                            : 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-600'
-                        }`}
-                      >
-                        {jf}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* TJM (Daily Rate) */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    <Euro className="w-4 h-4 inline mr-1" />Taux journalier (TJM)
-                  </label>
-                  <div className="grid md:grid-cols-3 gap-4">
-                    <div>
-                      <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Min</label>
-                      <input
-                        type="number"
-                        min="0"
-                        value={editingConsultant.dailyRate?.min || ''}
-                        onChange={(e) => updateNestedField('dailyRate', 'min', parseInt(e.target.value) || 0)}
-                        className="w-full px-4 py-3 border border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
-                        placeholder="600"
-                      />
+                {/* Tab: Identity */}
+                {activeTab === 'identity' && (
+                  <div className="space-y-5">
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Prénom</label>
+                        <input
+                          type="text"
+                          value={editingConsultant.firstName || ''}
+                          onChange={(e) => updateField('firstName', e.target.value)}
+                          className="w-full px-4 py-3 border border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
+                          placeholder="Jean"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Nom</label>
+                        <input
+                          type="text"
+                          value={editingConsultant.lastName || ''}
+                          onChange={(e) => updateField('lastName', e.target.value)}
+                          className="w-full px-4 py-3 border border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
+                          placeholder="Dupont"
+                        />
+                      </div>
                     </div>
-                    <div>
-                      <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Max</label>
-                      <input
-                        type="number"
-                        min="0"
-                        value={editingConsultant.dailyRate?.max || ''}
-                        onChange={(e) => updateNestedField('dailyRate', 'max', parseInt(e.target.value) || 0)}
-                        className="w-full px-4 py-3 border border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
-                        placeholder="900"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Devise</label>
-                      <select
-                        value={editingConsultant.dailyRate?.currency || 'EUR'}
-                        onChange={(e) => updateNestedField('dailyRate', 'currency', e.target.value)}
-                        className="w-full px-4 py-3 border border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
-                      >
-                        <option value="EUR">EUR (€)</option>
-                        <option value="CHF">CHF</option>
-                        <option value="GBP">GBP (£)</option>
-                        <option value="USD">USD ($)</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
 
-                {/* Mobility */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    <Globe2 className="w-4 h-4 inline mr-1" />Mobilité
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    {MOBILITY_OPTIONS.map(mob => (
-                      <button
-                        key={mob}
-                        type="button"
-                        onClick={() => toggleArrayItem('mobility', mob)}
-                        className={`px-3 py-1.5 text-xs font-medium rounded-lg transition ${
-                          editingConsultant.mobility?.includes(mob)
-                            ? 'bg-green-500 text-white'
-                            : 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-600'
-                        }`}
-                      >
-                        {mob}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Languages */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Langues
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    {LANGUAGE_OPTIONS.map(lang => (
-                      <button
-                        key={lang}
-                        type="button"
-                        onClick={() => toggleArrayItem('languages', lang)}
-                        className={`px-3 py-1.5 text-xs font-medium rounded-lg transition ${
-                          editingConsultant.languages?.includes(lang)
-                            ? 'bg-indigo-500 text-white'
-                            : 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-600'
-                        }`}
-                      >
-                        {lang}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Availability */}
-                <div className="p-4 bg-gray-50 dark:bg-slate-700/50 rounded-xl space-y-4">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    <Calendar className="w-4 h-4 inline mr-1" />Disponibilité
-                  </label>
-                  <div className="grid md:grid-cols-3 gap-4">
-                    <div>
-                      <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Statut</label>
-                      <select
-                        value={editingConsultant.availability?.isAvailable ? 'true' : 'false'}
-                        onChange={(e) => updateNestedField('availability', 'isAvailable', e.target.value === 'true')}
-                        className="w-full px-4 py-3 border border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
-                      >
-                        <option value="true">Disponible</option>
-                        <option value="false">En mission</option>
-                      </select>
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          <Mail className="w-4 h-4 inline mr-1" />Email
+                        </label>
+                        <input
+                          type="email"
+                          value={editingConsultant.email || ''}
+                          onChange={(e) => updateField('email', e.target.value)}
+                          className="w-full px-4 py-3 border border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
+                          placeholder="jean.dupont@email.com"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          <Phone className="w-4 h-4 inline mr-1" />Téléphone
+                        </label>
+                        <input
+                          type="tel"
+                          value={editingConsultant.phone || ''}
+                          onChange={(e) => updateField('phone', e.target.value)}
+                          className="w-full px-4 py-3 border border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
+                          placeholder="+33 6 12 34 56 78"
+                        />
+                      </div>
                     </div>
-                    <div>
-                      <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Date de disponibilité</label>
-                      <input
-                        type="date"
-                        value={editingConsultant.availability?.availableDate || ''}
-                        onChange={(e) => updateNestedField('availability', 'availableDate', e.target.value)}
-                        className="w-full px-4 py-3 border border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Disponible sous</label>
-                      <select
-                        value={editingConsultant.availability?.availableIn || 'Immédiat'}
-                        onChange={(e) => updateNestedField('availability', 'availableIn', e.target.value)}
-                        className="w-full px-4 py-3 border border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
-                      >
-                        <option value="Immédiat">Immédiat</option>
-                        <option value="1 mois">1 mois</option>
-                        <option value="2 mois">2 mois</option>
-                        <option value="3 mois">3 mois</option>
-                        <option value="A définir">À définir</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
 
-                {/* Certifications */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    <Award className="w-4 h-4 inline mr-1" />Certifications
-                  </label>
-                  {(editingConsultant.certifications || []).map((cert, i) => (
-                    <div key={i} className="flex gap-2 mb-2">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Titre du poste</label>
                       <input
                         type="text"
-                        value={cert}
-                        onChange={(e) => updateCertification(i, e.target.value)}
-                        className="flex-1 px-4 py-3 border border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
-                        placeholder="SAP S/4HANA Finance, SAP Activate..."
+                        value={editingConsultant.title || ''}
+                        onChange={(e) => updateField('title', e.target.value)}
+                        className="w-full px-4 py-3 border border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
+                        placeholder="Consultant SAP FI CO Senior"
                       />
-                      <button
-                        type="button"
-                        onClick={() => removeCertification(i)}
-                        className="px-3 py-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition"
-                      >
-                        <X className="w-5 h-5" />
-                      </button>
                     </div>
-                  ))}
-                  <button
-                    type="button"
-                    onClick={addCertification}
-                    className="text-ebmc-turquoise text-sm font-medium hover:underline"
-                  >
-                    + Ajouter une certification
-                  </button>
-                </div>
 
-                {/* Other criteria */}
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Nationalité</label>
-                    <input
-                      type="text"
-                      value={editingConsultant.nationality || ''}
-                      onChange={(e) => updateField('nationality', e.target.value)}
-                      className="w-full px-4 py-3 border border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
-                      placeholder="Française"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Habilitation</label>
-                    <input
-                      type="text"
-                      value={editingConsultant.clearance || ''}
-                      onChange={(e) => updateField('clearance', e.target.value)}
-                      className="w-full px-4 py-3 border border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
-                      placeholder="Habilitation défense, Secret..."
-                    />
-                  </div>
-                </div>
+                    <div className="grid md:grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          <MapPin className="w-4 h-4 inline mr-1" />Ville
+                        </label>
+                        <input
+                          type="text"
+                          value={editingConsultant.location?.city || ''}
+                          onChange={(e) => updateNestedField('location', 'city', e.target.value)}
+                          className="w-full px-4 py-3 border border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
+                          placeholder="Paris"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Pays</label>
+                        <input
+                          type="text"
+                          value={editingConsultant.location?.country || ''}
+                          onChange={(e) => updateNestedField('location', 'country', e.target.value)}
+                          className="w-full px-4 py-3 border border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
+                          placeholder="France"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Nationalité</label>
+                        <input
+                          type="text"
+                          value={editingConsultant.nationality || ''}
+                          onChange={(e) => updateField('nationality', e.target.value)}
+                          className="w-full px-4 py-3 border border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
+                          placeholder="Française"
+                        />
+                      </div>
+                    </div>
 
-                {/* Remote work toggle */}
-                <div className="flex items-center gap-3 p-4 bg-gray-50 dark:bg-slate-700/50 rounded-xl">
-                  <input
-                    type="checkbox"
-                    id="remoteWork"
-                    checked={editingConsultant.remoteWork || false}
-                    onChange={(e) => updateField('remoteWork', e.target.checked)}
-                    className="w-5 h-5 text-ebmc-turquoise rounded border-gray-300 focus:ring-ebmc-turquoise"
-                  />
-                  <label htmlFor="remoteWork" className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                    <Home className="w-4 h-4" />
-                    Télétravail possible
-                  </label>
-                </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Commercial assigné</label>
+                      <select
+                        value={editingConsultant.commercialId || ''}
+                        onChange={(e) => updateField('commercialId', e.target.value)}
+                        className="w-full px-4 py-3 border border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
+                      >
+                        <option value="">Non assigné</option>
+                        {commerciaux.map(user => (
+                          <option key={user._id} value={user._id}>
+                            {user.name || user.email}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                )}
+
+                {/* Tab: Skills */}
+                {activeTab === 'skills' && (
+                  <div className="space-y-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Famille métier</label>
+                      <div className="flex flex-wrap gap-2">
+                        {JOB_FAMILIES.map(jf => (
+                          <button
+                            key={jf}
+                            type="button"
+                            onClick={() => updateField('jobFamily', editingConsultant.jobFamily === jf ? undefined : jf)}
+                            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition ${
+                              editingConsultant.jobFamily === jf
+                                ? 'bg-purple-500 text-white'
+                                : 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-600'
+                            }`}
+                          >
+                            {jf}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Modules SAP
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        {SAP_MODULES.map(mod => (
+                          <button
+                            key={mod}
+                            type="button"
+                            onClick={() => toggleArrayItem('modules', mod)}
+                            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition ${
+                              editingConsultant.modules?.includes(mod)
+                                ? 'bg-blue-500 text-white'
+                                : 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-600'
+                            }`}
+                          >
+                            {mod}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Sous-modules SAP
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        {SAP_SUB_MODULES.map(sub => (
+                          <button
+                            key={sub}
+                            type="button"
+                            onClick={() => toggleArrayItem('subModules', sub)}
+                            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition ${
+                              editingConsultant.subModules?.includes(sub)
+                                ? 'bg-cyan-500 text-white'
+                                : 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-600'
+                            }`}
+                          >
+                            {sub}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Langues</label>
+                      <div className="flex flex-wrap gap-2">
+                        {LANGUAGES.map(lang => (
+                          <button
+                            key={lang}
+                            type="button"
+                            onClick={() => toggleArrayItem('languages', lang)}
+                            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition ${
+                              editingConsultant.languages?.includes(lang)
+                                ? 'bg-indigo-500 text-white'
+                                : 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-600'
+                            }`}
+                          >
+                            {lang}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Tab: Experience */}
+                {activeTab === 'experience' && (
+                  <div className="space-y-6">
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          Années d&apos;expérience
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={editingConsultant.experience?.years || 0}
+                          onChange={(e) => updateNestedField('experience', 'years', parseInt(e.target.value) || 0)}
+                          className="w-full px-4 py-3 border border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Séniorité</label>
+                        <select
+                          value={editingConsultant.experience?.seniority || 'Confirmé'}
+                          onChange={(e) => updateNestedField('experience', 'seniority', e.target.value)}
+                          className="w-full px-4 py-3 border border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
+                        >
+                          {SENIORITY_LEVELS.map(level => (
+                            <option key={level} value={level}>{level}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        <Award className="w-4 h-4 inline mr-1" />Certifications
+                      </label>
+                      <div className="space-y-2">
+                        {(editingConsultant.certifications || []).map((cert, i) => (
+                          <div key={i} className="flex gap-2">
+                            <input
+                              type="text"
+                              value={cert}
+                              onChange={(e) => {
+                                const certs = [...(editingConsultant.certifications || [])]
+                                certs[i] = e.target.value
+                                updateField('certifications', certs)
+                              }}
+                              className="flex-1 px-4 py-3 border border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
+                              placeholder="SAP S/4HANA Finance"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => updateField('certifications', (editingConsultant.certifications || []).filter((_, idx) => idx !== i))}
+                              className="px-3 py-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition"
+                            >
+                              <X className="w-5 h-5" />
+                            </button>
+                          </div>
+                        ))}
+                        <button
+                          type="button"
+                          onClick={() => updateField('certifications', [...(editingConsultant.certifications || []), ''])}
+                          className="text-ebmc-turquoise text-sm font-medium hover:underline"
+                        >
+                          + Ajouter une certification
+                        </button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        <Shield className="w-4 h-4 inline mr-1" />Habilitation sécurité
+                      </label>
+                      <input
+                        type="text"
+                        value={editingConsultant.securityClearance || ''}
+                        onChange={(e) => updateField('securityClearance', e.target.value)}
+                        className="w-full px-4 py-3 border border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
+                        placeholder="Habilitation défense, Secret..."
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Tab: Availability */}
+                {activeTab === 'availability' && (
+                  <div className="space-y-6">
+                    <div className="p-4 bg-gray-50 dark:bg-slate-700/50 rounded-xl space-y-4">
+                      <div className="grid md:grid-cols-3 gap-4">
+                        <div>
+                          <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Statut</label>
+                          <select
+                            value={editingConsultant.availability?.isAvailable ? 'true' : 'false'}
+                            onChange={(e) => updateNestedField('availability', 'isAvailable', e.target.value === 'true')}
+                            className="w-full px-4 py-3 border border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
+                          >
+                            <option value="true">Disponible</option>
+                            <option value="false">En mission</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Date de disponibilité</label>
+                          <input
+                            type="date"
+                            value={editingConsultant.availability?.availableFrom || ''}
+                            onChange={(e) => updateNestedField('availability', 'availableFrom', e.target.value)}
+                            className="w-full px-4 py-3 border border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Disponible sous</label>
+                          <select
+                            value={editingConsultant.availability?.availableIn || 'Immédiat'}
+                            onChange={(e) => updateNestedField('availability', 'availableIn', e.target.value)}
+                            className="w-full px-4 py-3 border border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
+                          >
+                            <option value="Immédiat">Immédiat</option>
+                            <option value="1 mois">1 mois</option>
+                            <option value="2 mois">2 mois</option>
+                            <option value="3 mois">3 mois</option>
+                            <option value="A définir">À définir</option>
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        <Globe2 className="w-4 h-4 inline mr-1" />Mobilité
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        {MOBILITY_OPTIONS.map(mob => (
+                          <button
+                            key={mob}
+                            type="button"
+                            onClick={() => toggleArrayItem('mobility', mob)}
+                            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition ${
+                              editingConsultant.mobility?.includes(mob as typeof MOBILITY_OPTIONS[number])
+                                ? 'bg-green-500 text-white'
+                                : 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-600'
+                            }`}
+                          >
+                            {mob}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 p-4 bg-gray-50 dark:bg-slate-700/50 rounded-xl">
+                      <input
+                        type="checkbox"
+                        id="remoteWork"
+                        checked={editingConsultant.remoteWork || false}
+                        onChange={(e) => updateField('remoteWork', e.target.checked)}
+                        className="w-5 h-5 text-ebmc-turquoise rounded border-gray-300 focus:ring-ebmc-turquoise"
+                      />
+                      <label htmlFor="remoteWork" className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                        <Home className="w-4 h-4" />
+                        Télétravail possible
+                      </label>
+                    </div>
+                  </div>
+                )}
+
+                {/* Tab: Financial */}
+                {activeTab === 'financial' && (
+                  <div className="space-y-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        <Euro className="w-4 h-4 inline mr-1" />Taux journalier (TJM)
+                      </label>
+                      <div className="grid md:grid-cols-4 gap-4">
+                        <div>
+                          <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Min</label>
+                          <input
+                            type="number"
+                            min="0"
+                            value={editingConsultant.dailyRate?.min || ''}
+                            onChange={(e) => updateNestedField('dailyRate', 'min', parseInt(e.target.value) || 0)}
+                            className="w-full px-4 py-3 border border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
+                            placeholder="600"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Max</label>
+                          <input
+                            type="number"
+                            min="0"
+                            value={editingConsultant.dailyRate?.max || ''}
+                            onChange={(e) => updateNestedField('dailyRate', 'max', parseInt(e.target.value) || 0)}
+                            className="w-full px-4 py-3 border border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
+                            placeholder="900"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Cible</label>
+                          <input
+                            type="number"
+                            min="0"
+                            value={editingConsultant.dailyRate?.target || ''}
+                            onChange={(e) => updateNestedField('dailyRate', 'target', parseInt(e.target.value) || 0)}
+                            className="w-full px-4 py-3 border border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
+                            placeholder="750"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Devise</label>
+                          <select
+                            value={editingConsultant.dailyRate?.currency || 'EUR'}
+                            onChange={(e) => updateNestedField('dailyRate', 'currency', e.target.value)}
+                            className="w-full px-4 py-3 border border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
+                          >
+                            <option value="EUR">EUR (€)</option>
+                            <option value="CHF">CHF</option>
+                            <option value="GBP">GBP (£)</option>
+                            <option value="USD">USD ($)</option>
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Tab: Notes */}
+                {activeTab === 'notes' && (
+                  <div className="space-y-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        <FileText className="w-4 h-4 inline mr-1" />Notes internes
+                      </label>
+                      <textarea
+                        rows={6}
+                        value={editingConsultant.notes || ''}
+                        onChange={(e) => updateField('notes', e.target.value)}
+                        className="w-full px-4 py-3 border border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white resize-none"
+                        placeholder="Ajouter des notes sur le consultant..."
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Source</label>
+                      <input
+                        type="text"
+                        value={editingConsultant.source || ''}
+                        onChange={(e) => updateField('source', e.target.value)}
+                        className="w-full px-4 py-3 border border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
+                        placeholder="LinkedIn, Cooptation, etc."
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">URL du CV</label>
+                      <input
+                        type="url"
+                        value={editingConsultant.cvUrl || ''}
+                        onChange={(e) => updateField('cvUrl', e.target.value)}
+                        className="w-full px-4 py-3 border border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
+                        placeholder="https://..."
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Modal Footer */}
@@ -964,12 +999,12 @@ export default function ConsultantsPage() {
                   {saving ? (
                     <>
                       <Loader2 className="w-5 h-5 animate-spin" />
-                      {editingConsultant._id ? 'Mise à jour...' : 'Création...'}
+                      Enregistrement...
                     </>
                   ) : (
                     <>
                       <Save className="w-5 h-5" />
-                      Mettre à jour
+                      Enregistrer
                     </>
                   )}
                 </button>
