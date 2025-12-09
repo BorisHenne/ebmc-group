@@ -116,7 +116,8 @@ export async function POST(request: NextRequest) {
     const token = await createToken(
       user._id.toString(),
       boondEmail,
-      user.role || 'user'
+      user.role || 'user',
+      user.name || `${boondUser.data.attributes.firstName} ${boondUser.data.attributes.lastName}`
     )
 
     // Set cookies

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
+import Link from 'next/link'
 import {
   Users,
   UserPlus,
@@ -14,7 +15,8 @@ import {
   AlertCircle,
   CheckCircle,
   Clock,
-  Target
+  Target,
+  Kanban
 } from 'lucide-react'
 import {
   BarChart,
@@ -101,13 +103,15 @@ export default function SourceurDashboard() {
   const [loading, setLoading] = useState(true)
   const [isDemo, setIsDemo] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [userName, setUserName] = useState<string>('')
 
   const fetchData = async () => {
     setLoading(true)
     try {
-      const [statsRes, candidatesRes] = await Promise.all([
+      const [statsRes, candidatesRes, userRes] = await Promise.all([
         fetch('/api/boondmanager?type=stats&demo=true', { credentials: 'include' }),
-        fetch('/api/boondmanager?type=candidates&demo=true', { credentials: 'include' })
+        fetch('/api/boondmanager?type=candidates&demo=true', { credentials: 'include' }),
+        fetch('/api/auth/me', { credentials: 'include' })
       ])
 
       if (statsRes.ok) {
@@ -119,6 +123,11 @@ export default function SourceurDashboard() {
       if (candidatesRes.ok) {
         const candidatesData = await candidatesRes.json()
         setCandidates(candidatesData.data || [])
+      }
+
+      if (userRes.ok) {
+        const userData = await userRes.json()
+        setUserName(userData.user?.name || '')
       }
     } catch (error) {
       console.error('Error fetching data:', error)
@@ -162,8 +171,10 @@ export default function SourceurDashboard() {
             <Users className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Dashboard Sourceur</h1>
-            <p className="text-gray-500">Suivi de vos candidats et activite de recrutement</p>
+            <h1 className="text-2xl font-bold text-gray-900">
+              {userName ? `Bonjour ${userName}` : 'Dashboard Sourceur'}
+            </h1>
+            <p className="text-gray-500">Suivi de vos candidats et activité de recrutement</p>
           </div>
         </div>
 
@@ -171,9 +182,16 @@ export default function SourceurDashboard() {
           {isDemo && (
             <span className="px-3 py-1.5 bg-amber-100 text-amber-700 rounded-full text-sm font-medium flex items-center gap-1.5">
               <AlertCircle className="w-4 h-4" />
-              Mode Demo
+              Mode Démo
             </span>
           )}
+          <Link
+            href="/admin/recrutement"
+            className="flex items-center gap-2 px-4 py-2 bg-ebmc-turquoise text-white rounded-lg hover:bg-ebmc-turquoise/90 transition shadow-lg"
+          >
+            <Kanban className="w-4 h-4" />
+            Parcours recrutement
+          </Link>
           <button
             onClick={fetchData}
             className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition"

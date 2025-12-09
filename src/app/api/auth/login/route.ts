@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const token = await createToken(user._id.toString(), user.email, user.role)
+    const token = await createToken(user._id.toString(), user.email, user.role, user.name || 'Utilisateur')
 
     const response = NextResponse.json({
       success: true,
