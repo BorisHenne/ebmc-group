@@ -83,6 +83,12 @@ const menuSections: MenuSection[] = [
     ]
   },
   {
+    title: 'BoondManager',
+    items: [
+      { href: '/admin/boondmanager', icon: Database, label: 'Gestion BDD', color: 'from-amber-500 to-orange-500', permission: 'boondManager' },
+    ]
+  },
+  {
     title: 'Administration',
     items: [
       { href: '/admin/users', icon: Users, label: 'Utilisateurs', color: 'from-orange-500 to-amber-500', permission: 'users' },

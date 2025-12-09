@@ -71,6 +71,18 @@
 | Webhooks configuration (Make, BoondManager) | Configuration webhooks (Make, BoondManager) |
 | Statistics dashboard | Dashboard statistiques |
 | API documentation | Documentation API |
+| **Dark mode toggle** | **Basculement mode sombre** |
+
+### BoondManager Integration | Intégration BoondManager
+
+| EN | FR |
+|---|---|
+| BoondManager SSO login | Connexion SSO BoondManager |
+| Candidates management (CRUD) | Gestion des candidats (CRUD) |
+| Resources/Consultants management (CRUD) | Gestion des ressources/consultants (CRUD) |
+| Opportunities management (CRUD) | Gestion des opportunités (CRUD) |
+| Real-time sync with BoondManager API | Synchronisation temps réel avec API BoondManager |
+| State management (recruitment pipeline) | Gestion des états (pipeline recrutement) |
 
 ### Freelance Portal | Portail Freelance
 
@@ -212,6 +224,10 @@ npm run lint:fix     # Auto-fix lint issues
 | `http://localhost:8889/consultants` | Consultant profiles | Profils consultants |
 | `http://localhost:8889/login` | Admin login | Connexion admin |
 | `http://localhost:8889/admin` | Admin dashboard | Dashboard admin |
+| `http://localhost:8889/admin/boondmanager` | BoondManager CRUD | Gestion CRUD BoondManager |
+| `http://localhost:8889/admin/recrutement` | Recruitment kanban | Kanban recrutement |
+| `http://localhost:8889/admin/freelance` | Freelance portal | Portail freelance |
+| `http://localhost:8889/admin/docs` | Documentation | Documentation |
 
 ### Admin Access | Accès Admin
 
@@ -292,6 +308,27 @@ After seeding the database, these demo accounts are available:
 | GET/POST | `/api/admin/api-tokens` | List/Create API tokens |
 | GET/POST | `/api/admin/roles` | List/Create roles |
 | GET | `/api/admin/stats` | Dashboard statistics |
+
+### BoondManager Endpoints (Protected) | Endpoints BoondManager (Protégés)
+
+| Method | Endpoint | Description EN | Description FR |
+|--------|----------|----------------|----------------|
+| GET | `/api/boondmanager?type=stats` | Get dashboard stats | Statistiques dashboard |
+| GET | `/api/boondmanager?type=candidates` | List candidates | Liste des candidats |
+| GET | `/api/boondmanager?type=resources` | List resources | Liste des ressources |
+| GET | `/api/boondmanager?type=opportunities` | List opportunities | Liste des opportunités |
+| GET | `/api/boondmanager/candidates` | List/Search candidates | Lister/Chercher candidats |
+| POST | `/api/boondmanager/candidates` | Create candidate | Créer candidat |
+| PATCH | `/api/boondmanager/candidates` | Update candidate | Modifier candidat |
+| DELETE | `/api/boondmanager/candidates?id=X` | Delete candidate | Supprimer candidat |
+| GET | `/api/boondmanager/resources` | List/Search resources | Lister/Chercher ressources |
+| POST | `/api/boondmanager/resources` | Create resource | Créer ressource |
+| PATCH | `/api/boondmanager/resources` | Update resource | Modifier ressource |
+| DELETE | `/api/boondmanager/resources?id=X` | Delete resource | Supprimer ressource |
+| GET | `/api/boondmanager/opportunities` | List opportunities | Lister opportunités |
+| POST | `/api/boondmanager/opportunities` | Create opportunity | Créer opportunité |
+| PATCH | `/api/boondmanager/opportunities` | Update opportunity | Modifier opportunité |
+| DELETE | `/api/boondmanager/opportunities?id=X` | Delete opportunity | Supprimer opportunité |
 
 ### Freelance Endpoints (Protected) | Endpoints Freelance (Protégés)
 
