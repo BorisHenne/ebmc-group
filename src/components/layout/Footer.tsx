@@ -5,8 +5,13 @@ import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { Linkedin } from 'lucide-react'
 
-export function Footer() {
+interface FooterProps {
+  variant?: 'dark' | 'light'
+}
+
+export function Footer({ variant = 'dark' }: FooterProps) {
   const t = useTranslations()
+  const isLight = variant === 'light'
 
   const navItems = [
     { key: 'services', href: '/#services' },
@@ -16,7 +21,11 @@ export function Footer() {
   ]
 
   return (
-    <footer className="relative py-12 px-4 border-t border-white/10 bg-black/20">
+    <footer className={`relative py-12 px-4 border-t ${
+      isLight
+        ? 'border-slate-200/60 bg-white/30'
+        : 'border-white/10 bg-black/20'
+    }`}>
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-col md:flex-row justify-between items-center gap-8">
           {/* Logo */}
@@ -30,7 +39,11 @@ export function Footer() {
               <Link
                 key={item.key}
                 href={item.href}
-                className="text-white/60 hover:text-ebmc-turquoise transition text-sm"
+                className={`text-sm transition ${
+                  isLight
+                    ? 'text-slate-500 hover:text-ebmc-turquoise'
+                    : 'text-white/60 hover:text-ebmc-turquoise'
+                }`}
               >
                 {t(`nav.${item.key}`)}
               </Link>
@@ -43,11 +56,15 @@ export function Footer() {
               href="https://linkedin.com/company/ebmc-group"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-white/60 hover:text-ebmc-turquoise transition"
+              className={`transition ${
+                isLight
+                  ? 'text-slate-500 hover:text-ebmc-turquoise'
+                  : 'text-white/60 hover:text-ebmc-turquoise'
+              }`}
             >
               <Linkedin className="w-5 h-5" />
             </a>
-            <p className="text-white/40 text-sm">
+            <p className={`text-sm ${isLight ? 'text-slate-400' : 'text-white/40'}`}>
               © {new Date().getFullYear()} EBMC GROUP
             </p>
           </div>
