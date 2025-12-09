@@ -26,7 +26,7 @@
   <img src="https://img.shields.io/badge/TypeScript-5.6-3178C6?style=flat-square&logo=typescript" alt="TypeScript" />
   <img src="https://img.shields.io/badge/MongoDB-7-47A248?style=flat-square&logo=mongodb" alt="MongoDB" />
   <img src="https://img.shields.io/badge/Tailwind-3.4-38B2AC?style=flat-square&logo=tailwindcss" alt="Tailwind" />
-  <img src="https://img.shields.io/badge/Tests-157+-green?style=flat-square" alt="Tests" />
+  <img src="https://img.shields.io/badge/Tests-200+-green?style=flat-square" alt="Tests" />
 </p>
 
 ---
@@ -248,25 +248,54 @@ npm run lint:fix     # Auto-fix lint issues
 
 ### Role System | Système de Rôles
 
+The system uses two main role categories:
+
+**🏢 Bureau (Internal Staff) | Équipe Interne:**
+
 | Role | Access EN | Accès FR |
 |------|-----------|----------|
 | **admin** | Full access to all features | Accès complet à toutes les fonctionnalités |
-| **sourceur** | Consultants, messages, documentation | Consultants, messages, documentation |
-| **commercial** | Jobs, consultants (assigned only), messages | Offres, consultants (assignés uniquement), messages |
-| **freelance** | Freelance portal only (timesheets, absences) | Portail freelance uniquement (CRA, absences) |
-| **user** | Basic read access (dashboard, jobs, consultants) | Accès lecture de base (dashboard, offres, consultants) |
+| **commercial** | Jobs, consultants, commercial dashboard | Offres, consultants, dashboard commercial |
+| **sourceur** | Recruitment, candidates, scraper, sourcing dashboard | Recrutement, candidats, scraper, dashboard sourcing |
+| **rh** | Users, contracts, HR dashboard | Utilisateurs, contrats, dashboard RH |
+
+**👷 Terrain (Consultants & Candidates) | Consultants et Candidats:**
+
+| Role | Access EN | Accès FR |
+|------|-----------|----------|
+| **consultant_cdi** | Consultant portal (timesheets, absences) | Portail consultant (CRA, absences) |
+| **freelance** | Freelance portal (timesheets, absences) | Portail freelance (CRA, absences) |
+| **candidat** | Minimal access (pending recruitment) | Accès minimal (en cours de recrutement) |
+
+**Candidate → Consultant Flow | Flux Candidat → Consultant:**
+
+```
+Candidat → (recruitment process) → Consultant CDI or Freelance
+           a_qualifier → qualifie → en_cours → entretien → proposition → embauche
+```
+
+When a candidate is hired (status = `embauche`), they become a consultant with:
+- `contractType`: `cdi` or `freelance`
+- `hireDate`: Date of hiring
+- User account with appropriate role (`consultant_cdi` or `freelance`)
 
 ### Demo Users | Utilisateurs Démo
 
 After seeding the database, these demo accounts are available:
 
+**Bureau (Internal):**
 | Email | Password | Role |
 |-------|----------|------|
 | `admin@ebmc-group.com` | `admin123` | Admin |
 | `sourceur@ebmc-group.com` | `sourceur123` | Sourceur |
 | `commercial@ebmc-group.com` | `commercial123` | Commercial |
+| `rh@ebmc-group.com` | `rh123` | RH |
+
+**Terrain (Consultants):**
+| Email | Password | Role |
+|-------|----------|------|
+| `consultant@ebmc-group.com` | `consultant123` | Consultant CDI |
 | `freelance@ebmc-group.com` | `freelance123` | Freelance |
-| `user@ebmc-group.com` | `user123` | User |
 
 > **Note:** Change passwords after first login in production!
 
@@ -543,10 +572,13 @@ npm run test:watch
 
 ### Test Coverage | Couverture
 
-**157+ unit tests** covering:
+**200+ unit tests** covering:
 - API routes validation (jobs, consultants, auth, webhooks, tokens)
 - Authentication logic (JWT, passwords, roles, BoondManager SSO)
-- **Role-based access control (5 roles with permissions)**
+- **Role-based access control (7 roles in 2 categories: Bureau/Terrain)**
+- **Role permissions and category helpers**
+- **Candidate/Consultant type system and transitions**
+- **Job families and dynamic skills by category**
 - **Freelance portal API (timesheets, absences)**
 - **Assignment system (commercial to jobs/consultants)**
 - Component rendering (UI components, forms)

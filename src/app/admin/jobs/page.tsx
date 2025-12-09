@@ -368,7 +368,8 @@ export default function JobsPage() {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.03 }}
-                    className="hover:bg-gray-50/50 dark:hover:bg-slate-700/50 transition"
+                    onClick={() => openEditModal(job)}
+                    className="hover:bg-gray-50/50 dark:hover:bg-slate-700/50 transition cursor-pointer"
                   >
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
@@ -415,14 +416,7 @@ export default function JobsPage() {
                     <td className="px-6 py-4">
                       <div className="flex justify-end gap-2">
                         <button
-                          onClick={() => openEditModal(job)}
-                          className="p-2 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition"
-                          title="Modifier"
-                        >
-                          <Edit className="w-5 h-5" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(job)}
+                          onClick={(e) => { e.stopPropagation(); handleDelete(job); }}
                           className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition"
                           title="Supprimer"
                         >

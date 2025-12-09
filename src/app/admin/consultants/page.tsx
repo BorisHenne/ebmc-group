@@ -438,7 +438,8 @@ export default function ConsultantsPage() {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.03 }}
-                    className="hover:bg-gray-50/50 dark:hover:bg-slate-700/50 transition"
+                    onClick={() => openEditModal(consultant)}
+                    className="hover:bg-gray-50/50 dark:hover:bg-slate-700/50 transition cursor-pointer"
                   >
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
@@ -524,14 +525,7 @@ export default function ConsultantsPage() {
                     <td className="px-6 py-4">
                       <div className="flex justify-end gap-2">
                         <button
-                          onClick={() => openEditModal(consultant)}
-                          className="p-2 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition"
-                          title="Modifier"
-                        >
-                          <Edit className="w-5 h-5" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(consultant)}
+                          onClick={(e) => { e.stopPropagation(); handleDelete(consultant); }}
                           className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition"
                           title="Supprimer"
                         >
@@ -732,16 +726,16 @@ export default function ConsultantsPage() {
                       <div className="flex flex-wrap gap-2">
                         {JOB_FAMILIES.map(jf => (
                           <button
-                            key={jf}
+                            key={jf.id}
                             type="button"
-                            onClick={() => updateField('jobFamily', editingConsultant.jobFamily === jf ? undefined : jf)}
+                            onClick={() => updateField('jobFamily', editingConsultant.jobFamily === jf.id ? undefined : jf.id)}
                             className={`px-3 py-1.5 text-xs font-medium rounded-lg transition ${
-                              editingConsultant.jobFamily === jf
+                              editingConsultant.jobFamily === jf.id
                                 ? 'bg-purple-500 text-white'
                                 : 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-600'
                             }`}
                           >
-                            {jf}
+                            {jf.label}
                           </button>
                         ))}
                       </div>
