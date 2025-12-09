@@ -15,14 +15,28 @@ import {
   Calendar,
   MoreVertical,
   ChevronLeft,
-  User,
   Briefcase,
-  Clock
+  Clock,
+  MapPin,
+  Euro,
+  Globe2
 } from 'lucide-react'
 import Link from 'next/link'
+import {
+  Candidate,
+  CandidateStatus,
+  STATUS_LABELS,
+  STATUS_COLORS,
+  SAP_MODULES,
+  SAP_SUB_MODULES,
+  JOB_FAMILIES,
+  LANGUAGES,
+  getInitials,
+  getFullName
+} from '@/types/candidate'
 
 // Recruitment stages - each stage is a column
-const RECRUITMENT_STAGES = [
+const RECRUITMENT_STAGES: { id: CandidateStatus; name: string; color: string; lightBg: string; darkBg: string; lightBorder: string; darkBorder: string; headerBg: string }[] = [
   { id: 'a_qualifier', name: 'À qualifier', color: '#94a3b8', lightBg: 'bg-slate-50', darkBg: 'dark:bg-slate-800/50', lightBorder: 'border-slate-300', darkBorder: 'dark:border-slate-600', headerBg: 'from-slate-100 to-slate-50 dark:from-slate-700 dark:to-slate-800' },
   { id: 'qualifie', name: 'Qualifié', color: '#06b6d4', lightBg: 'bg-cyan-50/50', darkBg: 'dark:bg-cyan-900/20', lightBorder: 'border-cyan-200', darkBorder: 'dark:border-cyan-800', headerBg: 'from-cyan-100 to-cyan-50 dark:from-cyan-900/40 dark:to-cyan-900/20' },
   { id: 'en_cours', name: 'En cours', color: '#8b5cf6', lightBg: 'bg-purple-50/50', darkBg: 'dark:bg-purple-900/20', lightBorder: 'border-purple-200', darkBorder: 'dark:border-purple-800', headerBg: 'from-purple-100 to-purple-50 dark:from-purple-900/40 dark:to-purple-900/20' },
@@ -31,23 +45,8 @@ const RECRUITMENT_STAGES = [
   { id: 'embauche', name: 'Embauché', color: '#10b981', lightBg: 'bg-emerald-50/50', darkBg: 'dark:bg-emerald-900/20', lightBorder: 'border-emerald-200', darkBorder: 'dark:border-emerald-800', headerBg: 'from-emerald-100 to-emerald-50 dark:from-emerald-900/40 dark:to-emerald-900/20' },
 ]
 
-interface Candidate {
-  id: string
-  firstName: string
-  lastName: string
-  email: string
-  phone?: string
-  title?: string
-  source?: string
-  stage: string
-  createdAt: string
-  lastActivity?: string
-  notes?: string
-  avatar?: string
-}
-
 interface KanbanColumn {
-  id: string
+  id: CandidateStatus
   name: string
   color: string
   lightBg: string
@@ -58,18 +57,35 @@ interface KanbanColumn {
   candidates: Candidate[]
 }
 
-// Generate demo candidates
+// Generate demo candidates with BoondManager structure
 function generateDemoCandidates(): Candidate[] {
   const firstNames = ['Jean', 'Marie', 'Pierre', 'Sophie', 'Thomas', 'Julie', 'Nicolas', 'Emma', 'Lucas', 'Léa', 'Hugo', 'Chloé', 'Alexandre', 'Camille', 'Maxime', 'Sarah', 'Antoine', 'Laura', 'Mathieu', 'Clara']
   const lastNames = ['Martin', 'Bernard', 'Dubois', 'Thomas', 'Robert', 'Richard', 'Petit', 'Durand', 'Leroy', 'Moreau', 'Simon', 'Laurent', 'Lefebvre', 'Michel', 'Garcia', 'Roux', 'Vincent', 'Fournier', 'Morel', 'Girard']
-  const titles = ['Développeur Full Stack', 'Data Scientist', 'DevOps Engineer', 'Product Manager', 'UX Designer', 'Tech Lead', 'Architecte Cloud', 'Consultant SAP', 'Chef de Projet', 'Scrum Master', 'Data Engineer', 'Frontend Developer', 'Backend Developer', 'Mobile Developer', 'QA Engineer']
+  const cities = ['Paris', 'Lyon', 'Marseille', 'Toulouse', 'Nantes', 'Bordeaux', 'Lille', 'Nice', 'Strasbourg', 'Luxembourg']
   const sources = ['LinkedIn', 'Indeed', 'Site Web', 'Cooptation', 'CVthèque', 'JobBoard', 'Réseau', 'Salon']
-  const stages = ['a_qualifier', 'qualifie', 'en_cours', 'entretien', 'proposition', 'embauche']
+  const statuses: CandidateStatus[] = ['a_qualifier', 'qualifie', 'en_cours', 'entretien', 'proposition', 'embauche']
 
   return Array.from({ length: 24 }, (_, i) => {
     const firstName = firstNames[Math.floor(Math.random() * firstNames.length)]
     const lastName = lastNames[Math.floor(Math.random() * lastNames.length)]
-    const stageIndex = Math.floor(Math.random() * stages.length)
+    const status = statuses[Math.floor(Math.random() * statuses.length)]
+    const yearsExp = Math.floor(Math.random() * 15) + 2
+    const city = cities[Math.floor(Math.random() * cities.length)]
+
+    // Determine seniority based on years
+    const seniority = yearsExp < 3 ? 'Junior' : yearsExp < 6 ? 'Confirmé' : yearsExp < 10 ? 'Senior' : 'Expert'
+
+    // Random modules (1-3)
+    const numModules = Math.floor(Math.random() * 3) + 1
+    const modules = [...SAP_MODULES].sort(() => Math.random() - 0.5).slice(0, numModules)
+
+    // Random sub-modules (1-4)
+    const numSubModules = Math.floor(Math.random() * 4) + 1
+    const subModules = [...SAP_SUB_MODULES].sort(() => Math.random() - 0.5).slice(0, numSubModules)
+
+    // TJM based on seniority
+    const baseTjm = seniority === 'Junior' ? 400 : seniority === 'Confirmé' ? 550 : seniority === 'Senior' ? 700 : 850
+    const tjmVariation = Math.floor(Math.random() * 100)
 
     return {
       id: `candidate-${i + 1}`,
@@ -77,12 +93,37 @@ function generateDemoCandidates(): Candidate[] {
       lastName,
       email: `${firstName.toLowerCase()}.${lastName.toLowerCase()}@example.com`,
       phone: `+33 6 ${Math.floor(Math.random() * 90 + 10)} ${Math.floor(Math.random() * 90 + 10)} ${Math.floor(Math.random() * 90 + 10)} ${Math.floor(Math.random() * 90 + 10)}`,
-      title: titles[Math.floor(Math.random() * titles.length)],
+      title: JOB_FAMILIES[Math.floor(Math.random() * JOB_FAMILIES.length)],
+      jobFamily: JOB_FAMILIES[Math.floor(Math.random() * JOB_FAMILIES.length)],
+      modules: modules as Candidate['modules'],
+      subModules: subModules as Candidate['subModules'],
+      experience: {
+        years: yearsExp,
+        seniority
+      },
+      certifications: Math.random() > 0.5 ? ['SAP S/4HANA Finance', 'SAP Activate'].slice(0, Math.floor(Math.random() * 2) + 1) : [],
+      availability: {
+        isAvailable: Math.random() > 0.3,
+        availableIn: ['Immédiat', '1 mois', '2 mois', '3 mois'][Math.floor(Math.random() * 4)]
+      },
+      location: {
+        city,
+        country: city === 'Luxembourg' ? 'Luxembourg' : 'France'
+      },
+      mobility: [['Locale', 'IDF', 'France'][Math.floor(Math.random() * 3)]] as Candidate['mobility'],
+      remoteWork: Math.random() > 0.4,
+      dailyRate: {
+        min: baseTjm,
+        max: baseTjm + tjmVariation + 100,
+        target: baseTjm + tjmVariation,
+        currency: 'EUR'
+      },
+      languages: ['Français', ...(Math.random() > 0.3 ? ['Anglais'] : [])] as Candidate['languages'],
+      status,
       source: sources[Math.floor(Math.random() * sources.length)],
-      stage: stages[stageIndex],
       createdAt: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
       lastActivity: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString(),
-    }
+    } as Candidate
   })
 }
 
@@ -101,7 +142,7 @@ export default function RecrutementPage() {
     // Organize candidates into columns
     const boardColumns: KanbanColumn[] = RECRUITMENT_STAGES.map(stage => ({
       ...stage,
-      candidates: candidates.filter(c => c.stage === stage.id)
+      candidates: candidates.filter(c => c.status === stage.id)
     }))
 
     setColumns(boardColumns)
@@ -139,8 +180,8 @@ export default function RecrutementPage() {
     // Remove from source
     const [movedCandidate] = sourceCol.candidates.splice(source.index, 1)
 
-    // Update candidate stage
-    movedCandidate.stage = destination.droppableId
+    // Update candidate status
+    movedCandidate.status = destination.droppableId as CandidateStatus
     movedCandidate.lastActivity = new Date().toISOString()
 
     // Add to destination
@@ -374,53 +415,111 @@ export default function RecrutementPage() {
           <motion.div
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="bg-white dark:bg-slate-800 rounded-2xl p-6 w-full max-w-md shadow-xl"
+            className="bg-white dark:bg-slate-800 rounded-2xl p-6 w-full max-w-lg shadow-xl max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start gap-4 mb-6">
               <div className="w-16 h-16 rounded-full bg-gradient-to-br from-ebmc-turquoise to-cyan-500 flex items-center justify-center text-white text-xl font-bold">
-                {selectedCandidate.firstName[0]}{selectedCandidate.lastName[0]}
+                {getInitials(selectedCandidate)}
               </div>
               <div className="flex-1">
                 <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                  {selectedCandidate.firstName} {selectedCandidate.lastName}
+                  {getFullName(selectedCandidate)}
                 </h2>
                 <p className="text-gray-600 dark:text-gray-300">{selectedCandidate.title}</p>
-                <div className="flex items-center gap-2 mt-2">
+                <div className="flex items-center gap-2 mt-2 flex-wrap">
                   <span
                     className="px-2 py-1 rounded-full text-xs font-medium"
                     style={{
-                      backgroundColor: `${RECRUITMENT_STAGES.find(s => s.id === selectedCandidate.stage)?.color}20`,
-                      color: RECRUITMENT_STAGES.find(s => s.id === selectedCandidate.stage)?.color
+                      backgroundColor: `${STATUS_COLORS[selectedCandidate.status]}20`,
+                      color: STATUS_COLORS[selectedCandidate.status]
                     }}
                   >
-                    {RECRUITMENT_STAGES.find(s => s.id === selectedCandidate.stage)?.name}
+                    {STATUS_LABELS[selectedCandidate.status]}
+                  </span>
+                  <span className="px-2 py-1 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300">
+                    {selectedCandidate.experience?.seniority} • {selectedCandidate.experience?.years} ans
                   </span>
                 </div>
               </div>
             </div>
 
-            <div className="space-y-4">
-              <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-slate-800 rounded-lg">
+            {/* Modules SAP */}
+            {selectedCandidate.modules && selectedCandidate.modules.length > 0 && (
+              <div className="mb-4">
+                <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Modules SAP</h4>
+                <div className="flex flex-wrap gap-1">
+                  {selectedCandidate.modules.map((mod) => (
+                    <span key={mod} className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs rounded-full">
+                      {mod}
+                    </span>
+                  ))}
+                  {selectedCandidate.subModules?.map((sub) => (
+                    <span key={sub} className="px-2 py-1 bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 text-xs rounded-full">
+                      {sub}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-3">
+              <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-slate-700/50 rounded-lg">
                 <Mail className="w-5 h-5 text-gray-400 dark:text-gray-500" />
-                <span className="text-gray-700 dark:text-gray-300">{selectedCandidate.email}</span>
+                <span className="text-gray-700 dark:text-gray-300 text-sm">{selectedCandidate.email}</span>
               </div>
 
               {selectedCandidate.phone && (
-                <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-slate-800 rounded-lg">
+                <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-slate-700/50 rounded-lg">
                   <Phone className="w-5 h-5 text-gray-400 dark:text-gray-500" />
-                  <span className="text-gray-700 dark:text-gray-300">{selectedCandidate.phone}</span>
+                  <span className="text-gray-700 dark:text-gray-300 text-sm">{selectedCandidate.phone}</span>
                 </div>
               )}
 
-              <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-slate-800 rounded-lg">
-                <Briefcase className="w-5 h-5 text-gray-400 dark:text-gray-500" />
-                <span className="text-gray-700 dark:text-gray-300">{selectedCandidate.source || 'Source inconnue'}</span>
+              <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-slate-700/50 rounded-lg">
+                <MapPin className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+                <span className="text-gray-700 dark:text-gray-300 text-sm">
+                  {selectedCandidate.location?.city}, {selectedCandidate.location?.country}
+                  {selectedCandidate.remoteWork && <span className="ml-2 text-green-600 dark:text-green-400">• Télétravail OK</span>}
+                </span>
               </div>
 
-              <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-slate-800 rounded-lg">
+              {selectedCandidate.dailyRate && (
+                <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-slate-700/50 rounded-lg">
+                  <Euro className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+                  <span className="text-gray-700 dark:text-gray-300 text-sm">
+                    TJM: {selectedCandidate.dailyRate.min}€ - {selectedCandidate.dailyRate.max}€
+                    {selectedCandidate.dailyRate.target && <span className="text-gray-500"> (cible: {selectedCandidate.dailyRate.target}€)</span>}
+                  </span>
+                </div>
+              )}
+
+              <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-slate-700/50 rounded-lg">
+                <Globe2 className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+                <span className="text-gray-700 dark:text-gray-300 text-sm">
+                  {selectedCandidate.languages?.join(', ')}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-slate-700/50 rounded-lg">
+                <Clock className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+                <span className="text-gray-700 dark:text-gray-300 text-sm">
+                  {selectedCandidate.availability?.isAvailable ? (
+                    <span className="text-green-600 dark:text-green-400">Disponible {selectedCandidate.availability.availableIn}</span>
+                  ) : (
+                    <span className="text-orange-600 dark:text-orange-400">Non disponible</span>
+                  )}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-slate-700/50 rounded-lg">
+                <Briefcase className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+                <span className="text-gray-700 dark:text-gray-300 text-sm">Source: {selectedCandidate.source || 'Inconnue'}</span>
+              </div>
+
+              <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-slate-700/50 rounded-lg">
                 <Calendar className="w-5 h-5 text-gray-400 dark:text-gray-500" />
-                <span className="text-gray-700 dark:text-gray-300">
+                <span className="text-gray-700 dark:text-gray-300 text-sm">
                   Ajouté le {new Date(selectedCandidate.createdAt).toLocaleDateString('fr-FR')}
                 </span>
               </div>
@@ -434,7 +533,7 @@ export default function RecrutementPage() {
                 Fermer
               </button>
               <button className="flex-1 px-4 py-2 bg-ebmc-turquoise text-white rounded-lg hover:bg-ebmc-turquoise/90 transition">
-                Voir le profil
+                Voir le profil complet
               </button>
             </div>
           </motion.div>
