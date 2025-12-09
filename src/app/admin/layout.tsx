@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -21,7 +21,8 @@ import {
   Webhook,
   Key,
   BookOpen,
-  ChevronRight
+  ChevronRight,
+  Database
 } from 'lucide-react'
 import { LightBackground } from '@/components/ui/TechBackground'
 
@@ -40,6 +41,7 @@ const menuItems = [
   { href: '/admin/roles', icon: Shield, label: 'Rôles', color: 'from-red-500 to-rose-500' },
   { href: '/admin/webhooks', icon: Webhook, label: 'Webhooks', color: 'from-violet-500 to-purple-500' },
   { href: '/admin/api-tokens', icon: Key, label: 'Tokens API', color: 'from-yellow-500 to-orange-500' },
+  { href: '/admin/demo-data', icon: Database, label: 'Données démo', color: 'from-emerald-500 to-teal-500' },
   { href: '/admin/docs', icon: BookOpen, label: 'Documentation', color: 'from-teal-500 to-cyan-500' },
   { href: '/admin/settings', icon: Settings, label: 'Paramètres', color: 'from-slate-500 to-slate-600' },
 ]
@@ -50,12 +52,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
 
+  // Handle resize to detect mobile
   useEffect(() => {
-    checkAuth()
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 1024)
+    }
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
   }, [])
 
-  const checkAuth = async () => {
+  const checkAuth = useCallback(async () => {
     try {
       const res = await fetch('/api/auth/me', { credentials: 'include' })
       if (!res.ok) {
@@ -69,7 +78,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     } finally {
       setLoading(false)
     }
-  }
+  }, [router])
+
+  useEffect(() => {
+    checkAuth()
+  }, [checkAuth])
+
+  // Close sidebar on route change (mobile)
+  useEffect(() => {
+    if (isMobile) {
+      setSidebarOpen(false)
+    }
+  }, [pathname, isMobile])
 
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
@@ -112,17 +132,91 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           )}
         </motion.button>
 
-        {/* Sidebar */}
+        {/* Desktop Sidebar - Always visible on lg+ */}
+        <aside className="hidden lg:block fixed inset-y-0 left-0 z-40 w-72">
+          <div className="h-full m-4 glass-card rounded-2xl flex flex-col overflow-hidden">
+            {/* Logo */}
+            <div className="p-6 border-b border-slate-200/50">
+              <Link href="/admin" className="flex items-center gap-3">
+                <Image
+                  src="/logo.svg"
+                  alt="EBMC GROUP"
+                  width={120}
+                  height={36}
+                  className="h-9 w-auto"
+                />
+              </Link>
+            </div>
+
+            {/* Navigation */}
+            <nav className="flex-1 p-4 space-y-1.5 overflow-y-auto">
+              {menuItems.map((item, index) => {
+                const isActive = pathname === item.href
+                return (
+                  <motion.div
+                    key={item.href}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                  >
+                    <Link
+                      href={item.href}
+                      className={`group flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
+                        isActive
+                          ? 'bg-gradient-to-r ' + item.color + ' text-white shadow-lg shadow-ebmc-turquoise/20'
+                          : 'text-slate-600 hover:bg-white/50 hover:text-slate-900'
+                      }`}
+                    >
+                      <div className={`p-1.5 rounded-lg ${
+                        isActive
+                          ? 'bg-white/20'
+                          : 'bg-gradient-to-r ' + item.color + ' bg-clip-padding'
+                      }`}>
+                        <item.icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-white'}`} />
+                      </div>
+                      <span className="font-medium text-sm">{item.label}</span>
+                      {isActive && (
+                        <ChevronRight className="w-4 h-4 ml-auto" />
+                      )}
+                    </Link>
+                  </motion.div>
+                )
+              })}
+            </nav>
+
+            {/* User & Logout */}
+            <div className="p-4 border-t border-slate-200/50">
+              <div className="flex items-center gap-3 mb-4 px-3">
+                <div className="w-10 h-10 bg-gradient-to-r from-ebmc-turquoise to-cyan-400 rounded-full flex items-center justify-center shadow-lg">
+                  <span className="text-white font-bold">
+                    {user?.email?.charAt(0).toUpperCase()}
+                  </span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-slate-800 text-sm font-medium truncate">{user?.email}</p>
+                  <p className="text-slate-500 text-xs capitalize">{user?.role}</p>
+                </div>
+              </div>
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-3 w-full px-4 py-3 text-slate-600 hover:bg-red-50 hover:text-red-600 rounded-xl transition-all group"
+              >
+                <LogOut className="w-5 h-5 group-hover:rotate-12 transition-transform" />
+                <span className="font-medium text-sm">Déconnexion</span>
+              </button>
+            </div>
+          </div>
+        </aside>
+
+        {/* Mobile Sidebar - Animated */}
         <AnimatePresence>
-          {(sidebarOpen || typeof window !== 'undefined') && (
+          {sidebarOpen && (
             <motion.aside
-              initial={{ x: -280 }}
-              animate={{ x: sidebarOpen || (typeof window !== 'undefined' && window.innerWidth >= 1024) ? 0 : -280 }}
-              exit={{ x: -280 }}
+              initial={{ x: -288 }}
+              animate={{ x: 0 }}
+              exit={{ x: -288 }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className={`fixed inset-y-0 left-0 z-40 w-72 ${
-                sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-              }`}
+              className="lg:hidden fixed inset-y-0 left-0 z-40 w-72"
             >
               <div className="h-full m-4 glass-card rounded-2xl flex flex-col overflow-hidden">
                 {/* Logo */}
