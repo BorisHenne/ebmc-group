@@ -21,7 +21,8 @@ import {
   Webhook,
   Key,
   BookOpen,
-  ChevronRight
+  ChevronRight,
+  Database
 } from 'lucide-react'
 import { LightBackground } from '@/components/ui/TechBackground'
 
@@ -40,6 +41,7 @@ const menuItems = [
   { href: '/admin/roles', icon: Shield, label: 'Rôles', color: 'from-red-500 to-rose-500' },
   { href: '/admin/webhooks', icon: Webhook, label: 'Webhooks', color: 'from-violet-500 to-purple-500' },
   { href: '/admin/api-tokens', icon: Key, label: 'Tokens API', color: 'from-yellow-500 to-orange-500' },
+  { href: '/admin/demo-data', icon: Database, label: 'Données démo', color: 'from-emerald-500 to-teal-500' },
   { href: '/admin/docs', icon: BookOpen, label: 'Documentation', color: 'from-teal-500 to-cyan-500' },
   { href: '/admin/settings', icon: Settings, label: 'Paramètres', color: 'from-slate-500 to-slate-600' },
 ]
