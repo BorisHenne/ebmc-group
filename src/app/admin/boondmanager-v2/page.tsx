@@ -5,13 +5,15 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   Users, Briefcase, Target, Building2, UserCircle, FolderKanban, Zap,
   Search, Plus, Edit, Trash2, X, Check, Loader2, AlertCircle, RefreshCw,
-  Phone, Mail, Calendar, ExternalLink, Eye, ToggleLeft, ToggleRight,
-  Shield, ShieldOff, ChevronDown, ChevronRight, Globe, MapPin
+  Phone, Mail, Calendar, Eye, ToggleLeft, ToggleRight,
+  Shield, ShieldOff, Download, Upload, Sparkles, AlertTriangle, Info,
+  Copy, CheckCircle, XCircle, FileJson, FileSpreadsheet, Trash, ArrowRight,
+  BarChart3, Globe, MapPin
 } from 'lucide-react'
 
 // Types
 type BoondEnvironment = 'production' | 'sandbox'
-type TabType = 'dashboard' | 'candidates' | 'resources' | 'opportunities' | 'companies' | 'contacts' | 'projects'
+type TabType = 'dashboard' | 'sync' | 'quality' | 'export' | 'candidates' | 'resources' | 'opportunities' | 'companies' | 'contacts' | 'projects'
 
 interface BaseEntity {
   id: number
@@ -25,16 +27,54 @@ interface DashboardStats {
   opportunities: { total: number; byState: Record<number, number> }
   companies: { total: number; byState: Record<number, number> }
   projects: { total: number; byState: Record<number, number> }
-  stateLabels: {
-    candidates: Record<number, string>
-    resources: Record<number, string>
-    opportunities: Record<number, string>
-    companies: Record<number, string>
-    projects: Record<number, string>
+}
+
+interface DataQualityIssue {
+  entityType: string
+  entityId: number
+  field: string
+  issue: string
+  severity: 'error' | 'warning' | 'info'
+  currentValue: unknown
+  suggestedValue?: unknown
+}
+
+interface DuplicateGroup {
+  entityType: string
+  field: string
+  value: string
+  items: Array<{ id: number; attributes: Record<string, unknown> }>
+}
+
+interface QualityAnalysis {
+  issues: DataQualityIssue[]
+  duplicates: DuplicateGroup[]
+  summary: {
+    totalIssues: number
+    errors: number
+    warnings: number
+    info: number
+    duplicateGroups: number
   }
 }
 
-// State labels (fallback)
+interface SyncResult {
+  startedAt: string
+  completedAt: string
+  entities: Record<string, {
+    entity: string
+    total: number
+    processed: number
+    success: number
+    failed: number
+    errors: string[]
+  }>
+  totalRecords: number
+  successRecords: number
+  failedRecords: number
+}
+
+// State labels
 const STATE_LABELS = {
   candidates: { 0: 'Nouveau', 1: 'A qualifier', 2: 'Qualifie', 3: 'En cours', 4: 'Entretien', 5: 'Proposition', 6: 'Embauche', 7: 'Refuse', 8: 'Archive' },
   resources: { 0: 'Non defini', 1: 'Disponible', 2: 'En mission', 3: 'Intercontrat', 4: 'Indisponible', 5: 'Sorti' },
@@ -43,7 +83,6 @@ const STATE_LABELS = {
   projects: { 0: 'En preparation', 1: 'En cours', 2: 'Termine', 3: 'Annule' },
 }
 
-// State colors
 const STATE_COLORS = {
   candidates: {
     0: 'bg-gray-100 text-gray-700', 1: 'bg-slate-100 text-slate-700', 2: 'bg-cyan-100 text-cyan-700',
@@ -79,6 +118,13 @@ export default function BoondManagerV2Page() {
   // Data
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [items, setItems] = useState<BaseEntity[]>([])
+  const [qualityAnalysis, setQualityAnalysis] = useState<QualityAnalysis | null>(null)
+  const [syncResult, setSyncResult] = useState<SyncResult | null>(null)
+
+  // Operations
+  const [syncing, setSyncing] = useState(false)
+  const [analyzing, setAnalyzing] = useState(false)
+  const [exporting, setExporting] = useState(false)
 
   // Modal
   const [showModal, setShowModal] = useState(false)
@@ -89,17 +135,19 @@ export default function BoondManagerV2Page() {
   const [deleting, setDeleting] = useState<number | null>(null)
 
   // Tabs configuration
-  const tabs: { id: TabType; label: string; icon: React.ElementType; color: string }[] = [
-    { id: 'dashboard', label: 'Dashboard', icon: Zap, color: 'from-amber-500 to-orange-500' },
-    { id: 'candidates', label: 'Candidats', icon: Users, color: 'from-purple-500 to-pink-500' },
-    { id: 'resources', label: 'Ressources', icon: Briefcase, color: 'from-blue-500 to-indigo-500' },
-    { id: 'opportunities', label: 'Opportunites', icon: Target, color: 'from-green-500 to-emerald-500' },
-    { id: 'companies', label: 'Societes', icon: Building2, color: 'from-cyan-500 to-teal-500' },
-    { id: 'contacts', label: 'Contacts', icon: UserCircle, color: 'from-rose-500 to-pink-500' },
-    { id: 'projects', label: 'Projets', icon: FolderKanban, color: 'from-violet-500 to-purple-500' },
+  const tabs: { id: TabType; label: string; icon: React.ElementType; color: string; section?: string }[] = [
+    { id: 'dashboard', label: 'Dashboard', icon: Zap, color: 'from-amber-500 to-orange-500', section: 'overview' },
+    { id: 'sync', label: 'Synchronisation', icon: RefreshCw, color: 'from-cyan-500 to-blue-500', section: 'tools' },
+    { id: 'quality', label: 'Qualite donnees', icon: Sparkles, color: 'from-purple-500 to-pink-500', section: 'tools' },
+    { id: 'export', label: 'Export', icon: Download, color: 'from-green-500 to-emerald-500', section: 'tools' },
+    { id: 'candidates', label: 'Candidats', icon: Users, color: 'from-purple-500 to-pink-500', section: 'data' },
+    { id: 'resources', label: 'Ressources', icon: Briefcase, color: 'from-blue-500 to-indigo-500', section: 'data' },
+    { id: 'opportunities', label: 'Opportunites', icon: Target, color: 'from-green-500 to-emerald-500', section: 'data' },
+    { id: 'companies', label: 'Societes', icon: Building2, color: 'from-cyan-500 to-teal-500', section: 'data' },
+    { id: 'contacts', label: 'Contacts', icon: UserCircle, color: 'from-rose-500 to-pink-500', section: 'data' },
+    { id: 'projects', label: 'Projets', icon: FolderKanban, color: 'from-violet-500 to-purple-500', section: 'data' },
   ]
 
-  // Check if write operations are allowed
   const canWrite = environment === 'sandbox'
 
   // Fetch data
@@ -117,6 +165,10 @@ export default function BoondManagerV2Page() {
         } else {
           throw new Error(data.error || 'Erreur inconnue')
         }
+      } else if (activeTab === 'sync' || activeTab === 'quality' || activeTab === 'export') {
+        // These tabs don't auto-load data
+        setLoading(false)
+        return
       } else {
         const searchParam = search ? `&search=${encodeURIComponent(search)}` : ''
         const res = await fetch(`/api/boondmanager/v2/${activeTab}?env=${environment}${searchParam}`, { credentials: 'include' })
@@ -139,7 +191,86 @@ export default function BoondManagerV2Page() {
     fetchData()
   }, [fetchData])
 
-  // Handlers
+  // Sync Production to Sandbox
+  const handleSync = async () => {
+    if (!confirm('Cette operation va copier TOUTES les donnees de la Production vers la Sandbox. Continuer ?')) return
+
+    setSyncing(true)
+    setError(null)
+    setSyncResult(null)
+
+    try {
+      const res = await fetch('/api/boondmanager/v2/sync', {
+        method: 'POST',
+        credentials: 'include'
+      })
+      const data = await res.json()
+
+      if (data.success) {
+        setSyncResult(data.result)
+      } else {
+        throw new Error(data.error)
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur de synchronisation')
+    } finally {
+      setSyncing(false)
+    }
+  }
+
+  // Analyze data quality
+  const handleAnalyzeQuality = async () => {
+    setAnalyzing(true)
+    setError(null)
+    setQualityAnalysis(null)
+
+    try {
+      const res = await fetch(`/api/boondmanager/v2/quality?env=${environment}`, { credentials: 'include' })
+      const data = await res.json()
+
+      if (data.success) {
+        setQualityAnalysis(data.data)
+      } else {
+        throw new Error(data.error)
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur d\'analyse')
+    } finally {
+      setAnalyzing(false)
+    }
+  }
+
+  // Export data
+  const handleExport = async (format: 'json' | 'csv', entity?: string, clean = false) => {
+    setExporting(true)
+
+    try {
+      let url = `/api/boondmanager/v2/export?env=${environment}&format=${format}&clean=${clean}`
+      if (entity) url += `&entity=${entity}`
+
+      const res = await fetch(url, { credentials: 'include' })
+
+      if (!res.ok) throw new Error('Erreur d\'export')
+
+      const blob = await res.blob()
+      const downloadUrl = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = downloadUrl
+      a.download = entity
+        ? `${entity}_${environment}_${new Date().toISOString().split('T')[0]}.${format}`
+        : `boondmanager_${environment}_${new Date().toISOString().split('T')[0]}.${format}`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(downloadUrl)
+      a.remove()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur d\'export')
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  // CRUD handlers
   const handleCreate = () => {
     if (!canWrite) {
       alert('Creation non autorisee en production')
@@ -225,7 +356,7 @@ export default function BoondManagerV2Page() {
   }
 
   const getStateLabel = (state: number, type: string): string => {
-    const labels = stats?.stateLabels?.[type as keyof typeof STATE_LABELS] || STATE_LABELS[type as keyof typeof STATE_LABELS]
+    const labels = STATE_LABELS[type as keyof typeof STATE_LABELS]
     return labels?.[state as keyof typeof labels] || `Etat ${state}`
   }
 
@@ -243,7 +374,6 @@ export default function BoondManagerV2Page() {
 
     return (
       <div className="space-y-6">
-        {/* Stat Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
           {statCards.map((card) => {
             const data = stats[card.key as keyof typeof stats] as { total: number; byState: Record<number, number> }
@@ -252,7 +382,8 @@ export default function BoondManagerV2Page() {
                 key={card.key}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="glass-card p-4"
+                className="glass-card p-4 cursor-pointer hover:shadow-lg transition-shadow"
+                onClick={() => setActiveTab(card.key as TabType)}
               >
                 <div className="flex items-center gap-3 mb-3">
                   <div className={`p-2 rounded-lg bg-gradient-to-r ${card.color}`}>
@@ -263,7 +394,6 @@ export default function BoondManagerV2Page() {
                     <p className="text-2xl font-bold text-slate-800 dark:text-white">{data?.total || 0}</p>
                   </div>
                 </div>
-                {/* State breakdown */}
                 <div className="space-y-1">
                   {Object.entries(data?.byState || {}).slice(0, 4).map(([state, count]) => (
                     <div key={state} className="flex items-center justify-between text-xs">
@@ -279,6 +409,43 @@ export default function BoondManagerV2Page() {
           })}
         </div>
 
+        {/* Quick Actions */}
+        <div className="glass-card p-6">
+          <h3 className="font-semibold text-slate-800 dark:text-white mb-4">Actions rapides</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <button
+              onClick={() => setActiveTab('sync')}
+              className="flex items-center gap-3 p-4 rounded-xl bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border border-cyan-500/20 hover:border-cyan-500/40 transition"
+            >
+              <RefreshCw className="w-8 h-8 text-cyan-500" />
+              <div className="text-left">
+                <p className="font-medium text-slate-800 dark:text-white">Synchroniser</p>
+                <p className="text-sm text-slate-500">Prod → Sandbox</p>
+              </div>
+            </button>
+            <button
+              onClick={() => setActiveTab('quality')}
+              className="flex items-center gap-3 p-4 rounded-xl bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/20 hover:border-purple-500/40 transition"
+            >
+              <Sparkles className="w-8 h-8 text-purple-500" />
+              <div className="text-left">
+                <p className="font-medium text-slate-800 dark:text-white">Analyser</p>
+                <p className="text-sm text-slate-500">Qualite des donnees</p>
+              </div>
+            </button>
+            <button
+              onClick={() => setActiveTab('export')}
+              className="flex items-center gap-3 p-4 rounded-xl bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/20 hover:border-green-500/40 transition"
+            >
+              <Download className="w-8 h-8 text-green-500" />
+              <div className="text-left">
+                <p className="font-medium text-slate-800 dark:text-white">Exporter</p>
+                <p className="text-sm text-slate-500">JSON / CSV</p>
+              </div>
+            </button>
+          </div>
+        </div>
+
         {/* Environment Info */}
         <div className="glass-card p-4">
           <h3 className="font-semibold text-slate-800 dark:text-white mb-3">Informations environnement</h3>
@@ -287,9 +454,9 @@ export default function BoondManagerV2Page() {
               <p className="text-slate-500 dark:text-slate-400">Environnement</p>
               <p className="font-medium text-slate-800 dark:text-white flex items-center gap-2">
                 {environment === 'production' ? (
-                  <><Shield className="w-4 h-4 text-green-500" /> Production (Lecture seule)</>
+                  <><Shield className="w-4 h-4 text-green-500" /> Production (GET)</>
                 ) : (
-                  <><ShieldOff className="w-4 h-4 text-amber-500" /> Sandbox (CRUD complet)</>
+                  <><ShieldOff className="w-4 h-4 text-amber-500" /> Sandbox (CRUD)</>
                 )}
               </p>
             </div>
@@ -313,11 +480,360 @@ export default function BoondManagerV2Page() {
     )
   }
 
-  // Render list item based on type
+  // Render sync tab
+  const renderSyncTab = () => (
+    <div className="space-y-6">
+      <div className="glass-card p-6">
+        <div className="flex items-center gap-4 mb-6">
+          <div className="p-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500">
+            <RefreshCw className="w-8 h-8 text-white" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-slate-800 dark:text-white">Synchronisation Production → Sandbox</h2>
+            <p className="text-slate-500 dark:text-slate-400">Copier toutes les donnees de production vers la sandbox pour nettoyage</p>
+          </div>
+        </div>
+
+        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 mb-6">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5" />
+            <div>
+              <p className="font-medium text-amber-800 dark:text-amber-200">Attention</p>
+              <p className="text-sm text-amber-700 dark:text-amber-300">
+                Cette operation va creer de nouveaux enregistrements dans la Sandbox. Les IDs seront differents de la Production.
+                Utilisez cette fonction pour avoir une copie de travail pour le nettoyage des donnees.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-center gap-8 py-8">
+          <div className="text-center">
+            <div className="w-20 h-20 rounded-2xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center mx-auto mb-2">
+              <Shield className="w-10 h-10 text-green-600 dark:text-green-400" />
+            </div>
+            <p className="font-medium text-slate-800 dark:text-white">Production</p>
+            <p className="text-sm text-slate-500">Source (lecture)</p>
+          </div>
+          <ArrowRight className="w-8 h-8 text-slate-400" />
+          <div className="text-center">
+            <div className="w-20 h-20 rounded-2xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mx-auto mb-2">
+              <ShieldOff className="w-10 h-10 text-amber-600 dark:text-amber-400" />
+            </div>
+            <p className="font-medium text-slate-800 dark:text-white">Sandbox</p>
+            <p className="text-sm text-slate-500">Destination (ecriture)</p>
+          </div>
+        </div>
+
+        <div className="flex justify-center">
+          <button
+            onClick={handleSync}
+            disabled={syncing}
+            className="flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-xl hover:shadow-lg transition disabled:opacity-50 text-lg font-medium"
+          >
+            {syncing ? (
+              <>
+                <Loader2 className="w-6 h-6 animate-spin" />
+                Synchronisation en cours...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="w-6 h-6" />
+                Lancer la synchronisation
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* Sync Result */}
+      {syncResult && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="glass-card p-6"
+        >
+          <h3 className="font-semibold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
+            <CheckCircle className="w-5 h-5 text-green-500" />
+            Resultat de la synchronisation
+          </h3>
+
+          <div className="grid grid-cols-3 gap-4 mb-6">
+            <div className="text-center p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50">
+              <p className="text-3xl font-bold text-slate-800 dark:text-white">{syncResult.totalRecords}</p>
+              <p className="text-sm text-slate-500">Total traites</p>
+            </div>
+            <div className="text-center p-4 rounded-xl bg-green-50 dark:bg-green-900/20">
+              <p className="text-3xl font-bold text-green-600">{syncResult.successRecords}</p>
+              <p className="text-sm text-green-600">Succes</p>
+            </div>
+            <div className="text-center p-4 rounded-xl bg-red-50 dark:bg-red-900/20">
+              <p className="text-3xl font-bold text-red-600">{syncResult.failedRecords}</p>
+              <p className="text-sm text-red-600">Echecs</p>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            {Object.entries(syncResult.entities).map(([key, entity]) => (
+              <div key={key} className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
+                <span className="font-medium text-slate-700 dark:text-slate-300 capitalize">{key}</span>
+                <div className="flex items-center gap-4 text-sm">
+                  <span className="text-green-600">{entity.success} OK</span>
+                  {entity.failed > 0 && <span className="text-red-600">{entity.failed} echecs</span>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+      )}
+    </div>
+  )
+
+  // Render quality tab
+  const renderQualityTab = () => (
+    <div className="space-y-6">
+      <div className="glass-card p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-4">
+            <div className="p-3 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500">
+              <Sparkles className="w-8 h-8 text-white" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-slate-800 dark:text-white">Analyse qualite des donnees</h2>
+              <p className="text-slate-500 dark:text-slate-400">Detecter les problemes et les doublons dans {environment === 'production' ? 'Production' : 'Sandbox'}</p>
+            </div>
+          </div>
+          <button
+            onClick={handleAnalyzeQuality}
+            disabled={analyzing}
+            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl hover:shadow-lg transition disabled:opacity-50"
+          >
+            {analyzing ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                Analyse...
+              </>
+            ) : (
+              <>
+                <Search className="w-5 h-5" />
+                Analyser
+              </>
+            )}
+          </button>
+        </div>
+
+        {qualityAnalysis && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-6"
+          >
+            {/* Summary */}
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 text-center">
+                <p className="text-2xl font-bold text-slate-800 dark:text-white">{qualityAnalysis.summary.totalIssues}</p>
+                <p className="text-sm text-slate-500">Total problemes</p>
+              </div>
+              <div className="p-4 rounded-xl bg-red-50 dark:bg-red-900/20 text-center">
+                <p className="text-2xl font-bold text-red-600">{qualityAnalysis.summary.errors}</p>
+                <p className="text-sm text-red-600">Erreurs</p>
+              </div>
+              <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 text-center">
+                <p className="text-2xl font-bold text-amber-600">{qualityAnalysis.summary.warnings}</p>
+                <p className="text-sm text-amber-600">Avertissements</p>
+              </div>
+              <div className="p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-center">
+                <p className="text-2xl font-bold text-blue-600">{qualityAnalysis.summary.info}</p>
+                <p className="text-sm text-blue-600">Suggestions</p>
+              </div>
+              <div className="p-4 rounded-xl bg-purple-50 dark:bg-purple-900/20 text-center">
+                <p className="text-2xl font-bold text-purple-600">{qualityAnalysis.summary.duplicateGroups}</p>
+                <p className="text-sm text-purple-600">Doublons</p>
+              </div>
+            </div>
+
+            {/* Issues list */}
+            {qualityAnalysis.issues.length > 0 && (
+              <div>
+                <h4 className="font-semibold text-slate-800 dark:text-white mb-3">Problemes detectes</h4>
+                <div className="max-h-96 overflow-y-auto space-y-2">
+                  {qualityAnalysis.issues.slice(0, 50).map((issue, idx) => (
+                    <div
+                      key={idx}
+                      className={`p-3 rounded-lg flex items-start gap-3 ${
+                        issue.severity === 'error' ? 'bg-red-50 dark:bg-red-900/20' :
+                        issue.severity === 'warning' ? 'bg-amber-50 dark:bg-amber-900/20' :
+                        'bg-blue-50 dark:bg-blue-900/20'
+                      }`}
+                    >
+                      {issue.severity === 'error' ? (
+                        <XCircle className="w-5 h-5 text-red-500 mt-0.5" />
+                      ) : issue.severity === 'warning' ? (
+                        <AlertTriangle className="w-5 h-5 text-amber-500 mt-0.5" />
+                      ) : (
+                        <Info className="w-5 h-5 text-blue-500 mt-0.5" />
+                      )}
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+                            {issue.entityType} #{issue.entityId}
+                          </span>
+                          <span className="text-xs text-slate-500">{issue.field}</span>
+                        </div>
+                        <p className="text-sm text-slate-700 dark:text-slate-300 mt-1">{issue.issue}</p>
+                        {issue.suggestedValue !== undefined && (
+                          <p className="text-xs text-slate-500 mt-1">
+                            Suggestion: <code className="bg-slate-200 dark:bg-slate-700 px-1 rounded">{typeof issue.suggestedValue === 'object' ? JSON.stringify(issue.suggestedValue) : String(issue.suggestedValue)}</code>
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                  {qualityAnalysis.issues.length > 50 && (
+                    <p className="text-sm text-slate-500 text-center py-2">
+                      ... et {qualityAnalysis.issues.length - 50} autres problemes
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Duplicates */}
+            {qualityAnalysis.duplicates.length > 0 && (
+              <div>
+                <h4 className="font-semibold text-slate-800 dark:text-white mb-3">Doublons detectes</h4>
+                <div className="space-y-3">
+                  {qualityAnalysis.duplicates.slice(0, 20).map((group, idx) => (
+                    <div key={idx} className="p-4 rounded-xl bg-purple-50 dark:bg-purple-900/20">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Copy className="w-4 h-4 text-purple-500" />
+                        <span className="font-medium text-purple-700 dark:text-purple-300">
+                          {group.items.length} {group.entityType}s avec meme {group.field}
+                        </span>
+                        <code className="text-xs bg-purple-200 dark:bg-purple-800 px-2 py-0.5 rounded">
+                          {group.value}
+                        </code>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {group.items.map(item => (
+                          <span key={item.id} className="text-xs px-2 py-1 bg-white dark:bg-slate-800 rounded">
+                            #{item.id} - {String(item.attributes.firstName || item.attributes.name || '')} {String(item.attributes.lastName || '')}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </motion.div>
+        )}
+      </div>
+    </div>
+  )
+
+  // Render export tab
+  const renderExportTab = () => (
+    <div className="space-y-6">
+      <div className="glass-card p-6">
+        <div className="flex items-center gap-4 mb-6">
+          <div className="p-3 rounded-xl bg-gradient-to-r from-green-500 to-emerald-500">
+            <Download className="w-8 h-8 text-white" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-slate-800 dark:text-white">Export des donnees</h2>
+            <p className="text-slate-500 dark:text-slate-400">Exporter les donnees de {environment === 'production' ? 'Production' : 'Sandbox'} pour import manuel</p>
+          </div>
+        </div>
+
+        {/* Export all */}
+        <div className="mb-8">
+          <h3 className="font-semibold text-slate-800 dark:text-white mb-4">Export complet</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <button
+              onClick={() => handleExport('json', undefined, false)}
+              disabled={exporting}
+              className="flex items-center gap-3 p-4 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-600 hover:border-green-500 dark:hover:border-green-500 transition group"
+            >
+              <FileJson className="w-10 h-10 text-green-500" />
+              <div className="text-left">
+                <p className="font-medium text-slate-800 dark:text-white">JSON brut</p>
+                <p className="text-sm text-slate-500">Toutes les donnees sans modification</p>
+              </div>
+            </button>
+            <button
+              onClick={() => handleExport('json', undefined, true)}
+              disabled={exporting}
+              className="flex items-center gap-3 p-4 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-600 hover:border-purple-500 dark:hover:border-purple-500 transition group"
+            >
+              <div className="relative">
+                <FileJson className="w-10 h-10 text-purple-500" />
+                <Sparkles className="w-4 h-4 text-purple-500 absolute -top-1 -right-1" />
+              </div>
+              <div className="text-left">
+                <p className="font-medium text-slate-800 dark:text-white">JSON nettoye</p>
+                <p className="text-sm text-slate-500">Donnees normalisees (noms, tel, emails)</p>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        {/* Export by entity */}
+        <div>
+          <h3 className="font-semibold text-slate-800 dark:text-white mb-4">Export par entite (CSV)</h3>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+            {['candidates', 'resources', 'opportunities', 'companies', 'contacts', 'projects'].map(entity => (
+              <button
+                key={entity}
+                onClick={() => handleExport('csv', entity, true)}
+                disabled={exporting}
+                className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition text-center"
+              >
+                <FileSpreadsheet className="w-6 h-6 mx-auto mb-1 text-slate-600 dark:text-slate-400" />
+                <p className="text-sm font-medium text-slate-700 dark:text-slate-300 capitalize">{entity}</p>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {exporting && (
+          <div className="mt-6 flex items-center justify-center gap-3 text-slate-500">
+            <Loader2 className="w-5 h-5 animate-spin" />
+            <span>Generation de l&apos;export en cours...</span>
+          </div>
+        )}
+      </div>
+
+      {/* Instructions */}
+      <div className="glass-card p-6">
+        <h3 className="font-semibold text-slate-800 dark:text-white mb-4">Instructions pour import en Production</h3>
+        <ol className="space-y-3 text-slate-600 dark:text-slate-400">
+          <li className="flex items-start gap-3">
+            <span className="flex-shrink-0 w-6 h-6 rounded-full bg-cyan-100 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400 flex items-center justify-center text-sm font-bold">1</span>
+            <span>Synchronisez les donnees de Production vers la Sandbox</span>
+          </li>
+          <li className="flex items-start gap-3">
+            <span className="flex-shrink-0 w-6 h-6 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 flex items-center justify-center text-sm font-bold">2</span>
+            <span>Analysez la qualite des donnees et corrigez les problemes dans la Sandbox</span>
+          </li>
+          <li className="flex items-start gap-3">
+            <span className="flex-shrink-0 w-6 h-6 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 flex items-center justify-center text-sm font-bold">3</span>
+            <span>Exportez les donnees nettoyees en JSON</span>
+          </li>
+          <li className="flex items-start gap-3">
+            <span className="flex-shrink-0 w-6 h-6 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 flex items-center justify-center text-sm font-bold">4</span>
+            <span>Importez manuellement le fichier JSON dans BoondManager Production via l&apos;interface admin Boond</span>
+          </li>
+        </ol>
+      </div>
+    </div>
+  )
+
+  // Render list item
   const renderListItem = (item: BaseEntity) => {
     const attrs = item.attributes
 
-    if (activeTab === 'candidates' || activeTab === 'resources') {
+    if (activeTab === 'candidates' || activeTab === 'resources' || activeTab === 'contacts') {
       return (
         <motion.div
           key={item.id}
@@ -327,14 +843,18 @@ export default function BoondManagerV2Page() {
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className={`w-12 h-12 rounded-full bg-gradient-to-r ${activeTab === 'candidates' ? 'from-purple-500 to-pink-500' : 'from-blue-500 to-indigo-500'} flex items-center justify-center text-white font-bold`}>
+              <div className={`w-12 h-12 rounded-full bg-gradient-to-r ${
+                activeTab === 'candidates' ? 'from-purple-500 to-pink-500' :
+                activeTab === 'resources' ? 'from-blue-500 to-indigo-500' :
+                'from-rose-500 to-pink-500'
+              } flex items-center justify-center text-white font-bold`}>
                 {String(attrs.firstName || '').charAt(0)}{String(attrs.lastName || '').charAt(0)}
               </div>
               <div>
                 <h3 className="font-semibold text-slate-800 dark:text-white">
                   {String(attrs.firstName || '')} {String(attrs.lastName || '')}
                 </h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400">{String(attrs.title || 'Sans titre')}</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400">{String(attrs.title || attrs.position || 'Sans titre')}</p>
                 <div className="flex items-center gap-4 mt-1 text-sm text-slate-500 dark:text-slate-400">
                   {!!attrs.email && (
                     <span className="flex items-center gap-1">
@@ -352,9 +872,11 @@ export default function BoondManagerV2Page() {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStateColor(attrs.state as number, activeTab)}`}>
-                {getStateLabel(attrs.state as number, activeTab)}
-              </span>
+              {activeTab !== 'contacts' && (
+                <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStateColor(attrs.state as number, activeTab)}`}>
+                  {getStateLabel(attrs.state as number, activeTab)}
+                </span>
+              )}
               <button onClick={() => handleView(item)} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300">
                 <Eye className="w-4 h-4" />
               </button>
@@ -378,7 +900,7 @@ export default function BoondManagerV2Page() {
       )
     }
 
-    if (activeTab === 'opportunities') {
+    if (activeTab === 'opportunities' || activeTab === 'projects') {
       return (
         <motion.div
           key={item.id}
@@ -388,8 +910,10 @@ export default function BoondManagerV2Page() {
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 flex items-center justify-center text-white">
-                <Target className="w-6 h-6" />
+              <div className={`w-12 h-12 rounded-xl bg-gradient-to-r ${
+                activeTab === 'opportunities' ? 'from-green-500 to-emerald-500' : 'from-violet-500 to-purple-500'
+              } flex items-center justify-center text-white`}>
+                {activeTab === 'opportunities' ? <Target className="w-6 h-6" /> : <FolderKanban className="w-6 h-6" />}
               </div>
               <div>
                 <h3 className="font-semibold text-slate-800 dark:text-white">{String(attrs.title || '')}</h3>
@@ -402,7 +926,7 @@ export default function BoondManagerV2Page() {
                     </span>
                   )}
                   {!!attrs.averageDailyPriceExcludingTax && (
-                    <span className="font-medium text-emerald-600 dark:text-emerald-400">
+                    <span className="font-medium text-emerald-600">
                       {String(attrs.averageDailyPriceExcludingTax)} EUR/j
                     </span>
                   )}
@@ -410,13 +934,13 @@ export default function BoondManagerV2Page() {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStateColor(attrs.state as number, 'opportunities')}`}>
-                {getStateLabel(attrs.state as number, 'opportunities')}
+              <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStateColor(attrs.state as number, activeTab)}`}>
+                {getStateLabel(attrs.state as number, activeTab)}
               </span>
               <button onClick={() => handleView(item)} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300">
                 <Eye className="w-4 h-4" />
               </button>
-              {canWrite && (
+              {canWrite && activeTab === 'opportunities' && (
                 <>
                   <button onClick={() => handleEdit(item)} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300">
                     <Edit className="w-4 h-4" />
@@ -464,9 +988,6 @@ export default function BoondManagerV2Page() {
                       Site web
                     </a>
                   )}
-                  {!!attrs.staff && (
-                    <span>{String(attrs.staff)} employes</span>
-                  )}
                 </div>
               </div>
             </div>
@@ -497,111 +1018,14 @@ export default function BoondManagerV2Page() {
       )
     }
 
-    if (activeTab === 'contacts') {
-      return (
-        <motion.div
-          key={item.id}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="glass-card p-4"
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-r from-rose-500 to-pink-500 flex items-center justify-center text-white font-bold">
-                {String(attrs.firstName || '').charAt(0)}{String(attrs.lastName || '').charAt(0)}
-              </div>
-              <div>
-                <h3 className="font-semibold text-slate-800 dark:text-white">
-                  {String(attrs.firstName || '')} {String(attrs.lastName || '')}
-                </h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400">{String(attrs.position || 'Sans poste')}</p>
-                <div className="flex items-center gap-4 mt-1 text-sm text-slate-500 dark:text-slate-400">
-                  {!!attrs.email && (
-                    <span className="flex items-center gap-1">
-                      <Mail className="w-3 h-3" />
-                      {String(attrs.email)}
-                    </span>
-                  )}
-                  {!!attrs.phone1 && (
-                    <span className="flex items-center gap-1">
-                      <Phone className="w-3 h-3" />
-                      {String(attrs.phone1)}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <button onClick={() => handleView(item)} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300">
-                <Eye className="w-4 h-4" />
-              </button>
-              {canWrite && (
-                <>
-                  <button onClick={() => handleEdit(item)} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300">
-                    <Edit className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(item.id)}
-                    disabled={deleting === item.id}
-                    className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400"
-                  >
-                    {deleting === item.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-        </motion.div>
-      )
-    }
-
-    if (activeTab === 'projects') {
-      return (
-        <motion.div
-          key={item.id}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="glass-card p-4"
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-violet-500 to-purple-500 flex items-center justify-center text-white">
-                <FolderKanban className="w-6 h-6" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-slate-800 dark:text-white">{String(attrs.title || '')}</h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400">{String(attrs.reference || 'Sans reference')}</p>
-                <div className="flex items-center gap-4 mt-1 text-sm text-slate-500 dark:text-slate-400">
-                  {!!attrs.startDate && (
-                    <span className="flex items-center gap-1">
-                      <Calendar className="w-3 h-3" />
-                      {String(attrs.startDate)} - {String(attrs.endDate || '...')}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStateColor(attrs.state as number, 'projects')}`}>
-                {getStateLabel(attrs.state as number, 'projects')}
-              </span>
-              <button onClick={() => handleView(item)} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300">
-                <Eye className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        </motion.div>
-      )
-    }
-
     return null
   }
 
-  // Render form fields based on active tab
+  // Render form fields
   const renderFormFields = () => {
     const isView = modalMode === 'view'
 
-    if (activeTab === 'candidates' || activeTab === 'resources') {
+    if (activeTab === 'candidates' || activeTab === 'resources' || activeTab === 'contacts') {
       return (
         <>
           <div className="grid grid-cols-2 gap-4">
@@ -609,7 +1033,7 @@ export default function BoondManagerV2Page() {
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Prenom</label>
               <input
                 type="text"
-                value={(formData.firstName as string) || ''}
+                value={String(formData.firstName || '')}
                 onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
                 disabled={isView}
                 className="w-full px-3 py-2 rounded-lg bg-white/60 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-ebmc-turquoise disabled:opacity-50"
@@ -619,7 +1043,7 @@ export default function BoondManagerV2Page() {
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Nom</label>
               <input
                 type="text"
-                value={(formData.lastName as string) || ''}
+                value={String(formData.lastName || '')}
                 onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
                 disabled={isView}
                 className="w-full px-3 py-2 rounded-lg bg-white/60 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-ebmc-turquoise disabled:opacity-50"
@@ -630,18 +1054,8 @@ export default function BoondManagerV2Page() {
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Email</label>
             <input
               type="email"
-              value={(formData.email as string) || ''}
+              value={String(formData.email || '')}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              disabled={isView}
-              className="w-full px-3 py-2 rounded-lg bg-white/60 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-ebmc-turquoise disabled:opacity-50"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Titre / Poste</label>
-            <input
-              type="text"
-              value={(formData.title as string) || ''}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
               disabled={isView}
               className="w-full px-3 py-2 rounded-lg bg-white/60 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-ebmc-turquoise disabled:opacity-50"
             />
@@ -650,47 +1064,24 @@ export default function BoondManagerV2Page() {
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Telephone</label>
             <input
               type="tel"
-              value={(formData.phone1 as string) || ''}
+              value={String(formData.phone1 || '')}
               onChange={(e) => setFormData({ ...formData, phone1: e.target.value })}
               disabled={isView}
               className="w-full px-3 py-2 rounded-lg bg-white/60 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-ebmc-turquoise disabled:opacity-50"
             />
           </div>
-          {activeTab === 'candidates' && (
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Source</label>
-              <select
-                value={(formData.origin as string) || ''}
-                onChange={(e) => setFormData({ ...formData, origin: e.target.value })}
-                disabled={isView}
-                className="w-full px-3 py-2 rounded-lg bg-white/60 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-ebmc-turquoise disabled:opacity-50"
-              >
-                <option value="">Selectionner...</option>
-                <option value="LinkedIn">LinkedIn</option>
-                <option value="Indeed">Indeed</option>
-                <option value="Site Web">Site Web</option>
-                <option value="Cooptation">Cooptation</option>
-                <option value="CVtheque">CVtheque</option>
-                <option value="API">API</option>
-                <option value="Autre">Autre</option>
-              </select>
-            </div>
-          )}
-          {modalMode !== 'create' && (
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Statut</label>
-              <select
-                value={(formData.state as number) || 0}
-                onChange={(e) => setFormData({ ...formData, state: parseInt(e.target.value) })}
-                disabled={isView}
-                className="w-full px-3 py-2 rounded-lg bg-white/60 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-ebmc-turquoise disabled:opacity-50"
-              >
-                {Object.entries(STATE_LABELS[activeTab as keyof typeof STATE_LABELS]).map(([key, label]) => (
-                  <option key={key} value={key}>{label}</option>
-                ))}
-              </select>
-            </div>
-          )}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+              {activeTab === 'contacts' ? 'Poste' : 'Titre'}
+            </label>
+            <input
+              type="text"
+              value={String(formData.title || formData.position || '')}
+              onChange={(e) => setFormData({ ...formData, [activeTab === 'contacts' ? 'position' : 'title']: e.target.value })}
+              disabled={isView}
+              className="w-full px-3 py-2 rounded-lg bg-white/60 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-ebmc-turquoise disabled:opacity-50"
+            />
+          </div>
         </>
       )
     }
@@ -702,18 +1093,8 @@ export default function BoondManagerV2Page() {
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Titre</label>
             <input
               type="text"
-              value={(formData.title as string) || ''}
+              value={String(formData.title || '')}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              disabled={isView}
-              className="w-full px-3 py-2 rounded-lg bg-white/60 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-ebmc-turquoise disabled:opacity-50"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Reference</label>
-            <input
-              type="text"
-              value={(formData.reference as string) || ''}
-              onChange={(e) => setFormData({ ...formData, reference: e.target.value })}
               disabled={isView}
               className="w-full px-3 py-2 rounded-lg bg-white/60 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-ebmc-turquoise disabled:opacity-50"
             />
@@ -721,7 +1102,7 @@ export default function BoondManagerV2Page() {
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Description</label>
             <textarea
-              value={(formData.description as string) || ''}
+              value={String(formData.description || '')}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               disabled={isView}
               rows={3}
@@ -730,10 +1111,10 @@ export default function BoondManagerV2Page() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Date de debut</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Date debut</label>
               <input
                 type="date"
-                value={(formData.startDate as string) || ''}
+                value={String(formData.startDate || '')}
                 onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
                 disabled={isView}
                 className="w-full px-3 py-2 rounded-lg bg-white/60 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-ebmc-turquoise disabled:opacity-50"
@@ -743,28 +1124,13 @@ export default function BoondManagerV2Page() {
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">TJM (EUR)</label>
               <input
                 type="number"
-                value={(formData.averageDailyPriceExcludingTax as number) || ''}
+                value={String(formData.averageDailyPriceExcludingTax || '')}
                 onChange={(e) => setFormData({ ...formData, averageDailyPriceExcludingTax: parseInt(e.target.value) })}
                 disabled={isView}
                 className="w-full px-3 py-2 rounded-lg bg-white/60 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-ebmc-turquoise disabled:opacity-50"
               />
             </div>
           </div>
-          {modalMode !== 'create' && (
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Statut</label>
-              <select
-                value={(formData.state as number) || 0}
-                onChange={(e) => setFormData({ ...formData, state: parseInt(e.target.value) })}
-                disabled={isView}
-                className="w-full px-3 py-2 rounded-lg bg-white/60 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-ebmc-turquoise disabled:opacity-50"
-              >
-                {Object.entries(STATE_LABELS.opportunities).map(([key, label]) => (
-                  <option key={key} value={key}>{label}</option>
-                ))}
-              </select>
-            </div>
-          )}
         </>
       )
     }
@@ -776,7 +1142,7 @@ export default function BoondManagerV2Page() {
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Nom</label>
             <input
               type="text"
-              value={(formData.name as string) || ''}
+              value={String(formData.name || '')}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               disabled={isView}
               className="w-full px-3 py-2 rounded-lg bg-white/60 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-ebmc-turquoise disabled:opacity-50"
@@ -784,113 +1150,32 @@ export default function BoondManagerV2Page() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Telephone</label>
-              <input
-                type="tel"
-                value={(formData.phone1 as string) || ''}
-                onChange={(e) => setFormData({ ...formData, phone1: e.target.value })}
-                disabled={isView}
-                className="w-full px-3 py-2 rounded-lg bg-white/60 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-ebmc-turquoise disabled:opacity-50"
-              />
-            </div>
-            <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Email</label>
               <input
                 type="email"
-                value={(formData.email as string) || ''}
+                value={String(formData.email || '')}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 disabled={isView}
                 className="w-full px-3 py-2 rounded-lg bg-white/60 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-ebmc-turquoise disabled:opacity-50"
               />
             </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Site web</label>
-            <input
-              type="url"
-              value={(formData.website as string) || ''}
-              onChange={(e) => setFormData({ ...formData, website: e.target.value })}
-              disabled={isView}
-              className="w-full px-3 py-2 rounded-lg bg-white/60 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-ebmc-turquoise disabled:opacity-50"
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Ville</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Telephone</label>
               <input
-                type="text"
-                value={(formData.town as string) || ''}
-                onChange={(e) => setFormData({ ...formData, town: e.target.value })}
-                disabled={isView}
-                className="w-full px-3 py-2 rounded-lg bg-white/60 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-ebmc-turquoise disabled:opacity-50"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Effectif</label>
-              <input
-                type="number"
-                value={(formData.staff as number) || ''}
-                onChange={(e) => setFormData({ ...formData, staff: parseInt(e.target.value) })}
-                disabled={isView}
-                className="w-full px-3 py-2 rounded-lg bg-white/60 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-ebmc-turquoise disabled:opacity-50"
-              />
-            </div>
-          </div>
-        </>
-      )
-    }
-
-    if (activeTab === 'contacts') {
-      return (
-        <>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Prenom</label>
-              <input
-                type="text"
-                value={(formData.firstName as string) || ''}
-                onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                disabled={isView}
-                className="w-full px-3 py-2 rounded-lg bg-white/60 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-ebmc-turquoise disabled:opacity-50"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Nom</label>
-              <input
-                type="text"
-                value={(formData.lastName as string) || ''}
-                onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                type="tel"
+                value={String(formData.phone1 || '')}
+                onChange={(e) => setFormData({ ...formData, phone1: e.target.value })}
                 disabled={isView}
                 className="w-full px-3 py-2 rounded-lg bg-white/60 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-ebmc-turquoise disabled:opacity-50"
               />
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Email</label>
-            <input
-              type="email"
-              value={(formData.email as string) || ''}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              disabled={isView}
-              className="w-full px-3 py-2 rounded-lg bg-white/60 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-ebmc-turquoise disabled:opacity-50"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Telephone</label>
-            <input
-              type="tel"
-              value={(formData.phone1 as string) || ''}
-              onChange={(e) => setFormData({ ...formData, phone1: e.target.value })}
-              disabled={isView}
-              className="w-full px-3 py-2 rounded-lg bg-white/60 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-ebmc-turquoise disabled:opacity-50"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Poste</label>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Ville</label>
             <input
               type="text"
-              value={(formData.position as string) || ''}
-              onChange={(e) => setFormData({ ...formData, position: e.target.value })}
+              value={String(formData.town || '')}
+              onChange={(e) => setFormData({ ...formData, town: e.target.value })}
               disabled={isView}
               className="w-full px-3 py-2 rounded-lg bg-white/60 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-ebmc-turquoise disabled:opacity-50"
             />
@@ -909,11 +1194,11 @@ export default function BoondManagerV2Page() {
         <div>
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-gradient-to-r from-ebmc-turquoise to-cyan-500">
-              <Building2 className="w-5 h-5 text-white" />
+              <BarChart3 className="w-5 h-5 text-white" />
             </div>
-            <h1 className="text-2xl font-bold text-slate-800 dark:text-white">BoondManager</h1>
+            <h1 className="text-2xl font-bold text-slate-800 dark:text-white">BoondManager Data Hub</h1>
           </div>
-          <p className="text-slate-600 dark:text-slate-400 mt-1">Integration complete API Boond Manager</p>
+          <p className="text-slate-600 dark:text-slate-400 mt-1">Synchronisation, nettoyage et export des donnees</p>
         </div>
 
         {/* Environment Toggle */}
@@ -937,7 +1222,7 @@ export default function BoondManagerV2Page() {
             </span>
           </div>
 
-          {activeTab !== 'dashboard' && activeTab !== 'projects' && canWrite && (
+          {!['dashboard', 'sync', 'quality', 'export'].includes(activeTab) && canWrite && (
             <button
               onClick={handleCreate}
               className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-ebmc-turquoise to-cyan-500 text-white rounded-lg hover:shadow-lg transition"
@@ -967,28 +1252,51 @@ export default function BoondManagerV2Page() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 overflow-x-auto pb-2">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => {
-              setActiveTab(tab.id)
-              setSearch('')
-            }}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium transition whitespace-nowrap ${
-              activeTab === tab.id
-                ? `bg-gradient-to-r ${tab.color} text-white shadow-lg`
-                : 'bg-white/60 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-700'
-            }`}
-          >
-            <tab.icon className="w-4 h-4" />
-            {tab.label}
-          </button>
-        ))}
+      <div className="space-y-2">
+        {/* Tools tabs */}
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {tabs.filter(t => t.section === 'overview' || t.section === 'tools').map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => {
+                setActiveTab(tab.id)
+                setSearch('')
+              }}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium transition whitespace-nowrap ${
+                activeTab === tab.id
+                  ? `bg-gradient-to-r ${tab.color} text-white shadow-lg`
+                  : 'bg-white/60 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-700'
+              }`}
+            >
+              <tab.icon className="w-4 h-4" />
+              {tab.label}
+            </button>
+          ))}
+        </div>
+        {/* Data tabs */}
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {tabs.filter(t => t.section === 'data').map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => {
+                setActiveTab(tab.id)
+                setSearch('')
+              }}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg font-medium transition whitespace-nowrap text-sm ${
+                activeTab === tab.id
+                  ? `bg-gradient-to-r ${tab.color} text-white shadow-lg`
+                  : 'bg-white/40 dark:bg-slate-800/40 text-slate-500 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-700'
+              }`}
+            >
+              <tab.icon className="w-3.5 h-3.5" />
+              {tab.label}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* Search (for list tabs) */}
-      {activeTab !== 'dashboard' && (
+      {/* Search (for data tabs) */}
+      {!['dashboard', 'sync', 'quality', 'export'].includes(activeTab) && (
         <div className="flex gap-4">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
@@ -1021,12 +1329,18 @@ export default function BoondManagerV2Page() {
       )}
 
       {/* Content */}
-      {loading ? (
+      {loading && !['sync', 'quality', 'export'].includes(activeTab) ? (
         <div className="flex justify-center py-12">
           <Loader2 className="w-8 h-8 animate-spin text-ebmc-turquoise" />
         </div>
       ) : activeTab === 'dashboard' ? (
         renderDashboard()
+      ) : activeTab === 'sync' ? (
+        renderSyncTab()
+      ) : activeTab === 'quality' ? (
+        renderQualityTab()
+      ) : activeTab === 'export' ? (
+        renderExportTab()
       ) : (
         <div className="grid gap-4">
           {items.map((item) => renderListItem(item))}
@@ -1057,7 +1371,7 @@ export default function BoondManagerV2Page() {
             >
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-bold text-slate-800 dark:text-white">
-                  {modalMode === 'create' ? 'Nouveau' : modalMode === 'edit' ? 'Modifier' : 'Details'} - {tabs.find(t => t.id === activeTab)?.label}
+                  {modalMode === 'create' ? 'Nouveau' : modalMode === 'edit' ? 'Modifier' : 'Details'}
                 </h2>
                 <button onClick={() => setShowModal(false)} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700">
                   <X className="w-5 h-5 text-slate-600 dark:text-slate-300" />
