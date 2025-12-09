@@ -24,6 +24,7 @@
     "next-intl": "^4.5.8",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "recharts": "^3.5.1",
     "tailwind-merge": "^2.5.4",
     "tailwindcss-animate": "^1.0.7"
   },

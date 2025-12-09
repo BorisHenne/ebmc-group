@@ -26,6 +26,8 @@ import {
   Clock,
   Calendar,
   Search,
+  Target,
+  BarChart3,
   LucideIcon
 } from 'lucide-react'
 import { LightBackground } from '@/components/ui/TechBackground'
@@ -51,6 +53,8 @@ interface MenuItem {
 // All possible menu items
 const allMenuItems: MenuItem[] = [
   { href: '/admin', icon: LayoutDashboard, label: 'Dashboard', color: 'from-ebmc-turquoise to-cyan-500', permission: 'dashboard' },
+  { href: '/admin/sourceur', icon: Target, label: 'Dashboard Sourceur', color: 'from-purple-500 to-pink-500', permission: 'sourceurDashboard' },
+  { href: '/admin/commercial', icon: BarChart3, label: 'Dashboard Commercial', color: 'from-blue-500 to-indigo-500', permission: 'commercialDashboard' },
   { href: '/admin/scraper', icon: Search, label: 'Recherche CVs', color: 'from-indigo-500 to-purple-500', permission: 'scraper' },
   { href: '/admin/jobs', icon: Briefcase, label: 'Offres d\'emploi', color: 'from-blue-500 to-indigo-500', permission: 'jobs' },
   { href: '/admin/consultants', icon: UserCheck, label: 'Consultants', color: 'from-purple-500 to-pink-500', permission: 'consultants' },
@@ -59,9 +63,9 @@ const allMenuItems: MenuItem[] = [
   { href: '/admin/roles', icon: Shield, label: 'Rôles', color: 'from-red-500 to-rose-500', permission: 'roles' },
   { href: '/admin/webhooks', icon: Webhook, label: 'Webhooks', color: 'from-violet-500 to-purple-500', permission: 'webhooks' },
   { href: '/admin/api-tokens', icon: Key, label: 'Tokens API', color: 'from-yellow-500 to-orange-500', permission: 'apiTokens' },
-  { href: '/admin/demo-data', icon: Database, label: 'Données démo', color: 'from-emerald-500 to-teal-500', permission: 'demoData' },
+  { href: '/admin/demo-data', icon: Database, label: 'Donnees demo', color: 'from-emerald-500 to-teal-500', permission: 'demoData' },
   { href: '/admin/docs', icon: BookOpen, label: 'Documentation', color: 'from-teal-500 to-cyan-500', permission: 'docs' },
-  { href: '/admin/settings', icon: Settings, label: 'Paramètres', color: 'from-slate-500 to-slate-600', permission: 'settings' },
+  { href: '/admin/settings', icon: Settings, label: 'Parametres', color: 'from-slate-500 to-slate-600', permission: 'settings' },
 ]
 
 // Freelance portal menu items
@@ -114,9 +118,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       const data = await res.json()
       setUser(data.user)
 
-      // Redirect freelance users to their portal if they try to access admin
-      if (data.user.role === 'freelance' && !pathname.startsWith('/admin/freelance')) {
+      // Redirect users to their role-specific dashboard
+      const role = data.user.role
+      if (role === 'freelance' && !pathname.startsWith('/admin/freelance')) {
         router.push('/admin/freelance')
+      } else if (role === 'sourceur' && pathname === '/admin') {
+        router.push('/admin/sourceur')
+      } else if (role === 'commercial' && pathname === '/admin') {
+        router.push('/admin/commercial')
       }
     } catch {
       router.push('/login')

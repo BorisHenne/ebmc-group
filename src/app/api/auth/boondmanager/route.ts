@@ -98,13 +98,14 @@ export async function POST(request: NextRequest) {
       })
       user = { _id: result.insertedId, email: boondEmail, name: fullName, role: 'user' }
     } else {
-      // Update last login
+      // Update last login and boond info
       await users.updateOne(
         { _id: user._id },
         {
           $set: {
             lastLogin: new Date(),
             boondManagerSubdomain: cleanSubdomain,
+            boondManagerId: boondId,
             name: fullName
           }
         }
@@ -118,9 +119,29 @@ export async function POST(request: NextRequest) {
       user.role || 'user'
     )
 
-    // Set cookie
+    // Set cookies
     const cookieStore = await cookies()
+
+    // Main auth token
     cookieStore.set('auth-token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7, // 7 days
+      path: '/'
+    })
+
+    // BoondManager API token (for subsequent API calls)
+    cookieStore.set('boond-token', basicAuth, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7, // 7 days
+      path: '/'
+    })
+
+    // BoondManager subdomain
+    cookieStore.set('boond-subdomain', cleanSubdomain, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
@@ -135,7 +156,8 @@ export async function POST(request: NextRequest) {
         email: boondEmail,
         name: fullName,
         role: user.role || 'user',
-        authProvider: 'boondmanager'
+        authProvider: 'boondmanager',
+        boondManagerId: boondId
       }
     })
 
