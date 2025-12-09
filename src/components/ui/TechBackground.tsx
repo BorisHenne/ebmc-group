@@ -9,7 +9,7 @@ interface TechBackgroundProps {
 
 // Subtle grid pattern
 function TechGrid({ light = false }: { light?: boolean }) {
-  const color = light ? 'rgba(45, 181, 181, 0.08)' : 'rgba(45, 181, 181, 0.05)'
+  const color = light ? 'rgba(43, 163, 173, 0.06)' : 'rgba(43, 163, 173, 0.04)'
   return (
     <div
       className="absolute inset-0 pointer-events-none"
@@ -68,7 +68,7 @@ function FloatingDots({ light = false }: { light?: boolean }) {
     const animate = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height)
 
-      const connectionColor = light ? 'rgba(45, 181, 181, 0.12)' : 'rgba(45, 181, 181, 0.08)'
+      const connectionColor = light ? 'rgba(43, 163, 173, 0.1)' : 'rgba(43, 163, 173, 0.06)'
       ctx.strokeStyle = connectionColor
       ctx.lineWidth = 1
 
@@ -91,7 +91,7 @@ function FloatingDots({ light = false }: { light?: boolean }) {
       particles.forEach((p) => {
         ctx.beginPath()
         ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2)
-        ctx.fillStyle = `rgba(45, 181, 181, ${p.opacity})`
+        ctx.fillStyle = `rgba(43, 163, 173, ${p.opacity})`
         ctx.globalAlpha = 1
         ctx.fill()
 
