@@ -10,7 +10,7 @@ interface ThemeToggleProps {
 }
 
 export function ThemeToggle({ variant = 'light', showLabel = false }: ThemeToggleProps) {
-  const { theme, setTheme } = useTheme()
+  const { theme, setTheme, mounted } = useTheme()
 
   const themes = [
     { key: 'light' as const, icon: Sun, label: 'Clair' },
@@ -30,6 +30,11 @@ export function ThemeToggle({ variant = 'light', showLabel = false }: ThemeToggl
   const baseClasses = variant === 'dark'
     ? 'text-white/70 hover:text-white hover:bg-white/10'
     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/10'
+
+  // Don't render until mounted to avoid hydration mismatch
+  if (!mounted) {
+    return <div className="w-9 h-9" />
+  }
 
   return (
     <motion.button
@@ -59,7 +64,7 @@ export function ThemeToggle({ variant = 'light', showLabel = false }: ThemeToggl
 
 // Compact toggle for navbars
 export function ThemeToggleCompact({ variant = 'light' }: { variant?: 'light' | 'dark' }) {
-  const { resolvedTheme, setTheme } = useTheme()
+  const { resolvedTheme, setTheme, mounted } = useTheme()
 
   const isDark = resolvedTheme === 'dark'
 
@@ -70,6 +75,11 @@ export function ThemeToggleCompact({ variant = 'light' }: { variant?: 'light' | 
   const baseClasses = variant === 'dark'
     ? 'bg-white/10 hover:bg-white/20'
     : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700'
+
+  // Don't render until mounted to avoid hydration mismatch
+  if (!mounted) {
+    return <div className="w-14 h-7" />
+  }
 
   return (
     <motion.button
