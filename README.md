@@ -26,7 +26,7 @@
   <img src="https://img.shields.io/badge/TypeScript-5.6-3178C6?style=flat-square&logo=typescript" alt="TypeScript" />
   <img src="https://img.shields.io/badge/MongoDB-7-47A248?style=flat-square&logo=mongodb" alt="MongoDB" />
   <img src="https://img.shields.io/badge/Tailwind-3.4-38B2AC?style=flat-square&logo=tailwindcss" alt="Tailwind" />
-  <img src="https://img.shields.io/badge/Tests-62+-green?style=flat-square" alt="Tests" />
+  <img src="https://img.shields.io/badge/Tests-131+-green?style=flat-square" alt="Tests" />
 </p>
 
 ---
@@ -47,6 +47,7 @@
 |---|---|
 | Modern glassmorphism UI design | Design UI glassmorphism moderne |
 | Responsive mobile-first layout | Layout responsive mobile-first |
+| Mobile hamburger menu with animations | Menu hamburger mobile avec animations |
 | Bilingual support (FR/EN) | Support bilingue (FR/EN) |
 | Dynamic job listings from database | Offres d'emploi dynamiques depuis la BDD |
 | Consultant profiles with availability status | Profils consultants avec statut disponibilité |
@@ -59,6 +60,7 @@
 | EN | FR |
 |---|---|
 | Secure JWT authentication | Authentification JWT sécurisée |
+| BoondManager SSO authentication | Authentification SSO BoondManager |
 | Job postings management (CRUD) | Gestion des offres d'emploi (CRUD) |
 | Consultant profiles management | Gestion des profils consultants |
 | Messages/applications inbox | Boîte de réception messages/candidatures |
@@ -91,7 +93,7 @@ Backend:
 Testing:
 ├── Vitest
 ├── React Testing Library
-└── 62+ unit tests
+└── 131+ unit tests
 
 Deployment:
 ├── Docker & Docker Compose
@@ -180,7 +182,7 @@ npm run build        # Build for production
 npm start            # Start production server
 
 # Testing | Tests
-npm test             # Run all 62+ tests
+npm test             # Run all 131+ tests
 npm run test:watch   # Watch mode
 
 # Linting | Linting
@@ -200,6 +202,7 @@ npm run lint:fix     # Auto-fix lint issues
 
 ### Admin Access | Accès Admin
 
+**Standard Login | Connexion Standard:**
 1. Navigate to `/login`
 2. First-time setup: Use the init endpoint
    ```bash
@@ -207,6 +210,12 @@ npm run lint:fix     # Auto-fix lint issues
    ```
 3. Login with created credentials
 4. **Important:** Change password immediately after first login!
+
+**BoondManager Login | Connexion BoondManager:**
+1. Navigate to `/login` and select "BoondManager" tab
+2. Enter your BoondManager subdomain (e.g., `your-company`)
+3. Login with your BoondManager email and password
+4. **Note:** Enable REST API in your BoondManager profile settings (Profile > Configuration > Security > "Allow REST API calls from BasicAuth")
 
 ---
 
@@ -233,6 +242,7 @@ npm run lint:fix     # Auto-fix lint issues
 | POST | `/api/auth/logout` | Logout user |
 | GET | `/api/auth/me` | Get current user |
 | POST | `/api/auth/init` | Create first admin |
+| POST | `/api/auth/boondmanager` | BoondManager SSO login |
 | GET/POST | `/api/admin/jobs` | List/Create jobs |
 | PUT/DELETE | `/api/admin/jobs/[id]` | Update/Delete job |
 | GET/POST | `/api/admin/consultants` | List/Create consultants |
@@ -272,6 +282,9 @@ ebmc-group/
 │   │   │   └── docs/             # API documentation
 │   │   └── api/
 │   │       ├── auth/             # Authentication routes
+│   │       │   ├── login/        # Standard JWT auth
+│   │       │   ├── boondmanager/ # BoondManager SSO
+│   │       │   └── ...           # logout, me, init
 │   │       ├── admin/            # Admin CRUD routes
 │   │       ├── jobs/             # Public jobs API
 │   │       ├── consultants/      # Public consultants API
@@ -444,10 +457,11 @@ npm run test:watch
 
 ### Test Coverage | Couverture
 
-**62+ unit tests** covering:
+**131+ unit tests** covering:
 - API routes validation (jobs, consultants, auth, webhooks, tokens)
-- Authentication logic (JWT, passwords, roles)
+- Authentication logic (JWT, passwords, roles, BoondManager SSO)
 - Component rendering (UI components, forms)
+- Mobile navigation and responsive design
 - Utility functions (validation, formatting)
 - Data transformations (MongoDB to frontend)
 

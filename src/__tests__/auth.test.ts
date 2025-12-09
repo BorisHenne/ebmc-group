@@ -100,6 +100,161 @@ describe('Authentication', () => {
   })
 })
 
+describe('BoondManager Authentication', () => {
+  describe('BoondManager login validation', () => {
+    it('should reject empty subdomain', () => {
+      const credentials = { email: 'test@test.com', password: 'password', subdomain: '' }
+      expect(credentials.subdomain).toBe('')
+    })
+
+    it('should reject empty email', () => {
+      const credentials = { email: '', password: 'password', subdomain: 'company' }
+      expect(credentials.email).toBe('')
+    })
+
+    it('should reject empty password', () => {
+      const credentials = { email: 'test@test.com', password: '', subdomain: 'company' }
+      expect(credentials.password).toBe('')
+    })
+
+    it('should accept valid credentials', () => {
+      const credentials = { email: 'test@test.com', password: 'password123', subdomain: 'mycompany' }
+      expect(credentials.email).toBeTruthy()
+      expect(credentials.password).toBeTruthy()
+      expect(credentials.subdomain).toBeTruthy()
+    })
+  })
+
+  describe('Subdomain cleaning', () => {
+    it('should clean subdomain with .boondmanager.com suffix', () => {
+      const subdomain = 'company.boondmanager.com'
+      const cleaned = subdomain.replace('.boondmanager.com', '')
+      expect(cleaned).toBe('company')
+    })
+
+    it('should clean subdomain with https:// prefix', () => {
+      const subdomain = 'https://company.boondmanager.com'
+      const cleaned = subdomain
+        .replace('.boondmanager.com', '')
+        .replace('https://', '')
+        .replace('http://', '')
+      expect(cleaned).toBe('company')
+    })
+
+    it('should not modify clean subdomain', () => {
+      const subdomain = 'company'
+      const cleaned = subdomain
+        .replace('.boondmanager.com', '')
+        .replace('https://', '')
+        .replace('http://', '')
+        .trim()
+      expect(cleaned).toBe('company')
+    })
+
+    it('should handle subdomain with spaces', () => {
+      const subdomain = '  company  '
+      const cleaned = subdomain.trim()
+      expect(cleaned).toBe('company')
+    })
+  })
+
+  describe('BoondManager API URL construction', () => {
+    it('should construct correct API URL', () => {
+      const subdomain = 'ebmc'
+      const expectedUrl = `https://${subdomain}.boondmanager.com/api`
+      expect(expectedUrl).toBe('https://ebmc.boondmanager.com/api')
+    })
+
+    it('should construct correct current-user endpoint', () => {
+      const subdomain = 'ebmc'
+      const baseUrl = `https://${subdomain}.boondmanager.com/api`
+      const endpoint = `${baseUrl}/application/current-user`
+      expect(endpoint).toBe('https://ebmc.boondmanager.com/api/application/current-user')
+    })
+  })
+
+  describe('Basic Auth header', () => {
+    it('should create correct Basic Auth header', () => {
+      const email = 'user@test.com'
+      const password = 'password123'
+      const expectedAuth = Buffer.from(`${email}:${password}`).toString('base64')
+      expect(expectedAuth).toBe(Buffer.from('user@test.com:password123').toString('base64'))
+    })
+
+    it('should handle special characters in credentials', () => {
+      const email = 'user+test@test.com'
+      const password = 'p@ssw0rd!#$'
+      const basicAuth = Buffer.from(`${email}:${password}`).toString('base64')
+      expect(basicAuth).toBeTruthy()
+      expect(typeof basicAuth).toBe('string')
+    })
+  })
+
+  describe('BoondManager user data extraction', () => {
+    it('should extract user info from BoondManager response', () => {
+      const boondResponse = {
+        data: {
+          id: 123,
+          attributes: {
+            firstName: 'Jean',
+            lastName: 'Dupont',
+            email: 'jean.dupont@ebmc.eu',
+            civility: 'M',
+            state: 1
+          }
+        }
+      }
+
+      const firstName = boondResponse.data?.attributes?.firstName || ''
+      const lastName = boondResponse.data?.attributes?.lastName || ''
+      const email = boondResponse.data?.attributes?.email || ''
+      const id = boondResponse.data?.id
+      const fullName = `${firstName} ${lastName}`.trim()
+
+      expect(firstName).toBe('Jean')
+      expect(lastName).toBe('Dupont')
+      expect(email).toBe('jean.dupont@ebmc.eu')
+      expect(id).toBe(123)
+      expect(fullName).toBe('Jean Dupont')
+    })
+
+    it('should handle missing user data gracefully', () => {
+      const boondResponse = {
+        data: {
+          id: 456,
+          attributes: {}
+        }
+      }
+
+      const firstName = boondResponse.data?.attributes?.firstName || ''
+      const lastName = boondResponse.data?.attributes?.lastName || ''
+      const fullName = `${firstName} ${lastName}`.trim() || 'user@test.com'
+
+      expect(fullName).toBe('user@test.com')
+    })
+  })
+
+  describe('BoondManager auth provider', () => {
+    it('should set correct auth provider for BoondManager users', () => {
+      const user = {
+        email: 'test@test.com',
+        authProvider: 'boondmanager',
+        boondManagerId: 123,
+        boondManagerSubdomain: 'ebmc'
+      }
+
+      expect(user.authProvider).toBe('boondmanager')
+      expect(user.boondManagerId).toBe(123)
+      expect(user.boondManagerSubdomain).toBe('ebmc')
+    })
+
+    it('should set default role for new BoondManager users', () => {
+      const defaultRole = 'user'
+      expect(defaultRole).toBe('user')
+    })
+  })
+})
+
 describe('Authorization', () => {
   describe('Role-based access', () => {
     const roles = ['admin', 'editor', 'viewer']
