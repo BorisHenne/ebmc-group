@@ -17,9 +17,12 @@ interface NavigationProps {
 }
 
 export function Navigation({ currentPage = 'home', variant = 'auto' }: NavigationProps) {
-  const { resolvedTheme } = useTheme()
+  const { resolvedTheme, mounted } = useTheme()
   // Auto variant uses the current theme, otherwise respect the explicit variant
-  const effectiveVariant = variant === 'auto' ? (resolvedTheme === 'dark' ? 'dark' : 'light') : variant
+  // Default to 'light' when not mounted to avoid hydration mismatch
+  const effectiveVariant = variant === 'auto'
+    ? (mounted ? (resolvedTheme === 'dark' ? 'dark' : 'light') : 'light')
+    : variant
   const isLight = effectiveVariant === 'light'
   const t = useTranslations()
   const [locale, setLocale] = useState('fr')
