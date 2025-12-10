@@ -343,12 +343,13 @@ export default function BoondManagerV2Page() {
     setImportPreview(null)
     setImportResult(null)
 
-    const steps = [
-      { name: 'Connexion à BoondManager Production', status: 'pending' as const },
-      { name: 'Récupération des consultants', status: 'pending' as const },
-      { name: 'Récupération des candidats', status: 'pending' as const },
-      { name: 'Récupération des opportunités', status: 'pending' as const },
-      { name: 'Analyse des données', status: 'pending' as const },
+    type StepStatus = 'pending' | 'in_progress' | 'completed' | 'error'
+    const steps: Array<{ name: string; status: StepStatus }> = [
+      { name: 'Connexion à BoondManager Production', status: 'pending' },
+      { name: 'Récupération des consultants', status: 'pending' },
+      { name: 'Récupération des candidats', status: 'pending' },
+      { name: 'Récupération des opportunités', status: 'pending' },
+      { name: 'Analyse des données', status: 'pending' },
     ]
     setImportProgress({ percentage: 0, currentAction: 'Initialisation...', steps })
 
@@ -409,13 +410,14 @@ export default function BoondManagerV2Page() {
     setImporting(true)
     setError(null)
 
-    const steps = [
-      { name: 'Connexion à BoondManager Production', status: 'pending' as const },
-      { name: 'Récupération des données', status: 'pending' as const },
-      { name: 'Import des consultants', status: 'pending' as const },
-      { name: 'Import des candidats', status: 'pending' as const },
-      { name: 'Import des opportunités', status: 'pending' as const },
-      { name: 'Finalisation', status: 'pending' as const },
+    type StepStatus = 'pending' | 'in_progress' | 'completed' | 'error'
+    const steps: Array<{ name: string; status: StepStatus }> = [
+      { name: 'Connexion à BoondManager Production', status: 'pending' },
+      { name: 'Récupération des données', status: 'pending' },
+      { name: 'Import des consultants', status: 'pending' },
+      { name: 'Import des candidats', status: 'pending' },
+      { name: 'Import des opportunités', status: 'pending' },
+      { name: 'Finalisation', status: 'pending' },
     ]
     setImportProgress({ percentage: 0, currentAction: 'Démarrage de l\'import...', steps })
 

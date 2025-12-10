@@ -44,7 +44,7 @@ const PERMISSION_GROUPS = [
   {
     id: 'admin',
     label: 'Administration',
-    permissions: ['users', 'roles', 'settings', 'jobs', 'messages']
+    permissions: ['users', 'roles', 'database', 'settings', 'jobs', 'messages']
   },
   {
     id: 'integration',
@@ -76,6 +76,7 @@ const PERMISSION_LABELS: Record<keyof RolePermissions, string> = {
   messages: 'Messagerie',
   users: 'Gestion des utilisateurs',
   roles: 'Gestion des rôles',
+  database: 'Base de données MongoDB',
   webhooks: 'Configuration Webhooks',
   apiTokens: 'Tokens API',
   demoData: 'Données de démo',

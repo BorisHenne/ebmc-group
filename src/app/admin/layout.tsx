@@ -30,6 +30,7 @@ import {
   BarChart3,
   Kanban,
   Cloud,
+  Layers,
   LucideIcon
 } from 'lucide-react'
 import { LightBackground } from '@/components/ui/TechBackground'
