@@ -95,10 +95,11 @@ const menuSections: MenuSection[] = [
     items: [
       { href: '/admin/users', icon: Users, label: 'Utilisateurs', color: 'from-orange-500 to-amber-500', permission: 'users' },
       { href: '/admin/roles', icon: Shield, label: 'Roles', color: 'from-red-500 to-rose-500', permission: 'roles' },
+      { href: '/admin/database', icon: Database, label: 'MongoDB', color: 'from-green-600 to-emerald-500', permission: 'database' },
       { href: '/admin/webhooks', icon: Webhook, label: 'Webhooks', color: 'from-violet-500 to-purple-500', permission: 'webhooks' },
       { href: '/admin/api-tokens', icon: Key, label: 'Tokens API', color: 'from-yellow-500 to-orange-500', permission: 'apiTokens' },
-      { href: '/admin/demo-data', icon: Database, label: 'Donnees demo', color: 'from-emerald-500 to-teal-500', permission: 'demoData' },
-      { href: '/admin/settings', icon: Settings, label: 'Parametres', color: 'from-slate-500 to-slate-600', permission: 'settings' },
+      { href: '/admin/demo-data', icon: Layers, label: 'Données démo', color: 'from-emerald-500 to-teal-500', permission: 'demoData' },
+      { href: '/admin/settings', icon: Settings, label: 'Paramètres', color: 'from-slate-500 to-slate-600', permission: 'settings' },
     ]
   },
   {
