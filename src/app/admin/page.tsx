@@ -221,7 +221,7 @@ function StatCard({
       <div className="flex items-start justify-between mb-3">
         <div
           className="w-10 h-10 rounded-lg flex items-center justify-center"
-          style={{ backgroundColor: `${color}20` }}
+          style={{ backgroundColor: `${color}20`, color }}
         >
           <Icon className="w-5 h-5" color={color} />
         </div>
@@ -762,9 +762,9 @@ export default function AdminDashboard() {
             >
               <div
                 className="w-8 h-8 rounded-lg flex items-center justify-center"
-                style={{ backgroundColor: `${link.color}20` }}
+                style={{ backgroundColor: `${link.color}20`, color: link.color }}
               >
-                <link.icon className="w-4 h-4" style={{ color: link.color }} />
+                <link.icon className="w-4 h-4" />
               </div>
               <span className="text-sm text-[#8E9196] group-hover:text-white transition-colors">{link.label}</span>
             </Link>
