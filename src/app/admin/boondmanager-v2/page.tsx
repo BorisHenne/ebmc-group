@@ -224,7 +224,11 @@ export default function BoondManagerV2Page() {
 
     try {
       if (activeTab === 'dashboard') {
-        const res = await fetch(`/api/boondmanager/v2?env=${environment}&type=stats`, { credentials: 'include' })
+        // Add timestamp to prevent caching and force fresh data
+        const res = await fetch(`/api/boondmanager/v2?env=${environment}&type=stats&_t=${Date.now()}`, {
+          credentials: 'include',
+          cache: 'no-store'
+        })
         if (!res.ok) throw new Error('Erreur de chargement des statistiques')
         const data = await res.json()
         if (data.success) {
@@ -243,7 +247,10 @@ export default function BoondManagerV2Page() {
         return
       } else {
         const searchParam = search ? `&search=${encodeURIComponent(search)}` : ''
-        const res = await fetch(`/api/boondmanager/v2/${activeTab}?env=${environment}${searchParam}`, { credentials: 'include' })
+        const res = await fetch(`/api/boondmanager/v2/${activeTab}?env=${environment}${searchParam}&_t=${Date.now()}`, {
+          credentials: 'include',
+          cache: 'no-store'
+        })
         if (!res.ok) throw new Error('Erreur de chargement')
         const data = await res.json()
         if (data.success) {
@@ -297,7 +304,10 @@ export default function BoondManagerV2Page() {
     setQualityAnalysis(null)
 
     try {
-      const res = await fetch(`/api/boondmanager/v2/quality?env=${environment}`, { credentials: 'include' })
+      const res = await fetch(`/api/boondmanager/v2/quality?env=${environment}&_t=${Date.now()}`, {
+        credentials: 'include',
+        cache: 'no-store'
+      })
       const data = await res.json()
 
       if (data.success) {
@@ -495,7 +505,10 @@ export default function BoondManagerV2Page() {
     setError(null)
 
     try {
-      const res = await fetch(`/api/boondmanager/v2/dictionary?env=${environment}${refresh ? '&refresh=true' : ''}`, { credentials: 'include' })
+      const res = await fetch(`/api/boondmanager/v2/dictionary?env=${environment}${refresh ? '&refresh=true' : ''}&_t=${Date.now()}`, {
+        credentials: 'include',
+        cache: 'no-store'
+      })
       const data = await res.json()
 
       if (data.success) {
@@ -2240,7 +2253,15 @@ export default function BoondManagerV2Page() {
               Production
             </span>
             <button
-              onClick={() => setEnvironment(environment === 'production' ? 'sandbox' : 'production')}
+              onClick={() => {
+                // Reset all data before changing environment to avoid showing stale data
+                setStats(null)
+                setItems([])
+                setDictionary(null)
+                setQualityAnalysis(null)
+                setSyncResult(null)
+                setEnvironment(environment === 'production' ? 'sandbox' : 'production')
+              }}
               className="relative"
             >
               {environment === 'sandbox' ? (
