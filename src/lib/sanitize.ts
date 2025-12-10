@@ -107,7 +107,13 @@ export function sanitizeValue(value: unknown, key?: string, forceString = false)
     }
 
     // Check for BoondManager-style objects (have typeOf field)
-    if ('typeOf' in obj && typeof obj.typeOf === 'number') {
+    // Also handle when typeOf is a string (edge case)
+    if ('typeOf' in obj) {
+      return extractStringFromObject(obj)
+    }
+
+    // Check for objects that look like BoondManager data (have detail field with typeOf-like structure)
+    if ('detail' in obj && Object.keys(obj).length <= 3) {
       return extractStringFromObject(obj)
     }
 

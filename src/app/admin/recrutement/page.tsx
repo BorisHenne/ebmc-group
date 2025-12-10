@@ -72,6 +72,55 @@ interface KanbanColumn {
   candidates: SiteCandidate[]
 }
 
+// Client-side sanitization to handle BoondManager objects like {typeOf, detail}
+function sanitizeField(value: unknown): string {
+  if (value === null || value === undefined) return ''
+  if (typeof value === 'string') return value
+  if (typeof value === 'number') return String(value)
+  if (typeof value === 'object' && value !== null) {
+    const obj = value as Record<string, unknown>
+    // Handle BoondManager objects
+    if ('detail' in obj && typeof obj.detail === 'string') return obj.detail
+    if ('value' in obj && typeof obj.value === 'string') return obj.value
+    if ('label' in obj && typeof obj.label === 'string') return obj.label
+    if ('name' in obj && typeof obj.name === 'string') return obj.name
+    // Fallback to JSON for debugging
+    try {
+      return JSON.stringify(value)
+    } catch {
+      return '[Object]'
+    }
+  }
+  return String(value)
+}
+
+function sanitizeArray(arr: unknown): string[] {
+  if (!Array.isArray(arr)) return []
+  return arr.map(item => sanitizeField(item))
+}
+
+function sanitizeCandidate(candidate: Record<string, unknown>): SiteCandidate {
+  return {
+    id: String(candidate.id || candidate._id || ''),
+    _id: candidate._id ? String(candidate._id) : undefined,
+    boondManagerId: typeof candidate.boondManagerId === 'number' ? candidate.boondManagerId : undefined,
+    firstName: sanitizeField(candidate.firstName),
+    lastName: sanitizeField(candidate.lastName),
+    email: candidate.email ? sanitizeField(candidate.email) : undefined,
+    phone: candidate.phone ? sanitizeField(candidate.phone) : undefined,
+    title: candidate.title ? sanitizeField(candidate.title) : undefined,
+    state: typeof candidate.state === 'number' ? candidate.state : 0,
+    stateLabel: sanitizeField(candidate.stateLabel),
+    location: candidate.location ? sanitizeField(candidate.location) : undefined,
+    skills: sanitizeArray(candidate.skills),
+    experience: candidate.experience ? sanitizeField(candidate.experience) : undefined,
+    source: candidate.source ? sanitizeField(candidate.source) : undefined,
+    notes: candidate.notes ? sanitizeField(candidate.notes) : undefined,
+    createdAt: sanitizeField(candidate.createdAt),
+    updatedAt: sanitizeField(candidate.updatedAt),
+  }
+}
+
 export default function RecrutementPage() {
   const [columns, setColumns] = useState<KanbanColumn[]>([])
   const [loading, setLoading] = useState(true)
@@ -95,7 +144,8 @@ export default function RecrutementPage() {
       }
 
       const data = await response.json()
-      const candidates: SiteCandidate[] = data.data || []
+      // Sanitize all candidate data to prevent React rendering errors
+      const candidates: SiteCandidate[] = (data.data || []).map((c: Record<string, unknown>) => sanitizeCandidate(c))
 
       // Organize candidates into columns by state
       const boardColumns: KanbanColumn[] = RECRUITMENT_STAGES.map(stage => ({
