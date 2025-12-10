@@ -5,38 +5,41 @@ import { motion } from 'framer-motion'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
-import { LogIn, Menu, X } from 'lucide-react'
+import { LogIn, Menu, X, ChevronDown } from 'lucide-react'
 import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 import { ThemeToggleCompact } from '@/components/ThemeToggle'
 import { useTheme } from '@/components/ThemeProvider'
 
 interface NavigationProps {
-  currentPage?: 'home' | 'consultants' | 'careers' | 'login'
+  currentPage?: 'home' | 'sap' | 'ict' | 'cybersecurity' | 'consultants' | 'careers' | 'contact' | 'about' | 'login'
   variant?: 'dark' | 'light' | 'auto'
 }
 
 export function Navigation({ currentPage = 'home', variant = 'auto' }: NavigationProps) {
   const { resolvedTheme, mounted } = useTheme()
-  // Auto variant uses the current theme, otherwise respect the explicit variant
-  // Default to 'light' when not mounted to avoid hydration mismatch
   const effectiveVariant = variant === 'auto'
     ? (mounted ? (resolvedTheme === 'dark' ? 'dark' : 'light') : 'light')
     : variant
   const isLight = effectiveVariant === 'light'
   const t = useTranslations()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [polesOpen, setPolesOpen] = useState(false)
 
-  const navItems = [
-    { key: 'services', href: '/#services', isAnchor: true },
+  const mainNavItems = [
     { key: 'consultants', href: '/consultants', isAnchor: false },
     { key: 'careers', href: '/careers', isAnchor: false },
-    { key: 'contact', href: '/#contact', isAnchor: true }
+    { key: 'about', href: '/about', isAnchor: false },
+    { key: 'contact', href: '/contact', isAnchor: false }
+  ]
+
+  const poleItems = [
+    { key: 'sap', href: '/sap', label: 'SAP' },
+    { key: 'ict', href: '/ict', label: 'ICT / IT' },
+    { key: 'cybersecurity', href: '/cybersecurity', label: t('nav.cybersecurity') }
   ]
 
   const isActive = (key: string) => {
-    if (key === 'consultants' && currentPage === 'consultants') return true
-    if (key === 'careers' && currentPage === 'careers') return true
-    return false
+    return currentPage === key
   }
 
   return (
@@ -65,8 +68,53 @@ export function Navigation({ currentPage = 'home', variant = 'auto' }: Navigatio
             </Link>
 
             {/* Desktop Nav */}
-            <nav className="hidden lg:flex items-center gap-8">
-              {navItems.map((item) => (
+            <nav className="hidden lg:flex items-center gap-6">
+              {/* Poles Dropdown */}
+              <div className="relative">
+                <button
+                  onClick={() => setPolesOpen(!polesOpen)}
+                  onBlur={() => setTimeout(() => setPolesOpen(false), 150)}
+                  className={`text-sm font-medium transition-colors flex items-center gap-1 ${
+                    ['sap', 'ict', 'cybersecurity'].includes(currentPage)
+                      ? 'text-ebmc-turquoise'
+                      : isLight
+                      ? 'text-slate-600 hover:text-slate-900'
+                      : 'text-white/70 hover:text-white'
+                  }`}
+                >
+                  {t('poles.badge')}
+                  <ChevronDown className={`w-4 h-4 transition-transform ${polesOpen ? 'rotate-180' : ''}`} />
+                </button>
+                {polesOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className={`absolute top-full left-0 mt-2 py-2 rounded-xl min-w-[160px] shadow-xl ${
+                      isLight
+                        ? 'bg-white border border-slate-200'
+                        : 'bg-slate-900 border border-slate-700'
+                    }`}
+                  >
+                    {poleItems.map((item) => (
+                      <Link
+                        key={item.key}
+                        href={item.href}
+                        className={`block px-4 py-2 text-sm transition-colors ${
+                          isActive(item.key)
+                            ? 'text-ebmc-turquoise bg-ebmc-turquoise/10'
+                            : isLight
+                            ? 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                            : 'text-white/70 hover:text-white hover:bg-slate-800'
+                        }`}
+                      >
+                        {item.label}
+                      </Link>
+                    ))}
+                  </motion.div>
+                )}
+              </div>
+
+              {mainNavItems.map((item) => (
                 <Link
                   key={item.key}
                   href={item.href}
@@ -123,7 +171,30 @@ export function Navigation({ currentPage = 'home', variant = 'auto' }: Navigatio
                 isLight ? 'border-slate-200' : 'border-white/10'
               }`}
             >
-              {navItems.map((item) => (
+              {/* Poles Section */}
+              <div className={`text-xs uppercase tracking-wider mb-2 ${isLight ? 'text-slate-400' : 'text-white/40'}`}>
+                {t('poles.badge')}
+              </div>
+              {poleItems.map((item) => (
+                <Link
+                  key={item.key}
+                  href={item.href}
+                  className={`block py-2 text-sm ${
+                    isActive(item.key)
+                      ? 'text-ebmc-turquoise'
+                      : isLight
+                      ? 'text-slate-600'
+                      : 'text-white/70'
+                  }`}
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  {item.label}
+                </Link>
+              ))}
+
+              <div className={`h-px my-3 ${isLight ? 'bg-slate-200' : 'bg-white/10'}`} />
+
+              {mainNavItems.map((item) => (
                 <Link
                   key={item.key}
                   href={item.href}

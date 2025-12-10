@@ -16,7 +16,9 @@ import {
   Rocket,
   Coffee,
   Globe,
-  Loader2
+  Loader2,
+  CheckCircle,
+  TrendingUp
 } from 'lucide-react'
 import {
   TextGradient,
@@ -41,12 +43,12 @@ interface Job {
 }
 
 const benefits = [
-  { icon: Rocket, key: 'tech', gradient: 'from-cyan-500 to-blue-500', bgLight: 'bg-cyan-50' },
-  { icon: GraduationCap, key: 'training', gradient: 'from-green-500 to-emerald-500', bgLight: 'bg-green-50' },
-  { icon: Coffee, key: 'flexible', gradient: 'from-purple-500 to-pink-500', bgLight: 'bg-purple-50' },
-  { icon: Heart, key: 'team', gradient: 'from-red-500 to-orange-500', bgLight: 'bg-red-50' },
-  { icon: Sparkles, key: 'career', gradient: 'from-yellow-500 to-amber-500', bgLight: 'bg-yellow-50' },
-  { icon: Globe, key: 'salary', gradient: 'from-ebmc-turquoise to-cyan-400', bgLight: 'bg-cyan-50' }
+  { icon: Rocket, gradient: 'from-cyan-500 to-blue-500' },
+  { icon: GraduationCap, gradient: 'from-green-500 to-emerald-500' },
+  { icon: Globe, gradient: 'from-purple-500 to-pink-500' },
+  { icon: Coffee, gradient: 'from-orange-500 to-amber-500' },
+  { icon: Heart, gradient: 'from-red-500 to-pink-500' },
+  { icon: Sparkles, gradient: 'from-ebmc-turquoise to-cyan-400' }
 ]
 
 export default function CareersPage() {
@@ -77,6 +79,7 @@ export default function CareersPage() {
   }
 
   const benefitTexts = t.raw('careers.benefits') as string[]
+  const offerItems = t.raw('careers.offer.items') as string[]
 
   const filteredJobs = filter === 'all'
     ? jobs
@@ -100,9 +103,12 @@ export default function CareersPage() {
                 <span className="text-sm font-medium text-ebmc-turquoise">{t('careers.badge')}</span>
               </span>
 
-              <h1 className="text-5xl md:text-7xl font-bold mb-6 text-slate-900 dark:text-white">
+              <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold mb-4 text-slate-900 dark:text-white">
                 {t('careers.title')} <TextGradient animate={false}>{t('careers.titleHighlight')}</TextGradient>
               </h1>
+              <h2 className="text-2xl md:text-3xl font-semibold mb-6 text-slate-700 dark:text-slate-300">
+                {t('careers.subtitle')}
+              </h2>
 
               <p className="text-xl text-slate-500 dark:text-slate-400 max-w-2xl mx-auto">
                 {t('careers.description')}
@@ -110,6 +116,63 @@ export default function CareersPage() {
             </motion.div>
           </div>
         </section>
+
+        {/* What We Offer Section */}
+        <TechSection className="py-20 px-4">
+          <div className="max-w-4xl mx-auto">
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="glass-card p-8 md:p-10"
+            >
+              <h2 className="text-2xl md:text-3xl font-bold mb-8 text-slate-900 dark:text-white text-center">
+                {t('careers.offer.title')}
+              </h2>
+              <ul className="space-y-4">
+                {offerItems.map((item, index) => (
+                  <motion.li
+                    key={index}
+                    initial={{ opacity: 0, x: -20 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.5, delay: index * 0.1 }}
+                    viewport={{ once: true }}
+                    className="flex items-start gap-4"
+                  >
+                    <div className="p-1 rounded-full bg-ebmc-turquoise/20 mt-0.5 flex-shrink-0">
+                      <CheckCircle className="w-5 h-5 text-ebmc-turquoise" />
+                    </div>
+                    <span className="text-lg text-slate-600 dark:text-slate-300">{item}</span>
+                  </motion.li>
+                ))}
+              </ul>
+            </motion.div>
+          </div>
+        </TechSection>
+
+        {/* Evolution Section */}
+        <TechSection className="py-16 px-4">
+          <div className="max-w-4xl mx-auto">
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="glass-card p-8 md:p-10"
+            >
+              <div className="flex items-center gap-4 mb-6">
+                <div className="p-3 rounded-xl bg-gradient-to-r from-violet-500 to-purple-500 shadow-lg">
+                  <TrendingUp className="w-6 h-6 text-white" />
+                </div>
+                <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
+                  {t('careers.evolution.title')}
+                </h2>
+              </div>
+              <p className="text-lg text-slate-600 dark:text-slate-300 leading-relaxed">
+                {t('careers.evolution.description')}
+              </p>
+            </motion.div>
+          </div>
+        </TechSection>
 
         {/* Benefits Section */}
         <TechSection className="py-20 px-4">
@@ -263,8 +326,11 @@ export default function CareersPage() {
                 <Sparkles className="w-8 h-8 text-white" />
               </div>
               <h2 className="text-3xl font-bold mb-4 text-slate-900 dark:text-white">{t('careers.spontaneous')}</h2>
-              <p className="text-slate-500 dark:text-slate-400 text-lg mb-8 max-w-xl mx-auto">
+              <p className="text-slate-500 dark:text-slate-400 text-lg mb-6 max-w-xl mx-auto">
                 {t('careers.spontaneousDesc')}
+              </p>
+              <p className="text-ebmc-turquoise font-medium mb-8">
+                {t('careers.cta')}: {t('careers.email')}
               </p>
               <a href="mailto:careers@ebmcgroup.eu">
                 <ShimmerButton>

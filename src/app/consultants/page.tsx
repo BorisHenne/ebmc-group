@@ -11,7 +11,11 @@ import {
   Briefcase,
   Mail,
   Star,
-  Loader2
+  Loader2,
+  CheckCircle,
+  Server,
+  Cloud,
+  Shield
 } from 'lucide-react'
 import {
   TextGradient,
@@ -34,6 +38,12 @@ interface Consultant {
   skills: string[]
   certifications: string[]
 }
+
+const expertiseIcons = [
+  { key: 'sap', icon: Server, gradient: 'from-ebmc-turquoise to-cyan-500' },
+  { key: 'ict', icon: Cloud, gradient: 'from-violet-500 to-purple-500' },
+  { key: 'cybersecurity', icon: Shield, gradient: 'from-emerald-500 to-teal-500' }
+]
 
 export default function ConsultantsPage() {
   const t = useTranslations()
@@ -66,6 +76,9 @@ export default function ConsultantsPage() {
     ? consultants
     : consultants.filter(c => c.category === filter)
 
+  const modelItems = t.raw('consultants.model.items') as string[]
+  const whyWorkItems = t.raw('consultants.whyWork.items') as string[]
+
   return (
     <TechBackground variant="semi-light">
       <main className="min-h-screen text-slate-800 dark:text-slate-100 overflow-hidden">
@@ -84,16 +97,85 @@ export default function ConsultantsPage() {
                 <span className="text-sm font-medium text-ebmc-turquoise">{t('consultants.badge')}</span>
               </span>
 
-              <h1 className="text-5xl md:text-7xl font-bold mb-6 text-slate-900 dark:text-white">
+              <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold mb-6 text-slate-900 dark:text-white">
                 {t('consultants.title')} <TextGradient animate={false}>{t('consultants.titleHighlight')}</TextGradient>
               </h1>
 
-              <p className="text-xl text-slate-500 dark:text-slate-400 max-w-2xl mx-auto">
+              <p className="text-xl text-slate-500 dark:text-slate-400 max-w-3xl mx-auto">
                 {t('consultants.description')}
               </p>
             </motion.div>
           </div>
         </section>
+
+        {/* Model Section */}
+        <TechSection className="py-16 px-4">
+          <div className="max-w-4xl mx-auto">
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="glass-card p-8 md:p-10"
+            >
+              <h2 className="text-2xl font-bold mb-6 text-slate-900 dark:text-white">
+                {t('consultants.model.title')}
+              </h2>
+              <div className="grid md:grid-cols-2 gap-4">
+                {modelItems.map((item, index) => (
+                  <motion.div
+                    key={index}
+                    initial={{ opacity: 0, x: -10 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.3, delay: index * 0.1 }}
+                    viewport={{ once: true }}
+                    className="flex items-start gap-3"
+                  >
+                    <CheckCircle className="w-5 h-5 text-ebmc-turquoise mt-0.5 flex-shrink-0" />
+                    <span className="text-slate-600 dark:text-slate-300">{item}</span>
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+          </div>
+        </TechSection>
+
+        {/* Expertise Areas */}
+        <TechSection className="py-16 px-4">
+          <div className="max-w-7xl mx-auto">
+            <div className="grid md:grid-cols-3 gap-6">
+              {expertiseIcons.map((area, index) => {
+                const items = t.raw(`consultants.expertise.${area.key}.items`) as string[]
+                return (
+                  <motion.div
+                    key={area.key}
+                    initial={{ opacity: 0, y: 30 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: index * 0.1 }}
+                    viewport={{ once: true }}
+                    className="glass-card p-6"
+                  >
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className={`p-2 rounded-xl bg-gradient-to-r ${area.gradient} shadow-lg`}>
+                        <area.icon className="w-5 h-5 text-white" />
+                      </div>
+                      <h3 className="text-lg font-bold text-slate-800 dark:text-white">
+                        {t(`consultants.expertise.${area.key}.title`)}
+                      </h3>
+                    </div>
+                    <ul className="space-y-2">
+                      {items.map((item, itemIndex) => (
+                        <li key={itemIndex} className="text-sm text-slate-600 dark:text-slate-300 flex items-start gap-2">
+                          <span className="text-ebmc-turquoise mt-1">•</span>
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                  </motion.div>
+                )
+              })}
+            </div>
+          </div>
+        </TechSection>
 
         {/* Filters */}
         <TechSection className="py-8 px-4">
@@ -218,6 +300,40 @@ export default function ConsultantsPage() {
           </div>
         </TechSection>
 
+        {/* Why Work Section */}
+        <TechSection className="py-16 px-4">
+          <div className="max-w-4xl mx-auto">
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="glass-card p-8 md:p-10"
+            >
+              <h2 className="text-2xl font-bold mb-6 text-slate-900 dark:text-white text-center">
+                {t('consultants.whyWork.title')}
+              </h2>
+              <div className="grid md:grid-cols-2 gap-4 mb-8">
+                {whyWorkItems.map((item, index) => (
+                  <motion.div
+                    key={index}
+                    initial={{ opacity: 0, x: -10 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.3, delay: index * 0.1 }}
+                    viewport={{ once: true }}
+                    className="flex items-start gap-3"
+                  >
+                    <CheckCircle className="w-5 h-5 text-ebmc-turquoise mt-0.5 flex-shrink-0" />
+                    <span className="text-slate-600 dark:text-slate-300">{item}</span>
+                  </motion.div>
+                ))}
+              </div>
+              <p className="text-center text-lg font-medium text-ebmc-turquoise">
+                {t('consultants.cta')}
+              </p>
+            </motion.div>
+          </div>
+        </TechSection>
+
         {/* CTA Section */}
         <TechSection className="py-20 px-4">
           <div className="max-w-4xl mx-auto text-center">
@@ -239,7 +355,7 @@ export default function ConsultantsPage() {
                   ? 'Contactez-nous pour discuter de vos besoins et trouver le consultant idéal pour votre projet.'
                   : 'Contact us to discuss your needs and find the ideal consultant for your project.'}
               </p>
-              <Link href="/#contact">
+              <Link href="/contact">
                 <ShimmerButton>
                   <Mail className="w-4 h-4" />
                   {locale === 'fr' ? 'Nous contacter' : 'Contact us'}
