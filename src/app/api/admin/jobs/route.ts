@@ -8,29 +8,64 @@ export async function GET(request: NextRequest) {
   console.log('[Jobs API] Starting GET request')
 
   try {
-    // Parse pagination parameters from query string
+    // Parse pagination and filter parameters from query string
     const searchParams = request.nextUrl.searchParams
     const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10))
     const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '50', 10)))
     const skip = (page - 1) * limit
 
+    // Filter parameters
+    const search = searchParams.get('search') || ''
+    const category = searchParams.get('category') || ''
+    const type = searchParams.get('type') || ''
+    const status = searchParams.get('status') || ''
+
     console.log(`[Jobs API] Pagination: page=${page}, limit=${limit}, skip=${skip}`)
+    console.log(`[Jobs API] Filters: search="${search}", category="${category}", type="${type}", status="${status}"`)
 
     console.log('[Jobs API] Connecting to database...')
     const db = await connectToDatabase()
     console.log(`[Jobs API] Connected to database in ${Date.now() - startTime}ms`)
 
-    // Get total count for pagination
+    // Build filter query
+    const filter: Record<string, unknown> = {}
+
+    // Text search on title and location
+    if (search) {
+      filter.$or = [
+        { title: { $regex: search, $options: 'i' } },
+        { titleEn: { $regex: search, $options: 'i' } },
+        { location: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } }
+      ]
+    }
+
+    // Category filter
+    if (category && category !== 'all') {
+      filter.category = category
+    }
+
+    // Type filter
+    if (type && type !== 'all') {
+      filter.type = type
+    }
+
+    // Status filter
+    if (status && status !== 'all') {
+      filter.active = status === 'active'
+    }
+
+    // Get total count for pagination (with filters applied)
     const countStart = Date.now()
-    const totalDocs = await db.collection('jobs').countDocuments()
+    const totalDocs = await db.collection('jobs').countDocuments(filter)
     console.log(`[Jobs API] Total count: ${totalDocs} in ${Date.now() - countStart}ms`)
 
     console.log('[Jobs API] Fetching jobs from collection...')
     const fetchStart = Date.now()
 
-    // Fetch paginated results
+    // Fetch paginated results with filters
     const jobs = await db.collection('jobs')
-      .find({})
+      .find(filter)
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
