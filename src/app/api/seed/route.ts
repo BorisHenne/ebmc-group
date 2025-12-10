@@ -321,7 +321,7 @@ export async function POST(request: Request) {
     const seedKey = process.env.SEED_KEY || 'ebmc-seed-key-2024'
 
     if (authHeader !== `Bearer ${seedKey}`) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
     }
 
     const db = await connectToDatabase()

@@ -11,13 +11,10 @@ import {
   BoondContact,
   BoondProject,
   BoondAction,
-  CANDIDATE_STATES,
-  RESOURCE_STATES,
-  OPPORTUNITY_STATES,
-  COMPANY_STATES,
-  PROJECT_STATES,
   BOOND_FEATURES,
 } from './boondmanager-client'
+// Note: State labels are now fetched dynamically from BoondManager dictionary API
+// Use getAllStates() from boondmanager-dictionary.ts for state label lookups
 
 // ==================== TYPES ====================
 

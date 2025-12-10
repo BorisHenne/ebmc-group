@@ -11,7 +11,7 @@ function getEnvironment(request: NextRequest): BoondEnvironment {
 export async function GET(request: NextRequest) {
   const session = await getSession()
   if (!session) {
-    return NextResponse.json({ error: 'Non autorise' }, { status: 401 })
+    return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
   }
 
   const environment = getEnvironment(request)
@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const session = await getSession()
   if (!session) {
-    return NextResponse.json({ error: 'Non autorise' }, { status: 401 })
+    return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
   }
 
   const environment = getEnvironment(request)
@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   const session = await getSession()
   if (!session) {
-    return NextResponse.json({ error: 'Non autorise' }, { status: 401 })
+    return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
   }
 
   const environment = getEnvironment(request)
@@ -136,7 +136,7 @@ export async function PATCH(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   const session = await getSession()
   if (!session) {
-    return NextResponse.json({ error: 'Non autorise' }, { status: 401 })
+    return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
   }
 
   const environment = getEnvironment(request)

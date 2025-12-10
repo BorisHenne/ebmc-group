@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { getSession } from '@/lib/auth'
-import { BoondManagerClient, CANDIDATE_STATES, RESOURCE_STATES, OPPORTUNITY_STATES } from '@/lib/boondmanager'
+import { BoondManagerClient } from '@/lib/boondmanager'
+import {
+  FALLBACK_CANDIDATE_STATES,
+  FALLBACK_RESOURCE_STATES,
+  FALLBACK_OPPORTUNITY_STATES,
+} from '@/lib/boondmanager-dictionary'
 
 // Demo data generator
 function generateDemoData(type: string, userId: string) {
@@ -27,7 +32,7 @@ function generateDemoData(type: string, userId: string) {
         email: `candidate${i}@example.com`,
         civility: Math.random() > 0.5 ? 'M' : 'Mme',
         state: Math.floor(Math.random() * 8) + 1,
-        stateLabel: CANDIDATE_STATES[Math.floor(Math.random() * 8) + 1],
+        stateLabel: FALLBACK_CANDIDATE_STATES[Math.floor(Math.random() * 8) + 1],
         title: titles[Math.floor(Math.random() * titles.length)],
         source: sources[Math.floor(Math.random() * sources.length)],
         phone: `+33 6 ${Math.floor(Math.random() * 90 + 10)} ${Math.floor(Math.random() * 90 + 10)} ${Math.floor(Math.random() * 90 + 10)} ${Math.floor(Math.random() * 90 + 10)}`,
@@ -50,7 +55,7 @@ function generateDemoData(type: string, userId: string) {
         email: `consultant${i}@example.com`,
         civility: Math.random() > 0.5 ? 'M' : 'Mme',
         state: Math.floor(Math.random() * 5) + 1,
-        stateLabel: RESOURCE_STATES[Math.floor(Math.random() * 5) + 1],
+        stateLabel: FALLBACK_RESOURCE_STATES[Math.floor(Math.random() * 5) + 1],
         title: titles[Math.floor(Math.random() * titles.length)],
         phone: `+33 6 ${Math.floor(Math.random() * 90 + 10)} ${Math.floor(Math.random() * 90 + 10)} ${Math.floor(Math.random() * 90 + 10)} ${Math.floor(Math.random() * 90 + 10)}`,
         createdAt: randomDate(monthAgo, now).toISOString(),
@@ -69,7 +74,7 @@ function generateDemoData(type: string, userId: string) {
         title: `${titles[Math.floor(Math.random() * titles.length)]} - ${companies[Math.floor(Math.random() * companies.length)]}`,
         reference: `OPP-2024-${String(i + 1).padStart(3, '0')}`,
         state: Math.floor(Math.random() * 4) + 1,
-        stateLabel: OPPORTUNITY_STATES[Math.floor(Math.random() * 4) + 1],
+        stateLabel: FALLBACK_OPPORTUNITY_STATES[Math.floor(Math.random() * 4) + 1],
         description: 'Mission de consulting IT',
         startDate: randomDate(now, new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)).toISOString().split('T')[0],
         dailyRate: Math.floor(Math.random() * 400 + 400),
@@ -154,7 +159,7 @@ function generateDemoData(type: string, userId: string) {
 export async function GET(request: NextRequest) {
   const session = await getSession()
   if (!session) {
-    return NextResponse.json({ error: 'Non autorise' }, { status: 401 })
+    return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
   }
 
   const { searchParams } = new URL(request.url)

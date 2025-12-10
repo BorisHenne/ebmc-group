@@ -4,12 +4,8 @@ import {
   createBoondClient,
   BoondEnvironment,
   BoondPermissionError,
-  CANDIDATE_STATES,
-  RESOURCE_STATES,
-  OPPORTUNITY_STATES,
-  COMPANY_STATES,
-  PROJECT_STATES
 } from '@/lib/boondmanager-client'
+import { getAllStates } from '@/lib/boondmanager-dictionary'
 
 // Helper to get environment from request
 function getEnvironment(request: NextRequest): BoondEnvironment {
@@ -21,7 +17,7 @@ function getEnvironment(request: NextRequest): BoondEnvironment {
 export async function GET(request: NextRequest) {
   const session = await getSession()
   if (!session) {
-    return NextResponse.json({ error: 'Non autorise' }, { status: 401 })
+    return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
   }
 
   const environment = getEnvironment(request)
@@ -31,7 +27,11 @@ export async function GET(request: NextRequest) {
     const client = createBoondClient(environment)
 
     if (type === 'stats') {
-      const stats = await client.getDashboardStats()
+      // Fetch stats and state labels in parallel
+      const [stats, allStates] = await Promise.all([
+        client.getDashboardStats(),
+        getAllStates(environment),
+      ])
 
       // Try to get current user, but don't fail if it errors
       let currentUser = null
@@ -49,11 +49,11 @@ export async function GET(request: NextRequest) {
         data: {
           ...stats,
           stateLabels: {
-            candidates: CANDIDATE_STATES,
-            resources: RESOURCE_STATES,
-            opportunities: OPPORTUNITY_STATES,
-            companies: COMPANY_STATES,
-            projects: PROJECT_STATES,
+            candidates: allStates.candidateStates,
+            resources: allStates.resourceStates,
+            opportunities: allStates.opportunityStates,
+            companies: allStates.companyStates,
+            projects: allStates.projectStates,
           }
         }
       })

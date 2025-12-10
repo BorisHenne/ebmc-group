@@ -10,7 +10,7 @@ const CACHE_DURATION = 60 * 60 * 1000 // 1 hour in ms
 export async function GET(request: NextRequest) {
   const session = await getSession()
   if (!session) {
-    return NextResponse.json({ error: 'Non autorise' }, { status: 401 })
+    return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
   }
 
   const environment = request.nextUrl.searchParams.get('env') === 'production' ? 'production' : 'sandbox'
@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const session = await getSession()
   if (!session) {
-    return NextResponse.json({ error: 'Non autorise' }, { status: 401 })
+    return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
   }
 
   cachedDictionary = null

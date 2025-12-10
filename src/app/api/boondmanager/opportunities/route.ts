@@ -8,7 +8,7 @@ import { hasPermission } from '@/lib/roles'
 export async function GET(request: NextRequest) {
   const session = await getSession()
   if (!session) {
-    return NextResponse.json({ error: 'Non autorise' }, { status: 401 })
+    return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
   }
 
   if (!hasPermission(session.role, 'jobs')) {
@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const session = await getSession()
   if (!session) {
-    return NextResponse.json({ error: 'Non autorise' }, { status: 401 })
+    return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
   }
 
   if (!hasPermission(session.role, 'jobs')) {
@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   const session = await getSession()
   if (!session) {
-    return NextResponse.json({ error: 'Non autorise' }, { status: 401 })
+    return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
   }
 
   if (!hasPermission(session.role, 'jobs')) {
@@ -129,7 +129,7 @@ export async function PATCH(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   const session = await getSession()
   if (!session) {
-    return NextResponse.json({ error: 'Non autorise' }, { status: 401 })
+    return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
   }
 
   if (!hasPermission(session.role, 'jobs')) {

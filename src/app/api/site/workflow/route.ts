@@ -32,7 +32,7 @@ async function fetchAllFromProd<T>(
 export async function GET(request: NextRequest) {
   const session = await getSession()
   if (!session) {
-    return NextResponse.json({ error: 'Non autorise' }, { status: 401 })
+    return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
   }
 
   if (!hasPermission(session.role, 'boondManagerAdmin')) {
@@ -90,7 +90,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const session = await getSession()
   if (!session) {
-    return NextResponse.json({ error: 'Non autorise' }, { status: 401 })
+    return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
   }
 
   if (!hasPermission(session.role, 'boondManagerAdmin')) {
@@ -134,7 +134,7 @@ export async function POST(request: NextRequest) {
         results.push({
           step: 'import',
           success: true,
-          message: `Import depuis Production: ${importResult.totalCreated} crees, ${importResult.totalUpdated} mis a jour`,
+          message: `Import depuis Production: ${importResult.totalCreated} créés, ${importResult.totalUpdated} mis à jour`,
           details: {
             resources: resources.length,
             candidates: candidates.length,

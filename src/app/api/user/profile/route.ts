@@ -3,28 +3,10 @@ import { cookies } from 'next/headers'
 import { getSession } from '@/lib/auth'
 import { getCollection } from '@/lib/mongodb'
 import { ObjectId } from 'mongodb'
-
-// State labels for display
-const CANDIDATE_STATES: Record<number, string> = {
-  0: 'Nouveau',
-  1: 'A qualifier',
-  2: 'Qualifie',
-  3: 'En cours',
-  4: 'Entretien',
-  5: 'Proposition',
-  6: 'Embauche',
-  7: 'Refuse',
-  8: 'Archive'
-}
-
-const RESOURCE_STATES: Record<number, string> = {
-  0: 'Non defini',
-  1: 'Disponible',
-  2: 'En mission',
-  3: 'Intercontrat',
-  4: 'Indisponible',
-  5: 'Sorti'
-}
+import {
+  getCandidateStates,
+  getResourceStates,
+} from '@/lib/boondmanager-dictionary'
 
 /**
  * GET /api/user/profile
@@ -35,10 +17,16 @@ export async function GET() {
   const session = await getSession()
 
   if (!session) {
-    return NextResponse.json({ error: 'Non authentifie' }, { status: 401 })
+    return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
   }
 
   try {
+    // Fetch dynamic state labels from BoondManager
+    const [candidateStates, resourceStates] = await Promise.all([
+      getCandidateStates(),
+      getResourceStates(),
+    ])
+
     const users = await getCollection('users')
     const user = await users.findOne({ _id: new ObjectId(session.userId) })
 
@@ -121,7 +109,7 @@ export async function GET() {
                 email: attrs.email,
                 phone: attrs.phone1,
                 state: attrs.state,
-                stateLabel: RESOURCE_STATES[attrs.state] || 'Inconnu',
+                stateLabel: resourceStates[attrs.state] || 'Inconnu',
                 town: attrs.town,
                 country: attrs.country,
                 agency: resourceData.data?.relationships?.agency?.data?.id,
@@ -191,7 +179,7 @@ export async function GET() {
                   email: attrs.email,
                   phone: attrs.phone1,
                   state: attrs.state,
-                  stateLabel: CANDIDATE_STATES[attrs.state] || 'Inconnu',
+                  stateLabel: candidateStates[attrs.state] || 'Inconnu',
                   town: attrs.town,
                   country: attrs.country
                 }
@@ -239,7 +227,7 @@ export async function GET() {
           lastName: candidateProfile.lastName,
           title: candidateProfile.title,
           state: candidateProfile.state,
-          stateLabel: candidateProfile.stateLabel || CANDIDATE_STATES[candidateProfile.state] || 'Inconnu',
+          stateLabel: candidateProfile.stateLabel || candidateStates[candidateProfile.state] || 'Inconnu',
           location: candidateProfile.location,
           skills: candidateProfile.skills || []
         } : null
@@ -255,7 +243,7 @@ export async function GET() {
   } catch (error) {
     console.error('Error in /api/user/profile:', error)
     return NextResponse.json(
-      { error: 'Erreur lors de la recuperation du profil' },
+      { error: 'Erreur lors de la récupération du profil' },
       { status: 500 }
     )
   }

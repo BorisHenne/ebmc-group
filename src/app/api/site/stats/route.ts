@@ -1,16 +1,27 @@
 import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { connectToDatabase } from '@/lib/mongodb'
-import { CANDIDATE_STATES, RESOURCE_STATES, OPPORTUNITY_STATES } from '@/lib/boondmanager-client'
+import {
+  getCandidateStates,
+  getResourceStates,
+  getOpportunityStates,
+} from '@/lib/boondmanager-dictionary'
 
 // GET - Fetch dashboard stats from site MongoDB (imported data)
 export async function GET() {
   const session = await getSession()
   if (!session) {
-    return NextResponse.json({ error: 'Non autorise' }, { status: 401 })
+    return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
   }
 
   try {
+    // Fetch dynamic state labels from BoondManager
+    const [candidateStates, resourceStates, opportunityStates] = await Promise.all([
+      getCandidateStates(),
+      getResourceStates(),
+      getOpportunityStates(),
+    ])
+
     const db = await connectToDatabase()
 
     // Fetch stats from all collections in parallel
@@ -72,7 +83,7 @@ export async function GET() {
     })
 
     // Calculate funnel data from candidate states
-    const funnel = Object.entries(CANDIDATE_STATES)
+    const funnel = Object.entries(candidateStates)
       .filter(([state]) => parseInt(state) >= 0 && parseInt(state) <= 6)
       .map(([state, label]) => ({
         stage: label,
@@ -121,12 +132,12 @@ export async function GET() {
 
     // Build recent activity from recent candidates
     const recentActivity = recentCandidates.map(c => {
-      const stateLabel = CANDIDATE_STATES[c.state] || 'Modifie'
-      let action = 'Candidature mise a jour'
+      const stateLabel = candidateStates[c.state] || 'Modifié'
+      let action = 'Candidature mise à jour'
       if (c.state === 0) action = 'Nouveau candidat'
-      else if (c.state === 4) action = 'Entretien programme'
-      else if (c.state === 6) action = 'Candidat embauche'
-      else if (c.state === 7) action = 'Candidature refusee'
+      else if (c.state === 4) action = 'Entretien programmé'
+      else if (c.state === 6) action = 'Candidat embauché'
+      else if (c.state === 7) action = 'Candidature refusée'
 
       return {
         type: 'candidate',
@@ -146,7 +157,7 @@ export async function GET() {
           byState: candidatesByState,
           byStateLabeled: Object.entries(candidatesByState).map(([state, count]) => ({
             state: parseInt(state),
-            label: CANDIDATE_STATES[parseInt(state)] || 'Inconnu',
+            label: candidateStates[parseInt(state)] || 'Inconnu',
             count,
           })),
         },
@@ -177,9 +188,9 @@ export async function GET() {
         },
       },
       stateLabels: {
-        candidates: CANDIDATE_STATES,
-        resources: RESOURCE_STATES,
-        opportunities: OPPORTUNITY_STATES,
+        candidates: candidateStates,
+        resources: resourceStates,
+        opportunities: opportunityStates,
       },
     })
 

@@ -74,7 +74,7 @@ async function fetchAllOpportunities(client: BoondManagerClient): Promise<BoondO
 export async function GET(request: NextRequest) {
   const session = await getSession()
   if (!session) {
-    return NextResponse.json({ error: 'Non autorise' }, { status: 401 })
+    return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
   }
 
   // Check permission - only admin can import
@@ -132,7 +132,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const session = await getSession()
   if (!session) {
-    return NextResponse.json({ error: 'Non autorise' }, { status: 401 })
+    return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
   }
 
   // Check permission - only admin can import
@@ -183,7 +183,7 @@ export async function POST(request: NextRequest) {
       success: true,
       environment,
       result,
-      message: `Import termine: ${result.totalCreated} crees, ${result.totalUpdated} mis a jour, ${result.totalSkipped} ignores`,
+      message: `Import terminé: ${result.totalCreated} créés, ${result.totalUpdated} mis à jour, ${result.totalSkipped} ignorés`,
     })
 
   } catch (error) {

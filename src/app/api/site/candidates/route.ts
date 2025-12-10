@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { connectToDatabase } from '@/lib/mongodb'
-import { CANDIDATE_STATES } from '@/lib/boondmanager-client'
+import {
+  getCandidateStates,
+  getCandidateStateLabelSync,
+} from '@/lib/boondmanager-dictionary'
 
 // GET - Fetch all site candidates (imported from BoondManager)
 export async function GET(request: NextRequest) {
   const session = await getSession()
   if (!session) {
-    return NextResponse.json({ error: 'Non autorise' }, { status: 401 })
+    return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
   }
 
   try {
@@ -41,11 +44,14 @@ export async function GET(request: NextRequest) {
       .limit(limit)
       .toArray()
 
+    // Fetch dynamic state labels from BoondManager
+    const candidateStates = await getCandidateStates()
+
     // Add state labels if missing
     const candidatesWithLabels = candidates.map(c => ({
       ...c,
       id: c._id.toString(),
-      stateLabel: c.stateLabel || CANDIDATE_STATES[c.state] || 'Inconnu',
+      stateLabel: c.stateLabel || candidateStates[c.state] || 'Inconnu',
     }))
 
     // Optionally include stats
@@ -68,7 +74,7 @@ export async function GET(request: NextRequest) {
         byState,
         byStateLabeled: Object.entries(byState).map(([state, count]) => ({
           state: parseInt(state),
-          label: CANDIDATE_STATES[parseInt(state)] || 'Inconnu',
+          label: candidateStates[parseInt(state)] || 'Inconnu',
           count,
         })),
       }
@@ -94,7 +100,7 @@ export async function GET(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   const session = await getSession()
   if (!session) {
-    return NextResponse.json({ error: 'Non autorise' }, { status: 401 })
+    return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
   }
 
   try {
@@ -115,12 +121,15 @@ export async function PATCH(request: NextRequest) {
       ? { boondManagerId: parseInt(boondManagerId) }
       : { _id: new (await import('mongodb')).ObjectId(id) }
 
+    // Fetch dynamic state labels from BoondManager
+    const candidateStates = await getCandidateStates()
+
     const result = await db.collection('candidates').updateOne(
       query,
       {
         $set: {
           state: parseInt(state),
-          stateLabel: CANDIDATE_STATES[parseInt(state)] || 'Inconnu',
+          stateLabel: candidateStates[parseInt(state)] || 'Inconnu',
           updatedAt: new Date(),
         }
       }
@@ -132,7 +141,7 @@ export async function PATCH(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'Candidat mis a jour',
+      message: 'Candidat mis à jour',
     })
 
   } catch (error) {
