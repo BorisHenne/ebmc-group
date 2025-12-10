@@ -2,10 +2,76 @@
 // Documentation: https://doc.boondmanager.com/api-externe/
 
 // ==================== FEATURE FLAGS ====================
-// Set to true when API permissions are granted for contacts
+// Configure API endpoint access based on BoondManager permissions
+// Set to true when API access is granted for each endpoint
+// If you get a 403 error, set the corresponding flag to false and contact BoondManager support
+
 export const BOOND_FEATURES = {
-  CONTACTS_ENABLED: false, // TODO: Enable when API access is granted (403 error currently)
+  // Core entities - Usually enabled by default
+  CANDIDATES_ENABLED: true,
+  RESOURCES_ENABLED: true,
+  COMPANIES_ENABLED: true,
+  OPPORTUNITIES_ENABLED: true,
+  PROJECTS_ENABLED: true,
+
+  // Contacts - Requires specific permission (currently 403)
+  CONTACTS_ENABLED: false, // TODO: Enable when API access is granted
+
+  // Actions/Activities
+  ACTIONS_ENABLED: true,
+
+  // Documents
+  DOCUMENTS_ENABLED: true,
+
+  // Positionings (Positionnements)
+  POSITIONINGS_ENABLED: true,
+
+  // Dictionary (Application settings)
+  DICTIONARY_ENABLED: true,
 } as const
+
+export type BoondFeatureKey = keyof typeof BOOND_FEATURES
+
+// Check if a feature is enabled
+export function isFeatureEnabled(feature: BoondFeatureKey): boolean {
+  return BOOND_FEATURES[feature]
+}
+
+// Get list of disabled features for diagnostics
+export function getDisabledFeatures(): BoondFeatureKey[] {
+  return (Object.keys(BOOND_FEATURES) as BoondFeatureKey[]).filter(
+    key => !BOOND_FEATURES[key]
+  )
+}
+
+// ==================== ERROR CLASSES ====================
+
+export class BoondPermissionError extends Error {
+  public readonly statusCode: number
+  public readonly endpoint: string
+  public readonly feature: BoondFeatureKey | null
+
+  constructor(message: string, statusCode: number, endpoint: string, feature: BoondFeatureKey | null = null) {
+    super(message)
+    this.name = 'BoondPermissionError'
+    this.statusCode = statusCode
+    this.endpoint = endpoint
+    this.feature = feature
+  }
+}
+
+// Helper to create a disabled feature response
+export function createDisabledResponse<T>(feature: string): BoondApiResponse<T[]> {
+  return {
+    data: [] as T[],
+    meta: { totals: { rows: 0 } }
+  }
+}
+
+// Message for disabled features
+export function getDisabledFeatureMessage(feature: string): string {
+  return `API ${feature} desactivee - Demandez les droits d'acces a BoondManager`
+}
 
 // ==================== TYPES ====================
 
@@ -476,6 +542,21 @@ export class BoondManagerClient {
     }
   }
 
+  // Detect which feature an endpoint relates to (for error reporting)
+  private detectFeatureFromEndpoint(endpoint: string): BoondFeatureKey | null {
+    if (endpoint.includes('/contacts')) return 'CONTACTS_ENABLED'
+    if (endpoint.includes('/candidates')) return 'CANDIDATES_ENABLED'
+    if (endpoint.includes('/resources')) return 'RESOURCES_ENABLED'
+    if (endpoint.includes('/companies')) return 'COMPANIES_ENABLED'
+    if (endpoint.includes('/opportunities')) return 'OPPORTUNITIES_ENABLED'
+    if (endpoint.includes('/projects')) return 'PROJECTS_ENABLED'
+    if (endpoint.includes('/actions')) return 'ACTIONS_ENABLED'
+    if (endpoint.includes('/documents')) return 'DOCUMENTS_ENABLED'
+    if (endpoint.includes('/positionings')) return 'POSITIONINGS_ENABLED'
+    if (endpoint.includes('/dictionary')) return 'DICTIONARY_ENABLED'
+    return null
+  }
+
   // Generic fetch method
   private async fetch<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`
@@ -493,6 +574,19 @@ export class BoondManagerClient {
     if (!response.ok) {
       const errorText = await response.text()
       console.error(`BoondManager API error [${this.environment}]:`, response.status, errorText)
+
+      // Handle permission errors (403) specially
+      if (response.status === 403) {
+        // Try to detect which feature this relates to
+        const feature = this.detectFeatureFromEndpoint(endpoint)
+        throw new BoondPermissionError(
+          `Acces refuse (403) pour ${endpoint} - Demandez les droits a BoondManager`,
+          403,
+          endpoint,
+          feature
+        )
+      }
+
       throw new Error(`BoondManager API error: ${response.status} - ${errorText}`)
     }
 
