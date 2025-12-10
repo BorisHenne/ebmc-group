@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
   }
 
   // Check permission
-  if (!hasPermission(session.role, 'boondManagerAccess')) {
+  if (!hasPermission(session.role, 'boondManager')) {
     return NextResponse.json({
       error: 'Permission refusée'
     }, { status: 403 })
