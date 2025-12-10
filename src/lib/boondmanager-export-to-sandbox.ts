@@ -519,24 +519,24 @@ export class BoondExportToSandboxService {
     const db = await connectToDatabase()
 
     // Get consultants stats
-    const consultantsCollection = db.collection<MongoConsultant>('consultants')
+    const consultantsCollection = db.collection('consultants')
     const totalConsultants = await consultantsCollection.countDocuments({})
     const consultantsWithId = await consultantsCollection.countDocuments({
-      boondManagerId: { $exists: true, $ne: null },
+      boondManagerId: { $exists: true, $type: 'number' },
     })
 
     // Get candidates stats
-    const candidatesCollection = db.collection<MongoCandidate>('candidates')
+    const candidatesCollection = db.collection('candidates')
     const totalCandidates = await candidatesCollection.countDocuments({})
     const candidatesWithId = await candidatesCollection.countDocuments({
-      boondManagerId: { $exists: true, $ne: null },
+      boondManagerId: { $exists: true, $type: 'number' },
     })
 
     // Get jobs stats
-    const jobsCollection = db.collection<MongoJob>('jobs')
+    const jobsCollection = db.collection('jobs')
     const totalJobs = await jobsCollection.countDocuments({})
     const jobsWithId = await jobsCollection.countDocuments({
-      boondManagerId: { $exists: true, $ne: null },
+      boondManagerId: { $exists: true, $type: 'number' },
     })
 
     return {
