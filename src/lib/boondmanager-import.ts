@@ -250,11 +250,42 @@ export function mapResourceToUser(resource: BoondResource): Partial<SiteUser> {
 }
 
 /**
+ * Map stateLabel string to state number
+ * BoondManager returns both state (number) and stateLabel (string)
+ * We need to ensure they match our expected pipeline stages
+ */
+function mapStateLabelToState(stateLabel: string | undefined, defaultState: number): number {
+  if (!stateLabel) return defaultState
+
+  const label = stateLabel.toLowerCase().trim()
+
+  // Map French labels to state numbers (supporting various spellings)
+  if (label.includes('nouveau')) return 0
+  if (label.includes('a qualifier') || label.includes('à qualifier')) return 1
+  if (label.includes('qualifi')) return 2 // qualifié, qualifiée, qualifie
+  if (label.includes('en cours')) return 3
+  if (label.includes('entretien')) return 4
+  if (label.includes('proposition')) return 5
+  if (label.includes('embauche') || label.includes('embauché') || label.includes('hire')) return 6
+  if (label.includes('refus') || label.includes('refuse')) return 7 // refusé, refus
+  if (label.includes('archiv')) return 8 // archivé, archive
+
+  // If no match, return the default state from BoondManager
+  return defaultState
+}
+
+/**
  * Map BoondManager Candidate to Site Candidate
  */
 export function mapCandidateToSiteCandidate(candidate: BoondCandidate): Partial<SiteCandidate> {
   const attrs = candidate.attributes
-  const state = attrs.state ?? 0
+  const boondState = attrs.state ?? 0
+  const boondStateLabel = safeString(attrs.stateLabel)
+
+  // Use stateLabel to determine the correct state if available
+  // This ensures we map BoondManager's states correctly to our pipeline
+  const state = mapStateLabelToState(boondStateLabel, boondState)
+  const stateLabel = boondStateLabel || getCandidateStateLabelSync(state)
 
   // Extract skills from custom fields if available
   const rawSkills = (attrs as Record<string, unknown>).skills as string[] | string | undefined
@@ -272,7 +303,7 @@ export function mapCandidateToSiteCandidate(candidate: BoondCandidate): Partial<
     phone: safeString(attrs.phone1),
     title: safeString(attrs.title),
     state,
-    stateLabel: getCandidateStateLabelSync(state),
+    stateLabel,
     location: safeString(attrs.town) || safeString(attrs.country),
     skills,
     experience: attrs.experienceYears ? `${attrs.experienceYears} ans` : undefined,
