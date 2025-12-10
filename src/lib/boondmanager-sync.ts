@@ -16,6 +16,7 @@ import {
   OPPORTUNITY_STATES,
   COMPANY_STATES,
   PROJECT_STATES,
+  BOOND_FEATURES,
 } from './boondmanager-client'
 
 // ==================== TYPES ====================
@@ -311,14 +312,19 @@ export class BoondSyncService {
   async fetchAllData(environment: 'production' | 'sandbox'): Promise<ExportData> {
     const client = environment === 'production' ? this.prodClient : this.sandboxClient
 
-    const [candidates, resources, opportunities, companies, contacts, projects] = await Promise.all([
+    // Build fetch promises (contacts disabled until API permissions granted)
+    const fetchPromises: Promise<unknown[]>[] = [
       this.fetchAllPages(async (page) => client.getCandidates({ page, maxResults: 100 })),
       this.fetchAllPages(async (page) => client.getResources({ page, maxResults: 100 })),
       this.fetchAllPages(async (page) => client.getOpportunities({ page, maxResults: 100 })),
       this.fetchAllPages(async (page) => client.getCompanies({ page, maxResults: 100 })),
-      this.fetchAllPages(async (page) => client.getContacts({ page, maxResults: 100 })),
+      BOOND_FEATURES.CONTACTS_ENABLED
+        ? this.fetchAllPages(async (page) => client.getContacts({ page, maxResults: 100 }))
+        : Promise.resolve([]), // Skip contacts when disabled
       this.fetchAllPages(async (page) => client.getProjects({ page, maxResults: 100 })),
-    ])
+    ]
+
+    const [candidates, resources, opportunities, companies, contacts, projects] = await Promise.all(fetchPromises)
 
     return {
       exportedAt: new Date(),
@@ -439,13 +445,17 @@ export class BoondSyncService {
       (p) => onProgress?.('companies', p)
     )
 
-    // Sync contacts
-    entities.contacts = await this.syncEntityToSandbox(
-      'contacts',
-      prodData.entities.contacts,
-      (data) => this.sandboxClient.createContact(data as Parameters<typeof this.sandboxClient.createContact>[0]),
-      (p) => onProgress?.('contacts', p)
-    )
+    // Sync contacts (disabled until API permissions granted)
+    if (BOOND_FEATURES.CONTACTS_ENABLED) {
+      entities.contacts = await this.syncEntityToSandbox(
+        'contacts',
+        prodData.entities.contacts,
+        (data) => this.sandboxClient.createContact(data as Parameters<typeof this.sandboxClient.createContact>[0]),
+        (p) => onProgress?.('contacts', p)
+      )
+    } else {
+      entities.contacts = { entity: 'contacts', total: 0, processed: 0, success: 0, failed: 0, errors: ['Contacts API disabled'] }
+    }
 
     // Sync candidates
     entities.candidates = await this.syncEntityToSandbox(
@@ -554,20 +564,22 @@ export class BoondSyncService {
     companyDupes.forEach(d => d.entityType = 'company')
     allDuplicates.push(...companyDupes)
 
-    // Analyze contacts
-    const contactIssues = analyzeDataQuality(
-      data.entities.contacts,
-      'contact',
-      ['firstName', 'lastName'],
-      ['email'],
-      ['phone1'],
-      ['firstName', 'lastName']
-    )
-    allIssues.push(...contactIssues)
+    // Analyze contacts (disabled until API permissions granted)
+    if (BOOND_FEATURES.CONTACTS_ENABLED) {
+      const contactIssues = analyzeDataQuality(
+        data.entities.contacts,
+        'contact',
+        ['firstName', 'lastName'],
+        ['email'],
+        ['phone1'],
+        ['firstName', 'lastName']
+      )
+      allIssues.push(...contactIssues)
 
-    const contactDupes = findDuplicates(data.entities.contacts, ['email'])
-    contactDupes.forEach(d => d.entityType = 'contact')
-    allDuplicates.push(...contactDupes)
+      const contactDupes = findDuplicates(data.entities.contacts, ['email'])
+      contactDupes.forEach(d => d.entityType = 'contact')
+      allDuplicates.push(...contactDupes)
+    }
 
     // Analyze opportunities
     const opportunityIssues = analyzeDataQuality(
