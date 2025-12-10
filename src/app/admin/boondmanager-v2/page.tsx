@@ -15,6 +15,12 @@ import {
 // Types
 type BoondEnvironment = 'production' | 'sandbox'
 type TabType = 'dashboard' | 'dictionary' | 'sync' | 'quality' | 'export' | 'import' | 'candidates' | 'resources' | 'opportunities' | 'companies' | 'contacts' | 'projects'
+type StepStatus = 'pending' | 'in_progress' | 'completed' | 'error'
+
+interface ImportStep {
+  name: string
+  status: StepStatus
+}
 
 interface DictionaryItem {
   id: number | string
@@ -168,7 +174,7 @@ export default function BoondManagerV2Page() {
   const [importProgress, setImportProgress] = useState<{
     percentage: number
     currentAction: string
-    steps: Array<{ name: string; status: 'pending' | 'in_progress' | 'completed' | 'error' }>
+    steps: ImportStep[]
   } | null>(null)
   const [importPreview, setImportPreview] = useState<{
     consultants: { new: number; existing: number }
@@ -343,8 +349,7 @@ export default function BoondManagerV2Page() {
     setImportPreview(null)
     setImportResult(null)
 
-    type StepStatus = 'pending' | 'in_progress' | 'completed' | 'error'
-    const steps: Array<{ name: string; status: StepStatus }> = [
+    const steps: ImportStep[] = [
       { name: 'Connexion à BoondManager Production', status: 'pending' },
       { name: 'Récupération des consultants', status: 'pending' },
       { name: 'Récupération des candidats', status: 'pending' },
@@ -410,8 +415,7 @@ export default function BoondManagerV2Page() {
     setImporting(true)
     setError(null)
 
-    type StepStatus = 'pending' | 'in_progress' | 'completed' | 'error'
-    const steps: Array<{ name: string; status: StepStatus }> = [
+    const steps: ImportStep[] = [
       { name: 'Connexion à BoondManager Production', status: 'pending' },
       { name: 'Récupération des données', status: 'pending' },
       { name: 'Import des consultants', status: 'pending' },
