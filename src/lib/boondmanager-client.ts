@@ -1318,29 +1318,34 @@ export class BoondManagerClient {
     projects: { total: number; byState: Record<number, number>; error?: string }
     disabledEndpoints?: string[]
   }> {
-    // Helper to safely fetch with 403 handling
+    // Helper to safely fetch with 403 handling - returns total from meta.totals.rows
     const safeFetch = async <T>(
       fetcher: () => Promise<BoondApiResponse<T[]>>,
       name: string
-    ): Promise<{ data: T[]; error?: string }> => {
+    ): Promise<{ data: T[]; total: number; error?: string }> => {
       try {
         const result = await fetcher()
-        return { data: Array.isArray(result.data) ? result.data : [] }
+        // Use meta.totals.rows for the real total count (not data.length which is limited by pagination)
+        const total = result.meta?.totals?.rows ?? (Array.isArray(result.data) ? result.data.length : 0)
+        return {
+          data: Array.isArray(result.data) ? result.data : [],
+          total
+        }
       } catch (error) {
         if (error instanceof BoondPermissionError) {
           console.warn(`Permission denied for ${name}: ${error.message}`)
-          return { data: [], error: `403 - Acces refuse pour ${name}` }
+          return { data: [], total: 0, error: `403 - Acces refuse pour ${name}` }
         }
         throw error // Re-throw non-permission errors
       }
     }
 
     const [candidates, resources, opportunities, companies, projects] = await Promise.all([
-      safeFetch(() => this.getCandidates({ maxResults: 1000 }), 'candidates'),
-      safeFetch(() => this.getResources({ maxResults: 1000 }), 'resources'),
-      safeFetch(() => this.getOpportunities({ maxResults: 1000 }), 'opportunities'),
-      safeFetch(() => this.getCompanies({ maxResults: 1000 }), 'companies'),
-      safeFetch(() => this.getProjects({ maxResults: 1000 }), 'projects'),
+      safeFetch(() => this.getCandidates({ maxResults: 500 }), 'candidates'),
+      safeFetch(() => this.getResources({ maxResults: 500 }), 'resources'),
+      safeFetch(() => this.getOpportunities({ maxResults: 500 }), 'opportunities'),
+      safeFetch(() => this.getCompanies({ maxResults: 500 }), 'companies'),
+      safeFetch(() => this.getProjects({ maxResults: 500 }), 'projects'),
     ])
 
     const countByState = <T extends { attributes: { state?: number } }>(items: T[]): Record<number, number> => {
@@ -1362,27 +1367,27 @@ export class BoondManagerClient {
 
     return {
       candidates: {
-        total: candidates.data.length,
+        total: candidates.total,  // Use total from meta.totals.rows
         byState: countByState(candidates.data),
         ...(candidates.error && { error: candidates.error }),
       },
       resources: {
-        total: resources.data.length,
+        total: resources.total,
         byState: countByState(resources.data),
         ...(resources.error && { error: resources.error }),
       },
       opportunities: {
-        total: opportunities.data.length,
+        total: opportunities.total,
         byState: countByState(opportunities.data),
         ...(opportunities.error && { error: opportunities.error }),
       },
       companies: {
-        total: companies.data.length,
+        total: companies.total,
         byState: countByState(companies.data),
         ...(companies.error && { error: companies.error }),
       },
       projects: {
-        total: projects.data.length,
+        total: projects.total,
         byState: countByState(projects.data),
         ...(projects.error && { error: projects.error }),
       },
