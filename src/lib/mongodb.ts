@@ -9,7 +9,12 @@ export async function connectToDatabase(): Promise<Db> {
   if (db) return db
 
   if (!client) {
-    client = new MongoClient(uri)
+    client = new MongoClient(uri, {
+      // Add timeouts to prevent hanging connections
+      serverSelectionTimeoutMS: 10000, // 10 seconds to find a server
+      connectTimeoutMS: 10000, // 10 seconds to establish connection
+      socketTimeoutMS: 30000, // 30 seconds for socket operations
+    })
     await client.connect()
   }
 

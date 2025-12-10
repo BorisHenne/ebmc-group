@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Briefcase,
@@ -99,9 +99,29 @@ export default function JobsPage() {
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [filterType, setFilterType] = useState<string>('all')
 
+  // Ref to track if data has loaded (for timeout)
+  const loadedRef = useRef(false)
+
   useEffect(() => {
-    fetchJobs()
-    fetchCommerciaux()
+    // Add timeout to prevent infinite loading
+    const timeout = setTimeout(() => {
+      if (!loadedRef.current) {
+        setLoading(false)
+        setError('Le chargement prend trop de temps. Vérifiez la connexion au serveur.')
+      }
+    }, 30000) // 30 seconds timeout
+
+    const loadData = async () => {
+      try {
+        await Promise.all([fetchJobs(), fetchCommerciaux()])
+      } finally {
+        loadedRef.current = true
+      }
+    }
+    loadData()
+
+    return () => clearTimeout(timeout)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const fetchCommerciaux = async () => {
