@@ -78,11 +78,19 @@
 | EN | FR |
 |---|---|
 | BoondManager SSO login | Connexion SSO BoondManager |
+| **Dual environment support (Production read-only / Sandbox full CRUD)** | **Support double environnement (Production lecture seule / Sandbox CRUD complet)** |
 | Candidates management (CRUD) | Gestion des candidats (CRUD) |
 | Resources/Consultants management (CRUD) | Gestion des ressources/consultants (CRUD) |
-| Opportunities management (CRUD) | Gestion des opportunités (CRUD) |
-| Real-time sync with BoondManager API | Synchronisation temps réel avec API BoondManager |
-| State management (recruitment pipeline) | Gestion des états (pipeline recrutement) |
+| **CV/Resume viewing with PDF preview** | **Visualisation CV avec apercu PDF** |
+| Opportunities management (CRUD) | Gestion des opportunites (CRUD) |
+| Companies management | Gestion des societes |
+| Projects management | Gestion des projets |
+| **Dictionary API (states, types, activity areas)** | **API Dictionnaire (etats, types, secteurs d'activite)** |
+| Real-time sync with BoondManager API | Synchronisation temps reel avec API BoondManager |
+| **Feature flags for API permissions (403 handling)** | **Feature flags pour permissions API (gestion 403)** |
+| State management (recruitment pipeline) | Gestion des etats (pipeline recrutement) |
+| **Data quality analysis and duplicate detection** | **Analyse qualite donnees et detection doublons** |
+| **Export to JSON/CSV** | **Export JSON/CSV** |
 
 ### Freelance Portal | Portail Freelance
 
@@ -118,7 +126,7 @@ Backend:
 Testing:
 ├── Vitest
 ├── React Testing Library
-└── 157+ unit tests
+└── 200+ unit tests (81 for BoondManager API)
 
 Deployment:
 ├── Docker & Docker Compose
@@ -224,7 +232,7 @@ npm run lint:fix     # Auto-fix lint issues
 | `http://localhost:8889/consultants` | Consultant profiles | Profils consultants |
 | `http://localhost:8889/login` | Admin login | Connexion admin |
 | `http://localhost:8889/admin` | Admin dashboard | Dashboard admin |
-| `http://localhost:8889/admin/boondmanager` | BoondManager CRUD | Gestion CRUD BoondManager |
+| `http://localhost:8889/admin/boondmanager-v2` | BoondManager Data Hub (Production/Sandbox) | Hub donnees BoondManager (Production/Sandbox) |
 | `http://localhost:8889/admin/recrutement` | Recruitment kanban | Kanban recrutement |
 | `http://localhost:8889/admin/freelance` | Freelance portal | Portail freelance |
 | `http://localhost:8889/admin/docs` | Documentation | Documentation |
@@ -338,26 +346,34 @@ After seeding the database, these demo accounts are available:
 | GET/POST | `/api/admin/roles` | List/Create roles |
 | GET | `/api/admin/stats` | Dashboard statistics |
 
-### BoondManager Endpoints (Protected) | Endpoints BoondManager (Protégés)
+### BoondManager API v2 Endpoints (Protected) | Endpoints BoondManager API v2 (Proteges)
+
+> **Note:** All v2 endpoints support `?env=production` (read-only) or `?env=sandbox` (full CRUD)
 
 | Method | Endpoint | Description EN | Description FR |
 |--------|----------|----------------|----------------|
-| GET | `/api/boondmanager?type=stats` | Get dashboard stats | Statistiques dashboard |
-| GET | `/api/boondmanager?type=candidates` | List candidates | Liste des candidats |
-| GET | `/api/boondmanager?type=resources` | List resources | Liste des ressources |
-| GET | `/api/boondmanager?type=opportunities` | List opportunities | Liste des opportunités |
-| GET | `/api/boondmanager/candidates` | List/Search candidates | Lister/Chercher candidats |
-| POST | `/api/boondmanager/candidates` | Create candidate | Créer candidat |
-| PATCH | `/api/boondmanager/candidates` | Update candidate | Modifier candidat |
-| DELETE | `/api/boondmanager/candidates?id=X` | Delete candidate | Supprimer candidat |
-| GET | `/api/boondmanager/resources` | List/Search resources | Lister/Chercher ressources |
-| POST | `/api/boondmanager/resources` | Create resource | Créer ressource |
-| PATCH | `/api/boondmanager/resources` | Update resource | Modifier ressource |
-| DELETE | `/api/boondmanager/resources?id=X` | Delete resource | Supprimer ressource |
-| GET | `/api/boondmanager/opportunities` | List opportunities | Lister opportunités |
-| POST | `/api/boondmanager/opportunities` | Create opportunity | Créer opportunité |
-| PATCH | `/api/boondmanager/opportunities` | Update opportunity | Modifier opportunité |
-| DELETE | `/api/boondmanager/opportunities?id=X` | Delete opportunity | Supprimer opportunité |
+| GET | `/api/boondmanager/v2?type=stats` | Dashboard stats with real totals | Statistiques dashboard avec totaux reels |
+| GET | `/api/boondmanager/v2/dictionary` | Get application dictionary | Recuperer le dictionnaire |
+| GET | `/api/boondmanager/v2/candidates` | List/Search candidates | Lister/Chercher candidats |
+| GET | `/api/boondmanager/v2/candidates/[id]` | Get candidate details | Details candidat |
+| GET | `/api/boondmanager/v2/candidates/[id]/resumes` | Get candidate CVs/documents | CVs/documents du candidat |
+| POST | `/api/boondmanager/v2/candidates` | Create candidate (sandbox) | Creer candidat (sandbox) |
+| PATCH | `/api/boondmanager/v2/candidates` | Update candidate (sandbox) | Modifier candidat (sandbox) |
+| DELETE | `/api/boondmanager/v2/candidates?id=X` | Delete candidate (sandbox) | Supprimer candidat (sandbox) |
+| GET | `/api/boondmanager/v2/resources` | List/Search resources | Lister/Chercher ressources |
+| GET | `/api/boondmanager/v2/resources/[id]/resumes` | Get resource CVs/documents | CVs/documents de la ressource |
+| POST | `/api/boondmanager/v2/resources` | Create resource (sandbox) | Creer ressource (sandbox) |
+| PATCH | `/api/boondmanager/v2/resources` | Update resource (sandbox) | Modifier ressource (sandbox) |
+| DELETE | `/api/boondmanager/v2/resources?id=X` | Delete resource (sandbox) | Supprimer ressource (sandbox) |
+| GET | `/api/boondmanager/v2/opportunities` | List opportunities | Lister opportunites |
+| GET | `/api/boondmanager/v2/companies` | List companies | Lister societes |
+| GET | `/api/boondmanager/v2/companies/[id]` | Get company details with contacts | Details societe avec contacts |
+| GET | `/api/boondmanager/v2/projects` | List projects | Lister projets |
+| GET | `/api/boondmanager/v2/projects/[id]` | Get project details | Details projet |
+| GET | `/api/boondmanager/v2/documents/[id]` | Download document (PDF viewer) | Telecharger document (visionneuse PDF) |
+| POST | `/api/boondmanager/v2/sync` | Sync Production to Sandbox | Synchroniser Production vers Sandbox |
+| GET | `/api/boondmanager/v2/quality` | Data quality analysis | Analyse qualite des donnees |
+| GET | `/api/boondmanager/v2/export` | Export data (JSON/CSV) | Exporter donnees (JSON/CSV) |
 
 ### Freelance Endpoints (Protected) | Endpoints Freelance (Protégés)
 
@@ -581,6 +597,13 @@ npm run test:watch
 - **Job families and dynamic skills by category**
 - **Freelance portal API (timesheets, absences)**
 - **Assignment system (commercial to jobs/consultants)**
+- **BoondManager API v2 (81 tests)**:
+  - Dual environment (Production/Sandbox)
+  - Feature flags and 403 error handling
+  - CV/Document download and viewing
+  - Dictionary API
+  - Data normalization and quality analysis
+  - Export functions (JSON/CSV)
 - Component rendering (UI components, forms)
 - Mobile navigation and responsive design
 - Utility functions (validation, formatting)

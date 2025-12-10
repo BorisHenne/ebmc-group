@@ -8,12 +8,13 @@ import {
   Phone, Mail, Calendar, Eye, ToggleLeft, ToggleRight,
   Shield, ShieldOff, Download, Upload, Sparkles, AlertTriangle, Info,
   Copy, CheckCircle, XCircle, FileJson, FileSpreadsheet, Trash, ArrowRight,
-  BarChart3, Globe, MapPin, Book, ChevronDown, ChevronUp
+  BarChart3, Globe, MapPin, Book, ChevronDown, ChevronUp, FileText, ExternalLink,
+  DatabaseBackup
 } from 'lucide-react'
 
 // Types
 type BoondEnvironment = 'production' | 'sandbox'
-type TabType = 'dashboard' | 'dictionary' | 'sync' | 'quality' | 'export' | 'candidates' | 'resources' | 'opportunities' | 'companies' | 'contacts' | 'projects'
+type TabType = 'dashboard' | 'dictionary' | 'sync' | 'quality' | 'export' | 'import' | 'candidates' | 'resources' | 'opportunities' | 'companies' | 'contacts' | 'projects'
 
 interface DictionaryItem {
   id: number | string
@@ -150,11 +151,43 @@ export default function BoondManagerV2Page() {
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState<number | null>(null)
 
+  // Documents/CVs
+  const [documents, setDocuments] = useState<Array<{ id: number; attributes: { name: string; mimeType?: string } }>>([])
+  const [loadingDocuments, setLoadingDocuments] = useState(false)
+  const [selectedDocument, setSelectedDocument] = useState<number | null>(null)
+  const [documentError, setDocumentError] = useState<string | null>(null)
+
+  // Import
+  const [importing, setImporting] = useState(false)
+  const [importPreview, setImportPreview] = useState<{
+    consultants: { new: number; existing: number }
+    users: { new: number; existing: number; skipped: number }
+    candidates: { new: number; existing: number }
+    jobs: { new: number; existing: number }
+  } | null>(null)
+  const [importResult, setImportResult] = useState<{
+    startedAt: string
+    completedAt: string
+    results: Array<{
+      entity: string
+      total: number
+      created: number
+      updated: number
+      skipped: number
+      errors: string[]
+    }>
+    totalCreated: number
+    totalUpdated: number
+    totalSkipped: number
+    totalErrors: number
+  } | null>(null)
+
   // Tabs configuration
   const tabs: { id: TabType; label: string; icon: React.ElementType; color: string; section?: string }[] = [
     { id: 'dashboard', label: 'Dashboard', icon: Zap, color: 'from-amber-500 to-orange-500', section: 'overview' },
     { id: 'dictionary', label: 'Dictionnaire', icon: Book, color: 'from-indigo-500 to-violet-500', section: 'tools' },
     { id: 'sync', label: 'Synchronisation', icon: RefreshCw, color: 'from-cyan-500 to-blue-500', section: 'tools' },
+    { id: 'import', label: 'Import Site', icon: DatabaseBackup, color: 'from-orange-500 to-red-500', section: 'tools' },
     { id: 'quality', label: 'Qualite donnees', icon: Sparkles, color: 'from-purple-500 to-pink-500', section: 'tools' },
     { id: 'export', label: 'Export', icon: Download, color: 'from-green-500 to-emerald-500', section: 'tools' },
     { id: 'candidates', label: 'Candidats', icon: Users, color: 'from-purple-500 to-pink-500', section: 'data' },
@@ -187,7 +220,7 @@ export default function BoondManagerV2Page() {
         await fetchDictionary()
         setLoading(false)
         return
-      } else if (activeTab === 'sync' || activeTab === 'quality' || activeTab === 'export') {
+      } else if (activeTab === 'sync' || activeTab === 'quality' || activeTab === 'export' || activeTab === 'import') {
         // These tabs don't auto-load data
         setLoading(false)
         return
@@ -292,6 +325,62 @@ export default function BoondManagerV2Page() {
     }
   }
 
+  // Preview import to site
+  const handlePreviewImport = async () => {
+    setImporting(true)
+    setError(null)
+    setImportPreview(null)
+    setImportResult(null)
+
+    try {
+      const res = await fetch(`/api/boondmanager/v2/import?env=${environment}`, { credentials: 'include' })
+      const data = await res.json()
+
+      if (data.success) {
+        setImportPreview(data.preview)
+      } else {
+        throw new Error(data.error)
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur de preview')
+    } finally {
+      setImporting(false)
+    }
+  }
+
+  // Execute import to site
+  const handleExecuteImport = async (entities: string[], options: { createAllCandidatesAsUsers?: boolean } = {}) => {
+    if (!confirm('Cette operation va importer les donnees de BoondManager vers les collections du site. Continuer ?')) return
+
+    setImporting(true)
+    setError(null)
+
+    try {
+      const res = await fetch('/api/boondmanager/v2/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          env: environment,
+          entities,
+          options
+        })
+      })
+      const data = await res.json()
+
+      if (data.success) {
+        setImportResult(data.result)
+        setImportPreview(null)
+      } else {
+        throw new Error(data.error)
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur d\'import')
+    } finally {
+      setImporting(false)
+    }
+  }
+
   // Fetch dictionary
   const fetchDictionary = async (refresh = false) => {
     setDictionaryLoading(true)
@@ -349,11 +438,37 @@ export default function BoondManagerV2Page() {
     setShowModal(true)
   }
 
-  const handleView = (item: BaseEntity) => {
+  const handleView = async (item: BaseEntity) => {
     setModalMode('view')
     setSelectedItem(item)
     setFormData({ ...item.attributes })
+    setDocuments([])
+    setSelectedDocument(null)
+    setDocumentError(null)
     setShowModal(true)
+
+    // Fetch documents/CVs for resources and candidates
+    if (activeTab === 'resources' || activeTab === 'candidates') {
+      setLoadingDocuments(true)
+      try {
+        const endpoint = activeTab === 'resources'
+          ? `/api/boondmanager/v2/resources/${item.id}/resumes?env=${environment}`
+          : `/api/boondmanager/v2/candidates/${item.id}/resumes?env=${environment}`
+
+        const res = await fetch(endpoint, { credentials: 'include' })
+        const data = await res.json()
+
+        if (data.success && Array.isArray(data.data)) {
+          setDocuments(data.data)
+        } else {
+          setDocumentError(data.error || 'Erreur lors du chargement des CVs')
+        }
+      } catch (err) {
+        setDocumentError(err instanceof Error ? err.message : 'Erreur inconnue')
+      } finally {
+        setLoadingDocuments(false)
+      }
+    }
   }
 
   const handleDelete = async (id: number) => {
@@ -1091,6 +1206,307 @@ export default function BoondManagerV2Page() {
     </div>
   )
 
+  // Render import tab
+  const renderImportTab = () => (
+    <div className="space-y-6">
+      <div className="glass-card p-6">
+        <div className="flex items-center gap-4 mb-6">
+          <div className="p-3 rounded-xl bg-gradient-to-r from-orange-500 to-red-500">
+            <DatabaseBackup className="w-8 h-8 text-white" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-slate-800 dark:text-white">Import vers le Site</h2>
+            <p className="text-slate-500 dark:text-slate-400">
+              Importer les donnees de BoondManager ({environment === 'production' ? 'Production' : 'Sandbox'}) vers les collections MongoDB du site
+            </p>
+          </div>
+        </div>
+
+        {/* Mapping explanation */}
+        <div className="mb-6 p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50">
+          <h3 className="font-semibold text-slate-800 dark:text-white mb-3 flex items-center gap-2">
+            <ArrowRight className="w-4 h-4" />
+            Correspondance des donnees
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-white dark:bg-slate-700/50">
+              <Briefcase className="w-5 h-5 text-blue-500" />
+              <div>
+                <p className="font-medium text-slate-700 dark:text-slate-200">Ressources</p>
+                <p className="text-slate-500 dark:text-slate-400">→ Consultants + Utilisateurs</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-white dark:bg-slate-700/50">
+              <Users className="w-5 h-5 text-purple-500" />
+              <div>
+                <p className="font-medium text-slate-700 dark:text-slate-200">Candidats</p>
+                <p className="text-slate-500 dark:text-slate-400">→ Candidats (pipeline)</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-white dark:bg-slate-700/50">
+              <Target className="w-5 h-5 text-green-500" />
+              <div>
+                <p className="font-medium text-slate-700 dark:text-slate-200">Opportunites</p>
+                <p className="text-slate-500 dark:text-slate-400">→ Offres d&apos;emploi</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Preview button */}
+        {!importPreview && !importResult && (
+          <button
+            onClick={handlePreviewImport}
+            disabled={importing}
+            className="w-full flex items-center justify-center gap-3 p-4 rounded-xl bg-gradient-to-r from-orange-500 to-red-500 text-white font-medium hover:shadow-lg transition disabled:opacity-50"
+          >
+            {importing ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                Analyse en cours...
+              </>
+            ) : (
+              <>
+                <Eye className="w-5 h-5" />
+                Previsualiser l&apos;import
+              </>
+            )}
+          </button>
+        )}
+
+        {/* Preview results */}
+        {importPreview && (
+          <div className="space-y-4">
+            <h3 className="font-semibold text-slate-800 dark:text-white">Resultat de la previsualisation</h3>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Consultants */}
+              <div className="p-4 rounded-xl border-2 border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20">
+                <div className="flex items-center gap-2 mb-2">
+                  <Briefcase className="w-5 h-5 text-blue-500" />
+                  <span className="font-medium text-slate-800 dark:text-white">Consultants</span>
+                </div>
+                <div className="space-y-1 text-sm">
+                  <p className="flex justify-between">
+                    <span className="text-slate-600 dark:text-slate-400">Nouveaux:</span>
+                    <span className="font-medium text-green-600 dark:text-green-400">{importPreview.consultants.new}</span>
+                  </p>
+                  <p className="flex justify-between">
+                    <span className="text-slate-600 dark:text-slate-400">A mettre a jour:</span>
+                    <span className="font-medium text-blue-600 dark:text-blue-400">{importPreview.consultants.existing}</span>
+                  </p>
+                </div>
+              </div>
+
+              {/* Users */}
+              <div className="p-4 rounded-xl border-2 border-cyan-200 dark:border-cyan-800 bg-cyan-50 dark:bg-cyan-900/20">
+                <div className="flex items-center gap-2 mb-2">
+                  <UserCircle className="w-5 h-5 text-cyan-500" />
+                  <span className="font-medium text-slate-800 dark:text-white">Utilisateurs</span>
+                </div>
+                <div className="space-y-1 text-sm">
+                  <p className="flex justify-between">
+                    <span className="text-slate-600 dark:text-slate-400">Nouveaux:</span>
+                    <span className="font-medium text-green-600 dark:text-green-400">{importPreview.users.new}</span>
+                  </p>
+                  <p className="flex justify-between">
+                    <span className="text-slate-600 dark:text-slate-400">A mettre a jour:</span>
+                    <span className="font-medium text-blue-600 dark:text-blue-400">{importPreview.users.existing}</span>
+                  </p>
+                  <p className="flex justify-between">
+                    <span className="text-slate-600 dark:text-slate-400">Ignores:</span>
+                    <span className="font-medium text-slate-500">{importPreview.users.skipped}</span>
+                  </p>
+                </div>
+              </div>
+
+              {/* Candidates */}
+              <div className="p-4 rounded-xl border-2 border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-900/20">
+                <div className="flex items-center gap-2 mb-2">
+                  <Users className="w-5 h-5 text-purple-500" />
+                  <span className="font-medium text-slate-800 dark:text-white">Candidats</span>
+                </div>
+                <div className="space-y-1 text-sm">
+                  <p className="flex justify-between">
+                    <span className="text-slate-600 dark:text-slate-400">Nouveaux:</span>
+                    <span className="font-medium text-green-600 dark:text-green-400">{importPreview.candidates.new}</span>
+                  </p>
+                  <p className="flex justify-between">
+                    <span className="text-slate-600 dark:text-slate-400">A mettre a jour:</span>
+                    <span className="font-medium text-blue-600 dark:text-blue-400">{importPreview.candidates.existing}</span>
+                  </p>
+                </div>
+              </div>
+
+              {/* Jobs */}
+              <div className="p-4 rounded-xl border-2 border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20">
+                <div className="flex items-center gap-2 mb-2">
+                  <Target className="w-5 h-5 text-green-500" />
+                  <span className="font-medium text-slate-800 dark:text-white">Offres d&apos;emploi</span>
+                </div>
+                <div className="space-y-1 text-sm">
+                  <p className="flex justify-between">
+                    <span className="text-slate-600 dark:text-slate-400">Nouvelles:</span>
+                    <span className="font-medium text-green-600 dark:text-green-400">{importPreview.jobs.new}</span>
+                  </p>
+                  <p className="flex justify-between">
+                    <span className="text-slate-600 dark:text-slate-400">A mettre a jour:</span>
+                    <span className="font-medium text-blue-600 dark:text-blue-400">{importPreview.jobs.existing}</span>
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Action buttons */}
+            <div className="flex flex-wrap gap-3 pt-4">
+              <button
+                onClick={() => handleExecuteImport(['resources', 'candidates', 'opportunities'])}
+                disabled={importing}
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg hover:shadow-lg transition disabled:opacity-50"
+              >
+                {importing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                Importer tout
+              </button>
+              <button
+                onClick={() => handleExecuteImport(['resources'])}
+                disabled={importing}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition disabled:opacity-50"
+              >
+                <Briefcase className="w-4 h-4" />
+                Ressources seulement
+              </button>
+              <button
+                onClick={() => handleExecuteImport(['candidates'])}
+                disabled={importing}
+                className="flex items-center gap-2 px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition disabled:opacity-50"
+              >
+                <Users className="w-4 h-4" />
+                Candidats seulement
+              </button>
+              <button
+                onClick={() => handleExecuteImport(['opportunities'])}
+                disabled={importing}
+                className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition disabled:opacity-50"
+              >
+                <Target className="w-4 h-4" />
+                Opportunites seulement
+              </button>
+              <button
+                onClick={() => setImportPreview(null)}
+                className="flex items-center gap-2 px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition"
+              >
+                <X className="w-4 h-4" />
+                Annuler
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Import result */}
+        {importResult && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <CheckCircle className="w-6 h-6 text-green-500" />
+              <h3 className="font-semibold text-slate-800 dark:text-white">Import termine</h3>
+            </div>
+
+            {/* Summary */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="p-3 rounded-xl bg-green-50 dark:bg-green-900/20 text-center">
+                <p className="text-2xl font-bold text-green-600 dark:text-green-400">{importResult.totalCreated}</p>
+                <p className="text-sm text-slate-600 dark:text-slate-400">Crees</p>
+              </div>
+              <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-center">
+                <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{importResult.totalUpdated}</p>
+                <p className="text-sm text-slate-600 dark:text-slate-400">Mis a jour</p>
+              </div>
+              <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 text-center">
+                <p className="text-2xl font-bold text-slate-600 dark:text-slate-400">{importResult.totalSkipped}</p>
+                <p className="text-sm text-slate-600 dark:text-slate-400">Ignores</p>
+              </div>
+              <div className="p-3 rounded-xl bg-red-50 dark:bg-red-900/20 text-center">
+                <p className="text-2xl font-bold text-red-600 dark:text-red-400">{importResult.totalErrors}</p>
+                <p className="text-sm text-slate-600 dark:text-slate-400">Erreurs</p>
+              </div>
+            </div>
+
+            {/* Details per entity */}
+            {importResult.results.map((result, idx) => (
+              <div key={idx} className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-medium text-slate-800 dark:text-white">{result.entity}</span>
+                  <span className="text-sm text-slate-500">{result.total} total</span>
+                </div>
+                <div className="flex gap-4 text-sm">
+                  <span className="text-green-600 dark:text-green-400">+{result.created} crees</span>
+                  <span className="text-blue-600 dark:text-blue-400">~{result.updated} maj</span>
+                  <span className="text-slate-500">{result.skipped} ignores</span>
+                  {result.errors.length > 0 && (
+                    <span className="text-red-600 dark:text-red-400">{result.errors.length} erreurs</span>
+                  )}
+                </div>
+                {result.errors.length > 0 && (
+                  <div className="mt-2 p-2 rounded bg-red-50 dark:bg-red-900/20 text-sm text-red-600 dark:text-red-400">
+                    {result.errors.slice(0, 3).map((err, i) => (
+                      <p key={i}>{err}</p>
+                    ))}
+                    {result.errors.length > 3 && (
+                      <p className="mt-1 text-xs">... et {result.errors.length - 3} autres erreurs</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+
+            {/* Time info */}
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              Import effectue le {new Date(importResult.completedAt).toLocaleString('fr-FR')}
+            </p>
+
+            {/* New import button */}
+            <button
+              onClick={() => setImportResult(null)}
+              className="flex items-center gap-2 px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Nouvel import
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Information */}
+      <div className="glass-card p-6">
+        <h3 className="font-semibold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
+          <Info className="w-5 h-5 text-blue-500" />
+          A propos de l&apos;import
+        </h3>
+        <ul className="space-y-2 text-sm text-slate-600 dark:text-slate-400">
+          <li className="flex items-start gap-2">
+            <Check className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+            <span>Les <strong>Ressources</strong> (consultants embauches) sont importees comme Consultants + Utilisateurs</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <Check className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+            <span>Les <strong>Candidats</strong> (pipeline de recrutement) sont synchronises dans la collection Candidats du site</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <Check className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+            <span>Les <strong>Opportunites</strong> sont importees comme Offres d&apos;emploi avec missions et exigences</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
+            <span>Les utilisateurs importes n&apos;ont pas de mot de passe - ils devront utiliser SSO ou reset password</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <Info className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
+            <span>Les entites existantes (meme boondManagerId) sont mises a jour, pas dupliquees</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+  )
+
   // Render list item
   const renderListItem = (item: BaseEntity) => {
     const attrs = item.attributes
@@ -1605,6 +2021,8 @@ export default function BoondManagerV2Page() {
         renderQualityTab()
       ) : activeTab === 'export' ? (
         renderExportTab()
+      ) : activeTab === 'import' ? (
+        renderImportTab()
       ) : (
         <div className="grid gap-4">
           {items.map((item) => renderListItem(item))}
@@ -1631,7 +2049,11 @@ export default function BoondManagerV2Page() {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="glass-card p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto"
+              className={`glass-card p-6 w-full max-h-[90vh] overflow-y-auto ${
+                modalMode === 'view' && (activeTab === 'resources' || activeTab === 'candidates') && selectedDocument
+                  ? 'max-w-5xl'
+                  : 'max-w-lg'
+              }`}
             >
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-bold text-slate-800 dark:text-white">
@@ -1642,8 +2064,119 @@ export default function BoondManagerV2Page() {
                 </button>
               </div>
 
-              <div className="space-y-4">
-                {renderFormFields()}
+              <div className={`${selectedDocument ? 'flex gap-6' : ''}`}>
+                {/* Form fields */}
+                <div className={`space-y-4 ${selectedDocument ? 'w-1/3 flex-shrink-0' : 'w-full'}`}>
+                  {renderFormFields()}
+
+                  {/* Documents/CVs section for resources and candidates in view mode */}
+                  {modalMode === 'view' && (activeTab === 'resources' || activeTab === 'candidates') && (
+                    <div className="mt-6 pt-6 border-t border-slate-200/60 dark:border-slate-700/60">
+                      <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3 flex items-center gap-2">
+                        <FileText className="w-4 h-4" />
+                        CV / Documents ({documents.length})
+                      </h3>
+
+                      {loadingDocuments ? (
+                        <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Chargement des documents...
+                        </div>
+                      ) : documentError ? (
+                        <div className="text-sm text-red-500 dark:text-red-400 flex items-center gap-2">
+                          <AlertCircle className="w-4 h-4" />
+                          {documentError}
+                        </div>
+                      ) : documents.length === 0 ? (
+                        <p className="text-sm text-slate-500 dark:text-slate-400">Aucun document trouve</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {documents.map((doc) => (
+                            <div
+                              key={doc.id}
+                              className={`flex items-center justify-between p-3 rounded-lg border transition-all cursor-pointer ${
+                                selectedDocument === doc.id
+                                  ? 'bg-ebmc-turquoise/10 border-ebmc-turquoise'
+                                  : 'bg-white/50 dark:bg-slate-800/50 border-slate-200/60 dark:border-slate-700/60 hover:border-ebmc-turquoise/50'
+                              }`}
+                              onClick={() => setSelectedDocument(selectedDocument === doc.id ? null : doc.id)}
+                            >
+                              <div className="flex items-center gap-3">
+                                <div className={`p-2 rounded-lg ${
+                                  doc.attributes.mimeType?.includes('pdf')
+                                    ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400'
+                                    : 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                                }`}>
+                                  <FileText className="w-4 h-4" />
+                                </div>
+                                <span className="text-sm font-medium text-slate-700 dark:text-slate-200 truncate max-w-[180px]">
+                                  {doc.attributes.name}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <a
+                                  href={`/api/boondmanager/v2/documents/${doc.id}?env=${environment}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition"
+                                  title="Telecharger"
+                                >
+                                  <Download className="w-3.5 h-3.5 text-slate-600 dark:text-slate-300" />
+                                </a>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    setSelectedDocument(selectedDocument === doc.id ? null : doc.id)
+                                  }}
+                                  className="p-1.5 rounded-lg bg-ebmc-turquoise/10 hover:bg-ebmc-turquoise/20 transition"
+                                  title="Apercu"
+                                >
+                                  <Eye className="w-3.5 h-3.5 text-ebmc-turquoise" />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* PDF Viewer */}
+                {selectedDocument && (
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                        Apercu du document
+                      </h3>
+                      <div className="flex items-center gap-2">
+                        <a
+                          href={`/api/boondmanager/v2/documents/${selectedDocument}?env=${environment}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                          Ouvrir
+                        </a>
+                        <button
+                          onClick={() => setSelectedDocument(null)}
+                          className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition"
+                        >
+                          <X className="w-4 h-4 text-slate-600 dark:text-slate-300" />
+                        </button>
+                      </div>
+                    </div>
+                    <div className="bg-slate-100 dark:bg-slate-800 rounded-xl overflow-hidden" style={{ height: '600px' }}>
+                      <iframe
+                        src={`/api/boondmanager/v2/documents/${selectedDocument}?env=${environment}`}
+                        className="w-full h-full"
+                        title="Document preview"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
               {modalMode !== 'view' && (

@@ -1282,6 +1282,91 @@ export class BoondManagerClient {
 
   // ==================== DOCUMENTS ====================
 
+  /**
+   * Download a document by ID - returns binary content
+   * Based on Python script: GET /documents/{id}
+   */
+  async downloadDocument(documentId: number): Promise<{ content: ArrayBuffer; filename: string; mimeType: string }> {
+    const response = await fetch(`${this.baseUrl}/documents/${documentId}`, {
+      headers: {
+        'Authorization': this.authHeader,
+      },
+    })
+
+    if (!response.ok) {
+      if (response.status === 403) {
+        throw new BoondPermissionError(
+          `Access denied to document ${documentId}`,
+          403,
+          `/documents/${documentId}`,
+          'DOCUMENTS_ENABLED'
+        )
+      }
+      throw new Error(`BoondManager API error: ${response.status}`)
+    }
+
+    // Get filename from Content-Disposition header or default
+    const contentDisposition = response.headers.get('content-disposition')
+    let filename = `document_${documentId}`
+    if (contentDisposition) {
+      const match = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/)
+      if (match) {
+        filename = match[1].replace(/['"]/g, '')
+      }
+    }
+
+    const mimeType = response.headers.get('content-type') || 'application/octet-stream'
+    const content = await response.arrayBuffer()
+
+    return { content, filename, mimeType }
+  }
+
+  /**
+   * Get document metadata (without downloading content)
+   */
+  async getDocument(documentId: number): Promise<BoondApiResponse<BoondDocument>> {
+    return this.fetch(`/documents/${documentId}/information`)
+  }
+
+  /**
+   * Get resumes/CVs for a resource
+   * Based on Python script structure: GET /resources/{id}/information
+   * Returns documents from the 'included' array where type='document' and linked to resumes
+   */
+  async getResourceResumes(resourceId: number): Promise<BoondDocument[]> {
+    const response = await this.fetch<BoondApiResponse<BoondResource>>(`/resources/${resourceId}/information`)
+
+    // Extract documents from included array (like Python script)
+    const documents: BoondDocument[] = []
+    if (response.included && Array.isArray(response.included)) {
+      for (const item of response.included) {
+        if (item.type === 'document') {
+          documents.push(item as unknown as BoondDocument)
+        }
+      }
+    }
+
+    return documents
+  }
+
+  /**
+   * Get resumes/CVs for a candidate
+   */
+  async getCandidateResumes(candidateId: number): Promise<BoondDocument[]> {
+    const response = await this.fetch<BoondApiResponse<BoondCandidate>>(`/candidates/${candidateId}/information`)
+
+    const documents: BoondDocument[] = []
+    if (response.included && Array.isArray(response.included)) {
+      for (const item of response.included) {
+        if (item.type === 'document') {
+          documents.push(item as unknown as BoondDocument)
+        }
+      }
+    }
+
+    return documents
+  }
+
   async uploadDocument(file: ArrayBuffer | Blob, filename: string, parentId: number, parentType: 'candidate' | 'resource' | 'resourceResume'): Promise<BoondApiResponse<BoondDocument>> {
     this.assertCanWrite('uploadDocument')
 
@@ -1318,29 +1403,34 @@ export class BoondManagerClient {
     projects: { total: number; byState: Record<number, number>; error?: string }
     disabledEndpoints?: string[]
   }> {
-    // Helper to safely fetch with 403 handling
+    // Helper to safely fetch with 403 handling - returns total from meta.totals.rows
     const safeFetch = async <T>(
       fetcher: () => Promise<BoondApiResponse<T[]>>,
       name: string
-    ): Promise<{ data: T[]; error?: string }> => {
+    ): Promise<{ data: T[]; total: number; error?: string }> => {
       try {
         const result = await fetcher()
-        return { data: Array.isArray(result.data) ? result.data : [] }
+        // Use meta.totals.rows for the real total count (not data.length which is limited by pagination)
+        const total = result.meta?.totals?.rows ?? (Array.isArray(result.data) ? result.data.length : 0)
+        return {
+          data: Array.isArray(result.data) ? result.data : [],
+          total
+        }
       } catch (error) {
         if (error instanceof BoondPermissionError) {
           console.warn(`Permission denied for ${name}: ${error.message}`)
-          return { data: [], error: `403 - Acces refuse pour ${name}` }
+          return { data: [], total: 0, error: `403 - Acces refuse pour ${name}` }
         }
         throw error // Re-throw non-permission errors
       }
     }
 
     const [candidates, resources, opportunities, companies, projects] = await Promise.all([
-      safeFetch(() => this.getCandidates({ maxResults: 1000 }), 'candidates'),
-      safeFetch(() => this.getResources({ maxResults: 1000 }), 'resources'),
-      safeFetch(() => this.getOpportunities({ maxResults: 1000 }), 'opportunities'),
-      safeFetch(() => this.getCompanies({ maxResults: 1000 }), 'companies'),
-      safeFetch(() => this.getProjects({ maxResults: 1000 }), 'projects'),
+      safeFetch(() => this.getCandidates({ maxResults: 500 }), 'candidates'),
+      safeFetch(() => this.getResources({ maxResults: 500 }), 'resources'),
+      safeFetch(() => this.getOpportunities({ maxResults: 500 }), 'opportunities'),
+      safeFetch(() => this.getCompanies({ maxResults: 500 }), 'companies'),
+      safeFetch(() => this.getProjects({ maxResults: 500 }), 'projects'),
     ])
 
     const countByState = <T extends { attributes: { state?: number } }>(items: T[]): Record<number, number> => {
@@ -1362,27 +1452,27 @@ export class BoondManagerClient {
 
     return {
       candidates: {
-        total: candidates.data.length,
+        total: candidates.total,  // Use total from meta.totals.rows
         byState: countByState(candidates.data),
         ...(candidates.error && { error: candidates.error }),
       },
       resources: {
-        total: resources.data.length,
+        total: resources.total,
         byState: countByState(resources.data),
         ...(resources.error && { error: resources.error }),
       },
       opportunities: {
-        total: opportunities.data.length,
+        total: opportunities.total,
         byState: countByState(opportunities.data),
         ...(opportunities.error && { error: opportunities.error }),
       },
       companies: {
-        total: companies.data.length,
+        total: companies.total,
         byState: countByState(companies.data),
         ...(companies.error && { error: companies.error }),
       },
       projects: {
-        total: projects.data.length,
+        total: projects.total,
         byState: countByState(projects.data),
         ...(projects.error && { error: projects.error }),
       },
