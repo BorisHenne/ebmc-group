@@ -104,7 +104,6 @@ export default function SourceurDashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [candidates, setCandidates] = useState<Candidate[]>([])
   const [loading, setLoading] = useState(true)
-  const [isDemo, setIsDemo] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [userName, setUserName] = useState<string>('')
   const [statusFilter, setStatusFilter] = useState<number | null>(null)
@@ -114,21 +113,45 @@ export default function SourceurDashboard() {
   const fetchData = async () => {
     setLoading(true)
     try {
+      // Fetch from site MongoDB (imported data) and user info
       const [statsRes, candidatesRes, userRes] = await Promise.all([
-        fetch('/api/boondmanager?type=stats&demo=true', { credentials: 'include' }),
-        fetch('/api/boondmanager?type=candidates&demo=true', { credentials: 'include' }),
+        fetch('/api/site/stats', { credentials: 'include' }),
+        fetch('/api/site/candidates', { credentials: 'include' }),
         fetch('/api/auth/me', { credentials: 'include' })
       ])
 
       if (statsRes.ok) {
         const statsData = await statsRes.json()
-        setStats(statsData.data)
-        setIsDemo(statsData.demo)
+        // Transform to expected format
+        setStats({
+          candidates: statsData.data?.candidates || { total: 0, byState: {} },
+          resources: { total: statsData.data?.consultants?.total || 0, byState: {} },
+          opportunities: { total: statsData.data?.jobs?.total || 0, byState: {} },
+          monthlyActivity: statsData.data?.monthlyActivity || [],
+          funnel: statsData.data?.funnel || [],
+          recentActivity: statsData.data?.recentActivity || [],
+        })
       }
 
       if (candidatesRes.ok) {
         const candidatesData = await candidatesRes.json()
-        setCandidates(candidatesData.data || [])
+        // Transform site candidates to expected format
+        const siteCandidates = candidatesData.data || []
+        setCandidates(siteCandidates.map((c: { id: string; boondManagerId?: number; firstName: string; lastName: string; email?: string; state: number; stateLabel?: string; title?: string; source?: string; phone?: string; createdAt?: string; updatedAt?: string }) => ({
+          id: c.boondManagerId || c.id,
+          attributes: {
+            firstName: c.firstName,
+            lastName: c.lastName,
+            email: c.email,
+            state: c.state,
+            stateLabel: c.stateLabel,
+            title: c.title,
+            source: c.source,
+            phone: c.phone,
+            createdAt: c.createdAt,
+            updatedAt: c.updatedAt,
+          }
+        })))
       }
 
       if (userRes.ok) {
@@ -202,10 +225,18 @@ export default function SourceurDashboard() {
         </div>
 
         <div className="flex items-center gap-3">
-          {isDemo && (
-            <span className="px-3 py-1.5 bg-amber-100 text-amber-700 rounded-full text-sm font-medium flex items-center gap-1.5">
+          {stats?.candidates?.total === 0 ? (
+            <Link
+              href="/admin/boondmanager-v2"
+              className="px-3 py-1.5 bg-amber-100 text-amber-700 rounded-full text-sm font-medium flex items-center gap-1.5 hover:bg-amber-200 transition"
+            >
               <AlertCircle className="w-4 h-4" />
-              Mode Démo
+              Aucune donnee - Importer depuis BoondManager
+            </Link>
+          ) : (
+            <span className="px-3 py-1.5 bg-green-100 text-green-700 rounded-full text-sm font-medium flex items-center gap-1.5">
+              <CheckCircle className="w-4 h-4" />
+              {stats?.candidates?.total} candidats
             </span>
           )}
           <Link
