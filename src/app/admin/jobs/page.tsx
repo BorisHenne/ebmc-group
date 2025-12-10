@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Briefcase,
@@ -15,7 +15,13 @@ import {
   UserCheck,
   Search,
   XCircle,
-  AlertCircle
+  AlertCircle,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  Filter,
+  RotateCcw
 } from 'lucide-react'
 
 interface User {
@@ -45,6 +51,15 @@ interface Job {
   assignedTo?: string
   assignedToName?: string
   createdAt: string
+}
+
+interface Pagination {
+  page: number
+  limit: number
+  total: number
+  totalPages: number
+  hasNextPage: boolean
+  hasPrevPage: boolean
 }
 
 const emptyJob: Omit<Job, '_id' | 'createdAt'> = {
@@ -84,6 +99,20 @@ const TYPE_COLORS: Record<string, string> = {
   Freelance: 'from-purple-500 to-pink-500'
 }
 
+const ITEMS_PER_PAGE = 50
+
+// Debounce hook
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value)
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedValue(value), delay)
+    return () => clearTimeout(timer)
+  }, [value, delay])
+
+  return debouncedValue
+}
+
 export default function JobsPage() {
   const [jobs, setJobs] = useState<Job[]>([])
   const [loading, setLoading] = useState(true)
@@ -93,56 +122,47 @@ export default function JobsPage() {
   const [error, setError] = useState('')
   const [commerciaux, setCommerciaux] = useState<User[]>([])
 
-  // Search and filters
+  // Pagination
+  const [pagination, setPagination] = useState<Pagination>({
+    page: 1,
+    limit: ITEMS_PER_PAGE,
+    total: 0,
+    totalPages: 0,
+    hasNextPage: false,
+    hasPrevPage: false
+  })
+
+  // Search and filters (server-side)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterCategory, setFilterCategory] = useState<string>('all')
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [filterType, setFilterType] = useState<string>('all')
+  const [currentPage, setCurrentPage] = useState(1)
+
+  // Debounced search term (300ms delay)
+  const debouncedSearch = useDebounce(searchTerm, 300)
 
   // Ref to track if data has loaded (for timeout)
   const loadedRef = useRef(false)
+  const initialLoadRef = useRef(true)
 
-  useEffect(() => {
-    // Add timeout to prevent infinite loading
-    const timeout = setTimeout(() => {
-      if (!loadedRef.current) {
-        setLoading(false)
-        setError('Le chargement prend trop de temps. Vérifiez la connexion au serveur.')
-      }
-    }, 30000) // 30 seconds timeout
-
-    const loadData = async () => {
-      try {
-        await Promise.all([fetchJobs(), fetchCommerciaux()])
-      } finally {
-        loadedRef.current = true
-      }
-    }
-    loadData()
-
-    return () => clearTimeout(timeout)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  const fetchCommerciaux = async () => {
-    try {
-      const res = await fetch('/api/admin/users', { credentials: 'include' })
-      if (res.ok) {
-        const data = await res.json()
-        const commercialUsers = (data.users || []).filter(
-          (u: User) => u.role === 'commercial' || u.role === 'admin'
-        )
-        setCommerciaux(commercialUsers)
-      }
-    } catch (error) {
-      console.error('Error fetching commerciaux:', error)
-    }
-  }
-
-  const fetchJobs = async () => {
+  // Fetch jobs with filters
+  const fetchJobs = useCallback(async (page: number = 1) => {
     try {
       setError('')
-      const res = await fetch('/api/admin/jobs', { credentials: 'include' })
+      setLoading(true)
+
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: ITEMS_PER_PAGE.toString()
+      })
+
+      if (debouncedSearch) params.set('search', debouncedSearch)
+      if (filterCategory !== 'all') params.set('category', filterCategory)
+      if (filterType !== 'all') params.set('type', filterType)
+      if (filterStatus !== 'all') params.set('status', filterStatus)
+
+      const res = await fetch(`/api/admin/jobs?${params}`, { credentials: 'include' })
       if (res.ok) {
         const data = await res.json()
         // Sanitize jobs data on the client side as a safety measure
@@ -189,6 +209,12 @@ export default function JobsPage() {
           } as Job
         })
         setJobs(sanitizedJobs)
+
+        // Update pagination state
+        if (data.pagination) {
+          setPagination(data.pagination)
+          setCurrentPage(data.pagination.page)
+        }
       } else {
         const data = await res.json().catch(() => ({}))
         setError(data.error || 'Erreur lors du chargement des offres')
@@ -198,8 +224,66 @@ export default function JobsPage() {
       setError('Erreur de connexion au serveur')
     } finally {
       setLoading(false)
+      loadedRef.current = true
+    }
+  }, [debouncedSearch, filterCategory, filterType, filterStatus])
+
+  // Initial load
+  useEffect(() => {
+    // Add timeout to prevent infinite loading
+    const timeout = setTimeout(() => {
+      if (!loadedRef.current) {
+        setLoading(false)
+        setError('Le chargement prend trop de temps. Vérifiez la connexion au serveur.')
+      }
+    }, 30000) // 30 seconds timeout
+
+    fetchCommerciaux()
+
+    return () => clearTimeout(timeout)
+  }, [])
+
+  // Fetch when filters change (reset to page 1)
+  useEffect(() => {
+    if (initialLoadRef.current) {
+      initialLoadRef.current = false
+      fetchJobs(1)
+    } else {
+      setCurrentPage(1)
+      fetchJobs(1)
+    }
+  }, [debouncedSearch, filterCategory, filterType, filterStatus, fetchJobs])
+
+  const fetchCommerciaux = async () => {
+    try {
+      const res = await fetch('/api/admin/users', { credentials: 'include' })
+      if (res.ok) {
+        const data = await res.json()
+        const commercialUsers = (data.users || []).filter(
+          (u: User) => u.role === 'commercial' || u.role === 'admin'
+        )
+        setCommerciaux(commercialUsers)
+      }
+    } catch (error) {
+      console.error('Error fetching commerciaux:', error)
     }
   }
+
+  const goToPage = (page: number) => {
+    if (page >= 1 && page <= pagination.totalPages) {
+      setCurrentPage(page)
+      fetchJobs(page)
+    }
+  }
+
+  const resetFilters = () => {
+    setSearchTerm('')
+    setFilterCategory('all')
+    setFilterType('all')
+    setFilterStatus('all')
+  }
+
+  const hasActiveFilters = searchTerm || filterCategory !== 'all' || filterType !== 'all' || filterStatus !== 'all'
 
   const openCreateModal = () => {
     setEditingJob(emptyJob)
@@ -246,7 +330,7 @@ export default function JobsPage() {
       }
 
       closeModal()
-      fetchJobs()
+      fetchJobs(currentPage)
     } catch (error) {
       console.error('Error saving job:', error)
       setError('Erreur de connexion au serveur')
@@ -271,7 +355,7 @@ export default function JobsPage() {
         return
       }
 
-      fetchJobs()
+      fetchJobs(currentPage)
     } catch (error) {
       console.error('Error deleting job:', error)
       alert('Erreur de connexion au serveur')
@@ -316,29 +400,6 @@ export default function JobsPage() {
     return String(value)
   }
 
-  // Filter jobs
-  const filteredJobs = jobs.filter(job => {
-    const searchLower = searchTerm.toLowerCase()
-    const titleStr = safeString(job.title)
-    const titleEnStr = safeString(job.titleEn)
-    const locationStr = safeString(job.location)
-    const descriptionStr = safeString(job.description)
-
-    const matchesSearch = !searchTerm ||
-      titleStr.toLowerCase().includes(searchLower) ||
-      titleEnStr.toLowerCase().includes(searchLower) ||
-      locationStr.toLowerCase().includes(searchLower) ||
-      descriptionStr.toLowerCase().includes(searchLower)
-
-    const matchesCategory = filterCategory === 'all' || job.category === filterCategory
-    const matchesStatus = filterStatus === 'all' ||
-      (filterStatus === 'active' && job.active) ||
-      (filterStatus === 'inactive' && !job.active)
-    const matchesType = filterType === 'all' || job.type === filterType
-
-    return matchesSearch && matchesCategory && matchesStatus && matchesType
-  })
-
   const getCategoryBadgeClass = (category: string) => {
     const colors = CATEGORY_COLORS[category] || 'from-slate-500 to-slate-600'
     return `bg-gradient-to-r ${colors} text-white`
@@ -355,7 +416,7 @@ export default function JobsPage() {
             </div>
             <div>
               <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">Offres d&apos;emploi</h1>
-              <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">{jobs.length} offre{jobs.length > 1 ? 's' : ''} au total</p>
+              <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">{pagination.total} offre{pagination.total > 1 ? 's' : ''} au total</p>
             </div>
           </div>
         </div>
@@ -370,54 +431,80 @@ export default function JobsPage() {
 
       {/* Filters */}
       <div className="glass-card p-4 mb-6">
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500" />
-            <input
-              type="text"
-              placeholder="Rechercher par titre, localisation..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-800 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
-            />
-            {searchTerm && (
-              <button
-                onClick={() => setSearchTerm('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-              >
-                <XCircle className="w-5 h-5" />
-              </button>
-            )}
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500" />
+              <input
+                type="text"
+                placeholder="Rechercher par titre, localisation..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-10 py-2.5 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-800 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
+              />
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  <XCircle className="w-5 h-5" />
+                </button>
+              )}
+            </div>
+            <select
+              value={filterCategory}
+              onChange={(e) => setFilterCategory(e.target.value)}
+              className={`px-4 py-2.5 border rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-800 text-gray-900 dark:text-white ${
+                filterCategory !== 'all' ? 'border-ebmc-turquoise' : 'border-gray-200 dark:border-slate-700'
+              }`}
+            >
+              <option value="all">Toutes catégories</option>
+              {Object.entries(CATEGORY_LABELS).map(([key, label]) => (
+                <option key={key} value={key}>{label}</option>
+              ))}
+            </select>
+            <select
+              value={filterType}
+              onChange={(e) => setFilterType(e.target.value)}
+              className={`px-4 py-2.5 border rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-800 text-gray-900 dark:text-white ${
+                filterType !== 'all' ? 'border-ebmc-turquoise' : 'border-gray-200 dark:border-slate-700'
+              }`}
+            >
+              <option value="all">Tous types</option>
+              <option value="CDI">CDI</option>
+              <option value="CDD">CDD</option>
+              <option value="Freelance">Freelance</option>
+            </select>
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className={`px-4 py-2.5 border rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-800 text-gray-900 dark:text-white ${
+                filterStatus !== 'all' ? 'border-ebmc-turquoise' : 'border-gray-200 dark:border-slate-700'
+              }`}
+            >
+              <option value="all">Tous statuts</option>
+              <option value="active">Actives</option>
+              <option value="inactive">Inactives</option>
+            </select>
           </div>
-          <select
-            value={filterCategory}
-            onChange={(e) => setFilterCategory(e.target.value)}
-            className="px-4 py-2.5 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-800 text-gray-900 dark:text-white"
-          >
-            <option value="all">Toutes catégories</option>
-            {Object.entries(CATEGORY_LABELS).map(([key, label]) => (
-              <option key={key} value={key}>{label}</option>
-            ))}
-          </select>
-          <select
-            value={filterType}
-            onChange={(e) => setFilterType(e.target.value)}
-            className="px-4 py-2.5 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-800 text-gray-900 dark:text-white"
-          >
-            <option value="all">Tous types</option>
-            <option value="CDI">CDI</option>
-            <option value="CDD">CDD</option>
-            <option value="Freelance">Freelance</option>
-          </select>
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            className="px-4 py-2.5 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-800 text-gray-900 dark:text-white"
-          >
-            <option value="all">Tous statuts</option>
-            <option value="active">Actives</option>
-            <option value="inactive">Inactives</option>
-          </select>
+
+          {/* Active filters indicator */}
+          {hasActiveFilters && (
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                <Filter className="w-4 h-4" />
+                <span>{pagination.total} résultat{pagination.total > 1 ? 's' : ''} trouvé{pagination.total > 1 ? 's' : ''}</span>
+                {loading && <Loader2 className="w-4 h-4 animate-spin text-ebmc-turquoise" />}
+              </div>
+              <button
+                onClick={resetFilters}
+                className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-ebmc-turquoise transition"
+              >
+                <RotateCcw className="w-4 h-4" />
+                Réinitialiser
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -427,7 +514,7 @@ export default function JobsPage() {
           <AlertCircle className="w-5 h-5 flex-shrink-0" />
           <span className="text-sm">{error}</span>
           <button
-            onClick={() => { setError(''); fetchJobs(); }}
+            onClick={() => { setError(''); fetchJobs(currentPage); }}
             className="ml-auto px-3 py-1 text-sm bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-900/50 rounded-lg transition"
           >
             Réessayer
@@ -441,14 +528,23 @@ export default function JobsPage() {
           <div className="flex justify-center py-12">
             <Loader2 className="w-8 h-8 animate-spin text-ebmc-turquoise" />
           </div>
-        ) : filteredJobs.length === 0 ? (
+        ) : jobs.length === 0 ? (
           <div className="text-center py-12">
             <Briefcase className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
             <p className="text-gray-500 dark:text-gray-400">
-              {searchTerm || filterCategory !== 'all' || filterType !== 'all' || filterStatus !== 'all'
+              {hasActiveFilters
                 ? 'Aucune offre ne correspond aux critères'
                 : 'Aucune offre d\'emploi'}
             </p>
+            {hasActiveFilters && (
+              <button
+                onClick={resetFilters}
+                className="mt-4 inline-flex items-center gap-2 text-ebmc-turquoise hover:underline"
+              >
+                <RotateCcw className="w-4 h-4" />
+                Réinitialiser les filtres
+              </button>
+            )}
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -464,7 +560,7 @@ export default function JobsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
-                {filteredJobs.map((job, index) => (
+                {jobs.map((job, index) => (
                   <motion.tr
                     key={job._id}
                     initial={{ opacity: 0, y: 10 }}
@@ -533,6 +629,93 @@ export default function JobsPage() {
           </div>
         )}
       </div>
+
+      {/* Pagination */}
+      {pagination.totalPages > 1 && (
+        <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 glass-card p-4">
+          <div className="flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
+            {loading && <Loader2 className="w-4 h-4 animate-spin text-ebmc-turquoise" />}
+            <span>
+              Page {currentPage} sur {pagination.totalPages} ({pagination.total} offres)
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => goToPage(1)}
+              disabled={currentPage === 1 || loading}
+              className="p-2 rounded-lg border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              title="Première page"
+            >
+              <ChevronsLeft className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+            </button>
+            <button
+              onClick={() => goToPage(currentPage - 1)}
+              disabled={currentPage === 1 || loading}
+              className="p-2 rounded-lg border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              title="Page précédente"
+            >
+              <ChevronLeft className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+            </button>
+
+            <div className="flex items-center gap-1">
+              {/* Generate page numbers */}
+              {(() => {
+                const pages: (number | string)[] = []
+                const current = currentPage
+                const total = pagination.totalPages
+
+                if (total <= 7) {
+                  for (let i = 1; i <= total; i++) pages.push(i)
+                } else {
+                  pages.push(1)
+                  if (current > 3) pages.push('...')
+                  for (let i = Math.max(2, current - 1); i <= Math.min(total - 1, current + 1); i++) {
+                    pages.push(i)
+                  }
+                  if (current < total - 2) pages.push('...')
+                  pages.push(total)
+                }
+
+                return pages.map((p, idx) => (
+                  typeof p === 'number' ? (
+                    <button
+                      key={idx}
+                      onClick={() => goToPage(p)}
+                      disabled={loading}
+                      className={`min-w-[40px] h-10 rounded-lg font-medium transition ${
+                        p === current
+                          ? 'bg-gradient-to-r from-ebmc-turquoise to-cyan-500 text-white'
+                          : 'border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 text-gray-600 dark:text-gray-400 disabled:opacity-50'
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  ) : (
+                    <span key={idx} className="px-2 text-gray-400">...</span>
+                  )
+                ))
+              })()}
+            </div>
+
+            <button
+              onClick={() => goToPage(currentPage + 1)}
+              disabled={currentPage === pagination.totalPages || loading}
+              className="p-2 rounded-lg border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              title="Page suivante"
+            >
+              <ChevronRight className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+            </button>
+            <button
+              onClick={() => goToPage(pagination.totalPages)}
+              disabled={currentPage === pagination.totalPages || loading}
+              className="p-2 rounded-lg border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              title="Dernière page"
+            >
+              <ChevronsRight className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Create/Edit Modal */}
       <AnimatePresence>

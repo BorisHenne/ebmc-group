@@ -56,15 +56,12 @@ export async function GET(request: NextRequest) {
     const creds = BOOND_CREDENTIALS[env]
     const secret = new TextEncoder().encode(creds.clientKey)
 
-    // Decode hex tokens to UTF-8 strings as BoondManager expects
-    const decodedClientToken = Buffer.from(creds.clientToken, 'hex').toString('utf-8')
-    const decodedUserToken = Buffer.from(creds.userToken, 'hex').toString('utf-8')
-
+    // Use tokens as-is (hex format) - BoondManager expects raw hex tokens
     const jwt = await new SignJWT({
-      // clientToken identifies the application (decoded from hex)
-      clientToken: decodedClientToken,
-      // userToken identifies the user/space (decoded from hex)
-      userToken: decodedUserToken,
+      // clientToken identifies the application (hex format)
+      clientToken: creds.clientToken,
+      // userToken identifies the user/space (hex format)
+      userToken: creds.userToken,
     })
       .setProtectedHeader({ alg: 'HS256' })
       .setIssuedAt()
@@ -109,7 +106,7 @@ export async function GET(request: NextRequest) {
     const requestHeaders = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
-      'X-Jwt-App-BoondManager': jwt,
+      'X-Jwt-Client-BoondManager': jwt,
       'x-Debug-Boondmanager': 'true',  // Enable debug mode for more error details
     }
 
@@ -208,13 +205,13 @@ export async function GET(request: NextRequest) {
     name: 'Header Configuration',
     data: {
       currentMethod: {
-        headerName: 'X-Jwt-App-BoondManager',
-        description: 'JWT App authentication - JWT signe avec clientKey, contient userToken',
+        headerName: 'X-Jwt-Client-BoondManager',
+        description: 'JWT Client authentication - JWT signe avec clientKey, contient userToken et clientToken',
       },
       alternativeMethods: [
         {
-          headerName: 'X-Jwt-Client-BoondManager',
-          description: 'JWT Client authentication - peut necessiter un format different',
+          headerName: 'X-Jwt-App-BoondManager',
+          description: 'JWT App authentication - ancienne methode (ne fonctionne pas)',
         },
         {
           headerName: 'Authorization: Basic',

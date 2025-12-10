@@ -1,24 +1,74 @@
 import { NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { connectToDatabase } from '@/lib/mongodb'
 import { sanitizeDocuments } from '@/lib/sanitize'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const startTime = Date.now()
   console.log('[Jobs API] Starting GET request')
 
   try {
+    // Parse pagination and filter parameters from query string
+    const searchParams = request.nextUrl.searchParams
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10))
+    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '50', 10)))
+    const skip = (page - 1) * limit
+
+    // Filter parameters
+    const search = searchParams.get('search') || ''
+    const category = searchParams.get('category') || ''
+    const type = searchParams.get('type') || ''
+    const status = searchParams.get('status') || ''
+
+    console.log(`[Jobs API] Pagination: page=${page}, limit=${limit}, skip=${skip}`)
+    console.log(`[Jobs API] Filters: search="${search}", category="${category}", type="${type}", status="${status}"`)
+
     console.log('[Jobs API] Connecting to database...')
     const db = await connectToDatabase()
     console.log(`[Jobs API] Connected to database in ${Date.now() - startTime}ms`)
 
+    // Build filter query
+    const filter: Record<string, unknown> = {}
+
+    // Text search on title and location
+    if (search) {
+      filter.$or = [
+        { title: { $regex: search, $options: 'i' } },
+        { titleEn: { $regex: search, $options: 'i' } },
+        { location: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } }
+      ]
+    }
+
+    // Category filter
+    if (category && category !== 'all') {
+      filter.category = category
+    }
+
+    // Type filter
+    if (type && type !== 'all') {
+      filter.type = type
+    }
+
+    // Status filter
+    if (status && status !== 'all') {
+      filter.active = status === 'active'
+    }
+
+    // Get total count for pagination (with filters applied)
+    const countStart = Date.now()
+    const totalDocs = await db.collection('jobs').countDocuments(filter)
+    console.log(`[Jobs API] Total count: ${totalDocs} in ${Date.now() - countStart}ms`)
+
     console.log('[Jobs API] Fetching jobs from collection...')
     const fetchStart = Date.now()
 
-    // Add limit and timeout to prevent hanging
+    // Fetch paginated results with filters
     const jobs = await db.collection('jobs')
-      .find({})
+      .find(filter)
       .sort({ createdAt: -1 })
-      .limit(500) // Limit to 500 jobs max
+      .skip(skip)
+      .limit(limit)
       .maxTimeMS(15000) // 15 second timeout for the query
       .toArray()
 
@@ -49,7 +99,19 @@ export async function GET() {
     console.log(`[Jobs API] Sanitized ${sanitizedJobs.length} jobs in ${Date.now() - sanitizeStart}ms`)
     console.log(`[Jobs API] Total request time: ${Date.now() - startTime}ms`)
 
-    return NextResponse.json({ jobs: sanitizedJobs })
+    const totalPages = Math.ceil(totalDocs / limit)
+
+    return NextResponse.json({
+      jobs: sanitizedJobs,
+      pagination: {
+        page,
+        limit,
+        total: totalDocs,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1
+      }
+    })
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     const errorStack = error instanceof Error ? error.stack : ''

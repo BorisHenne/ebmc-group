@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Search,
@@ -385,9 +386,9 @@ export default function ScraperPage() {
                 >
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-ebmc-turquoise to-cyan-500 flex items-center justify-center text-white font-semibold overflow-hidden flex-shrink-0">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-ebmc-turquoise to-cyan-500 flex items-center justify-center text-white font-semibold overflow-hidden flex-shrink-0 relative">
                         {cv.profileImageUrl ? (
-                          <img src={cv.profileImageUrl} alt={cv.fullName} className="w-full h-full object-cover" />
+                          <Image src={cv.profileImageUrl} alt={cv.fullName} fill className="object-cover" unoptimized />
                         ) : (
                           cv.fullName?.charAt(0).toUpperCase() || 'U'
                         )}
@@ -528,9 +529,9 @@ export default function ScraperPage() {
             >
               {/* Modal Header */}
               <div className="p-6 border-b border-gray-100 dark:border-slate-700 flex items-start gap-4">
-                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-ebmc-turquoise to-cyan-500 flex items-center justify-center text-white text-xl font-bold overflow-hidden flex-shrink-0">
+                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-ebmc-turquoise to-cyan-500 flex items-center justify-center text-white text-xl font-bold overflow-hidden flex-shrink-0 relative">
                   {selectedCV.profileImageUrl ? (
-                    <img src={selectedCV.profileImageUrl} alt={selectedCV.fullName} className="w-full h-full object-cover" />
+                    <Image src={selectedCV.profileImageUrl} alt={selectedCV.fullName} fill className="object-cover" unoptimized />
                   ) : (
                     selectedCV.fullName?.charAt(0).toUpperCase() || 'U'
                   )}
