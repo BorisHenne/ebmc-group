@@ -1,5 +1,8 @@
 // BoondManager API Client - Dual Environment (Production & Sandbox)
 // Documentation: https://doc.boondmanager.com/api-externe/
+// Authentication: JWT App (X-Jwt-App-BoondManager header)
+
+import { SignJWT } from 'jose'
 
 // ==================== FEATURE FLAGS ====================
 // Configure API endpoint access based on BoondManager permissions
@@ -523,7 +526,6 @@ export const BOOND_BASE_URL = 'https://ui.boondmanager.com/api'
 
 export class BoondManagerClient {
   private baseUrl: string
-  private authHeader: string
   private environment: BoondEnvironment
   private credentials: BoondCredentials
 
@@ -531,8 +533,24 @@ export class BoondManagerClient {
     this.environment = environment
     this.credentials = BOOND_CREDENTIALS[environment]
     this.baseUrl = BOOND_BASE_URL
-    this.authHeader = `Basic ${Buffer.from(`${this.credentials.username}:${this.credentials.password}`).toString('base64')}`
-    console.log(`[BoondManager] Client initialized for ${environment} - Token: ${this.credentials.clientToken}`)
+    console.log(`[BoondManager] Client initialized for ${environment}`)
+    console.log(`[BoondManager] Using userToken: ${this.credentials.userToken}`)
+  }
+
+  // Generate JWT for BoondManager API authentication
+  private async generateJWT(): Promise<string> {
+    const secret = new TextEncoder().encode(this.credentials.clientKey)
+
+    const jwt = await new SignJWT({
+      // The userToken identifies the space (LMGC or LMGC-SANDBOX)
+      userToken: this.credentials.userToken,
+    })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setIssuedAt()
+      .setExpirationTime('1h')
+      .sign(secret)
+
+    return jwt
   }
 
   // Check if write operations are allowed
@@ -566,23 +584,21 @@ export class BoondManagerClient {
   private async fetch<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`
 
-    // DEBUG: Log which environment and tokens are being used
+    // Generate JWT for this request
+    const jwtToken = await this.generateJWT()
+
+    // DEBUG: Log which environment is being used
     console.log(`[BoondManager] Fetching ${endpoint}`)
     console.log(`[BoondManager] Environment: ${this.environment}`)
-    console.log(`[BoondManager] ClientToken: ${this.credentials.clientToken}`)
-    console.log(`[BoondManager] ClientKey: ${this.credentials.clientKey.substring(0, 8)}...`)
+    console.log(`[BoondManager] UserToken: ${this.credentials.userToken}`)
 
     const response = await fetch(url, {
       ...options,
       headers: {
-        'Authorization': this.authHeader,
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        // BoondManager API headers - token identifies the client/environment
-        'X-Boondmanager-Token': this.credentials.clientToken,
-        'X-Boondmanager-Client-Key': this.credentials.clientKey,
-        // Add user token for proper authentication
-        'X-Boondmanager-User-Token': this.credentials.userToken,
+        // JWT App authentication - identifies the space (LMGC or LMGC-SANDBOX)
+        'X-Jwt-App-BoondManager': jwtToken,
         ...options.headers,
       },
       // Disable Next.js cache for API calls
@@ -1305,9 +1321,11 @@ export class BoondManagerClient {
    * Based on Python script: GET /documents/{id}
    */
   async downloadDocument(documentId: number): Promise<{ content: ArrayBuffer; filename: string; mimeType: string }> {
+    const jwtToken = await this.generateJWT()
+
     const response = await fetch(`${this.baseUrl}/documents/${documentId}`, {
       headers: {
-        'Authorization': this.authHeader,
+        'X-Jwt-App-BoondManager': jwtToken,
       },
     })
 
@@ -1388,6 +1406,8 @@ export class BoondManagerClient {
   async uploadDocument(file: ArrayBuffer | Blob, filename: string, parentId: number, parentType: 'candidate' | 'resource' | 'resourceResume'): Promise<BoondApiResponse<BoondDocument>> {
     this.assertCanWrite('uploadDocument')
 
+    const jwtToken = await this.generateJWT()
+
     const formData = new FormData()
     formData.append('parentId', parentId.toString())
     formData.append('parentType', parentType)
@@ -1398,7 +1418,7 @@ export class BoondManagerClient {
     const response = await fetch(`${this.baseUrl}/documents`, {
       method: 'POST',
       headers: {
-        'Authorization': this.authHeader,
+        'X-Jwt-App-BoondManager': jwtToken,
       },
       body: formData,
     })
