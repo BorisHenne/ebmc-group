@@ -30,52 +30,66 @@ export async function GET(request: NextRequest) {
 
     const attrs = dictionary.data.attributes
 
-    // Extract relevant states and types for recruitment
-    const candidateStates = attrs.candidateStates?.map(s => ({
-      id: typeof s.id === 'string' ? parseInt(s.id, 10) : s.id,
-      value: s.value,
-    })) || []
+    // Helper to extract items from dictionary
+    const extractItems = (items: typeof attrs.candidateStates) =>
+      items?.map(s => ({
+        id: typeof s.id === 'string' ? parseInt(s.id, 10) : s.id,
+        value: s.value,
+        color: s.color,
+        isDefault: s.isDefault,
+        isActive: s.isActive,
+        order: s.order,
+      })) || []
 
-    const actionTypes = attrs.actionTypes?.map(t => ({
-      id: typeof t.id === 'string' ? parseInt(t.id, 10) : t.id,
-      value: t.value,
-    })) || []
-
-    const positioningStates = attrs.positioningStates?.map(s => ({
-      id: typeof s.id === 'string' ? parseInt(s.id, 10) : s.id,
-      value: s.value,
-    })) || []
-
-    const resourceStates = attrs.resourceStates?.map(s => ({
-      id: typeof s.id === 'string' ? parseInt(s.id, 10) : s.id,
-      value: s.value,
-    })) || []
+    // Extract all relevant states and types
+    const candidateStates = extractItems(attrs.candidateStates)
+    const candidateTypes = extractItems(attrs.candidateTypes)
+    const actionTypes = extractItems(attrs.actionTypes)
+    const positioningStates = extractItems(attrs.positioningStates)
+    const resourceStates = extractItems(attrs.resourceStates)
+    const resourceTypes = extractItems(attrs.resourceTypes)
+    const opportunityStates = extractItems(attrs.opportunityStates)
+    const opportunityTypes = extractItems(attrs.opportunityTypes)
+    const origins = extractItems(attrs.origins)
+    const sources = extractItems(attrs.sources)
 
     return NextResponse.json({
       success: true,
       environment,
       dictionary: {
         candidateStates,
+        candidateTypes,  // Les "Étapes" du recrutement
         actionTypes,
         positioningStates,
         resourceStates,
+        resourceTypes,
+        opportunityStates,
+        opportunityTypes,
+        origins,
+        sources,
       },
+      // Also return the raw dictionary for inspection
+      rawAttributes: Object.keys(attrs).reduce((acc, key) => {
+        const value = attrs[key as keyof typeof attrs]
+        if (Array.isArray(value) && value.length > 0) {
+          acc[key] = {
+            count: value.length,
+            sample: value.slice(0, 3)
+          }
+        }
+        return acc
+      }, {} as Record<string, { count: number; sample: unknown[] }>),
       explanation: {
-        candidateStates: 'États généraux des candidats dans BoondManager (pas le parcours de recrutement)',
-        actionTypes: 'Types d\'actions disponibles - utilisés pour déterminer l\'avancement du recrutement',
-        positioningStates: 'États des positionnements (candidat sur une opportunité)',
+        candidateStates: 'États généraux des candidats (0-8)',
+        candidateTypes: 'Types/Étapes des candidats - utilisés pour le parcours de recrutement (Vivier, Freelance, etc.)',
+        actionTypes: 'Types d\'actions disponibles',
+        positioningStates: 'États des positionnements',
         resourceStates: 'États des ressources/consultants',
-      },
-      recruitmentMapping: {
-        description: 'Notre mapping des types d\'actions vers les états du pipeline de recrutement',
-        mapping: [
-          { actionType: 'Démarrage (type 5)', recruitmentState: 'Embauché (state 6)' },
-          { actionType: 'Proposition (type 4)', recruitmentState: 'Proposition (state 5)' },
-          { actionType: 'Entretien client/interne (type 2/3)', recruitmentState: 'Entretien (state 4)' },
-          { actionType: 'Positionnement (type 1)', recruitmentState: 'En cours (state 3)' },
-          { actionType: 'Appel/Email/Réunion (type 6/7/8)', recruitmentState: 'A qualifier (state 1)' },
-          { actionType: 'Autre ou aucune action', recruitmentState: 'Nouveau (state 0)' },
-        ],
+        resourceTypes: 'Types de ressources',
+        opportunityStates: 'États des opportunités',
+        opportunityTypes: 'Types d\'opportunités',
+        origins: 'Origines des candidats',
+        sources: 'Sources des candidats',
       },
     })
 

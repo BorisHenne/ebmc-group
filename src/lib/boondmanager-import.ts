@@ -107,8 +107,10 @@ export interface SiteCandidate {
   email?: string
   phone?: string
   title?: string
-  state: number
-  stateLabel: string
+  state: number           // État général BoondManager (0-8)
+  stateLabel: string      // Label de l'état
+  typeOf?: number         // Étape/Type du candidat (Vivier, Freelance, etc.)
+  typeOfLabel?: string    // Label de l'étape
   location?: string
   skills: string[]
   experience?: string
@@ -382,10 +384,12 @@ function mapStateLabelToState(stateLabel: string | undefined, defaultState: numb
  * Map BoondManager Candidate to Site Candidate
  * @param candidate The candidate from BoondManager
  * @param actions Optional array of actions associated with this candidate (used to determine recruitment state)
+ * @param candidateTypes Optional map of typeOf ID to label (from dictionary)
  */
 export function mapCandidateToSiteCandidate(
   candidate: BoondCandidate,
-  actions?: BoondAction[]
+  actions?: BoondAction[],
+  candidateTypes?: Map<number, string>
 ): Partial<SiteCandidate> {
   const attrs = candidate.attributes
 
@@ -406,6 +410,12 @@ export function mapCandidateToSiteCandidate(
     stateLabel = boondStateLabel || getCandidateStateLabelSync(state)
   }
 
+  // Extract typeOf (Étape) from candidate
+  const typeOf = attrs.typeOf as number | undefined
+  const typeOfLabel = typeOf !== undefined && candidateTypes
+    ? candidateTypes.get(typeOf)
+    : undefined
+
   // Extract skills from custom fields if available
   const rawSkills = (attrs as Record<string, unknown>).skills as string[] | string | undefined
   const skills: string[] = Array.isArray(rawSkills)
@@ -423,6 +433,8 @@ export function mapCandidateToSiteCandidate(
     title: safeString(attrs.title),
     state,
     stateLabel,
+    typeOf,
+    typeOfLabel,
     location: safeString(attrs.town) || safeString(attrs.country),
     skills,
     experience: attrs.experienceYears ? `${attrs.experienceYears} ans` : undefined,
@@ -610,10 +622,12 @@ export class BoondImportService {
    * Syncs the recruitment pipeline from BoondManager
    * @param candidates Array of candidates from BoondManager
    * @param actionsByCandidate Optional map of candidateId → actions (used to determine recruitment state)
+   * @param candidateTypes Optional map of typeOf ID to label (from dictionary) for étapes
    */
   async importCandidates(
     candidates: BoondCandidate[],
-    actionsByCandidate?: Map<number, BoondAction[]>
+    actionsByCandidate?: Map<number, BoondAction[]>,
+    candidateTypes?: Map<number, string>
   ): Promise<ImportResult> {
     const result: ImportResult = {
       entity: 'candidates → candidates',
@@ -631,7 +645,7 @@ export class BoondImportService {
       try {
         // Get actions for this candidate (if available)
         const actions = actionsByCandidate?.get(candidate.id)
-        const candidateData = mapCandidateToSiteCandidate(candidate, actions)
+        const candidateData = mapCandidateToSiteCandidate(candidate, actions, candidateTypes)
 
         // Check if already exists by boondManagerId
         const existing = await collection.findOne({ boondManagerId: candidate.id })
@@ -718,6 +732,7 @@ export class BoondImportService {
     options: {
       createUsersFromResources?: boolean
       actionsByCandidate?: Map<number, BoondAction[]>
+      candidateTypes?: Map<number, string>  // Types/Étapes from dictionary
     } = {}
   ): Promise<ImportSummary> {
     const startedAt = new Date()
@@ -737,7 +752,7 @@ export class BoondImportService {
 
     // Import candidates to candidates collection
     if (candidates.length > 0) {
-      const candidateResult = await this.importCandidates(candidates, options.actionsByCandidate)
+      const candidateResult = await this.importCandidates(candidates, options.actionsByCandidate, options.candidateTypes)
       results.push(candidateResult)
     }
 
