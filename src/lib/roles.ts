@@ -142,6 +142,7 @@ export interface RolePermissions {
   jobs: boolean
   consultants: boolean
   candidates: boolean
+  candidateStates: boolean // Candidate states management (Kanban categories)
   messages: boolean
   users: boolean
   roles: boolean
@@ -177,6 +178,7 @@ export const ROLE_PERMISSIONS: Record<RoleType, RolePermissions> = {
     jobs: true,
     consultants: true,
     candidates: true,
+    candidateStates: true,
     messages: true,
     users: true,
     roles: true,
@@ -206,6 +208,7 @@ export const ROLE_PERMISSIONS: Record<RoleType, RolePermissions> = {
     jobs: true,
     consultants: true,
     candidates: false,
+    candidateStates: false,
     messages: false,
     users: false,
     roles: false,
@@ -235,6 +238,7 @@ export const ROLE_PERMISSIONS: Record<RoleType, RolePermissions> = {
     jobs: true,
     consultants: true,
     candidates: true,
+    candidateStates: false,
     messages: true,
     users: false,
     roles: false,
@@ -264,6 +268,7 @@ export const ROLE_PERMISSIONS: Record<RoleType, RolePermissions> = {
     jobs: false,
     consultants: true,
     candidates: true,
+    candidateStates: false,
     messages: true,
     users: true,
     roles: false,
@@ -293,6 +298,7 @@ export const ROLE_PERMISSIONS: Record<RoleType, RolePermissions> = {
     jobs: false,
     consultants: false,
     candidates: false,
+    candidateStates: false,
     messages: false,
     users: false,
     roles: false,
@@ -322,6 +328,7 @@ export const ROLE_PERMISSIONS: Record<RoleType, RolePermissions> = {
     jobs: false,
     consultants: false,
     candidates: false,
+    candidateStates: false,
     messages: false,
     users: false,
     roles: false,
@@ -351,6 +358,7 @@ export const ROLE_PERMISSIONS: Record<RoleType, RolePermissions> = {
     jobs: false,
     consultants: false,
     candidates: false,
+    candidateStates: false,
     messages: false,
     users: false,
     roles: false,
