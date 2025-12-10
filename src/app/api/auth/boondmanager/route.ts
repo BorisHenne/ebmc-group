@@ -84,21 +84,56 @@ export async function POST(request: NextRequest) {
       ]
     })
 
+    // Auto-detect role based on linked profiles in MongoDB
+    let autoDetectedRole: string = 'consultant' // Default role
+
+    // Check if this email/boondId matches a consultant (resource) in MongoDB
+    const consultants = await getCollection('consultants')
+    const linkedConsultant = await consultants.findOne({
+      $or: [
+        { email: boondEmail },
+        { boondManagerId: boondId }
+      ]
+    })
+
+    // Check if this email/boondId matches a candidate in MongoDB
+    const candidates = await getCollection('candidates')
+    const linkedCandidate = await candidates.findOne({
+      $or: [
+        { email: boondEmail },
+        { boondManagerId: boondId }
+      ]
+    })
+
+    if (linkedConsultant) {
+      // User is a consultant - determine contract type
+      const contractType = linkedConsultant.contractType || 'freelance'
+      autoDetectedRole = contractType === 'cdi' ? 'consultant_cdi' : 'freelance'
+    } else if (linkedCandidate) {
+      // User is a candidate in the recruitment pipeline
+      autoDetectedRole = 'candidat'
+    }
+
     if (!user) {
-      // Create new user from BoondManager
+      // Create new user from BoondManager with auto-detected role
       const result = await users.insertOne({
         email: boondEmail,
         name: fullName,
-        role: 'consultant', // Default role for BoondManager users (internal consultants)
+        role: autoDetectedRole,
         boondManagerId: boondId,
         boondManagerSubdomain: cleanSubdomain,
         authProvider: 'boondmanager',
+        linkedConsultantId: linkedConsultant?._id,
+        linkedCandidateId: linkedCandidate?._id,
         createdAt: new Date(),
         lastLogin: new Date()
       })
-      user = { _id: result.insertedId, email: boondEmail, name: fullName, role: 'consultant' }
+      user = { _id: result.insertedId, email: boondEmail, name: fullName, role: autoDetectedRole }
     } else {
       // Update last login and boond info
+      // Also update role if user hasn't been assigned a bureau role (admin, commercial, etc.)
+      const shouldUpdateRole = !['admin', 'commercial', 'sourceur', 'rh'].includes(user.role)
+
       await users.updateOne(
         { _id: user._id },
         {
@@ -106,10 +141,18 @@ export async function POST(request: NextRequest) {
             lastLogin: new Date(),
             boondManagerSubdomain: cleanSubdomain,
             boondManagerId: boondId,
-            name: fullName
+            name: fullName,
+            linkedConsultantId: linkedConsultant?._id,
+            linkedCandidateId: linkedCandidate?._id,
+            ...(shouldUpdateRole && { role: autoDetectedRole })
           }
         }
       )
+
+      // Update user object with new role if applicable
+      if (shouldUpdateRole) {
+        user.role = autoDetectedRole
+      }
     }
 
     // Create session token
