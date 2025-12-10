@@ -10,7 +10,7 @@
  */
 
 import { connectToDatabase } from '@/lib/mongodb'
-import { ObjectId, WithId, Document, Filter } from 'mongodb'
+import { ObjectId, WithId, Document } from 'mongodb'
 import {
   createBoondClient,
   BoondManagerClient,
@@ -518,25 +518,26 @@ export class BoondExportToSandboxService {
   }> {
     const db = await connectToDatabase()
 
-    // Filter for documents with boondManagerId
-    const hasBoondIdFilter = {
-      boondManagerId: { $exists: true, $ne: null },
-    } as Filter<Document>
-
     // Get consultants stats
-    const consultantsCollection = db.collection<MongoConsultant>('consultants')
+    const consultantsCollection = db.collection('consultants')
     const totalConsultants = await consultantsCollection.countDocuments({})
-    const consultantsWithId = await consultantsCollection.countDocuments(hasBoondIdFilter)
+    const consultantsWithId = await consultantsCollection.countDocuments({
+      boondManagerId: { $exists: true, $type: 'number' },
+    })
 
     // Get candidates stats
-    const candidatesCollection = db.collection<MongoCandidate>('candidates')
+    const candidatesCollection = db.collection('candidates')
     const totalCandidates = await candidatesCollection.countDocuments({})
-    const candidatesWithId = await candidatesCollection.countDocuments(hasBoondIdFilter)
+    const candidatesWithId = await candidatesCollection.countDocuments({
+      boondManagerId: { $exists: true, $type: 'number' },
+    })
 
     // Get jobs stats
-    const jobsCollection = db.collection<MongoJob>('jobs')
+    const jobsCollection = db.collection('jobs')
     const totalJobs = await jobsCollection.countDocuments({})
-    const jobsWithId = await jobsCollection.countDocuments(hasBoondIdFilter)
+    const jobsWithId = await jobsCollection.countDocuments({
+      boondManagerId: { $exists: true, $type: 'number' },
+    })
 
     return {
       consultants: {
