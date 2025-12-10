@@ -3,6 +3,45 @@ import { getSession } from '@/lib/auth'
 import { connectToDatabase } from '@/lib/mongodb'
 import { getCandidateStates } from '@/lib/boondmanager-dictionary'
 import { sanitizeDocument } from '@/lib/sanitize'
+import { hasPermission } from '@/lib/roles'
+import { createBoondClient, BoondAction, BoondDictionaryItem } from '@/lib/boondmanager-client'
+import { determineRecruitmentStateFromActions } from '@/lib/boondmanager-import'
+
+// Helper to convert dictionary items to a map
+function dictionaryToMap(items: BoondDictionaryItem[] | undefined): Map<number, string> {
+  const map = new Map<number, string>()
+  if (items) {
+    for (const item of items) {
+      const id = typeof item.id === 'string' ? parseInt(item.id, 10) : item.id
+      map.set(id, item.value)
+    }
+  }
+  return map
+}
+
+/**
+ * Map stateLabel string to state number
+ * Mirrors the function in boondmanager-import.ts for consistency
+ */
+function mapStateLabelToState(stateLabel: string | undefined, defaultState: number): number {
+  if (!stateLabel) return defaultState
+
+  const label = stateLabel.toLowerCase().trim()
+
+  // Map French labels to state numbers (supporting various spellings)
+  if (label.includes('nouveau')) return 0
+  if (label.includes('a qualifier') || label.includes('à qualifier')) return 1
+  if (label.includes('qualifi')) return 2 // qualifié, qualifiée, qualifie
+  if (label.includes('en cours')) return 3
+  if (label.includes('entretien')) return 4
+  if (label.includes('proposition')) return 5
+  if (label.includes('embauche') || label.includes('embauché') || label.includes('hire')) return 6
+  if (label.includes('refus') || label.includes('refuse')) return 7 // refusé, refus
+  if (label.includes('archiv')) return 8 // archivé, archive
+
+  // If no match, return the default state from BoondManager
+  return defaultState
+}
 
 // GET - Fetch all site candidates (imported from BoondManager)
 export async function GET(request: NextRequest) {
@@ -90,6 +129,182 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error('Error fetching site candidates:', error)
+    return NextResponse.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Erreur inconnue',
+    }, { status: 500 })
+  }
+}
+
+// POST - Fix/migrate existing candidates' states
+// Mode 1 (default): Use stateLabel to recalculate state
+// Mode 2 (useBoondManagerActions=true): Fetch actions from BoondManager to determine state
+export async function POST(request: NextRequest) {
+  const session = await getSession()
+  if (!session) {
+    return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  }
+
+  // Check permission - only admin can run migrations
+  if (!hasPermission(session.role, 'boondManagerAdmin')) {
+    return NextResponse.json({
+      error: 'Permission refusée - Seuls les administrateurs peuvent corriger les états'
+    }, { status: 403 })
+  }
+
+  try {
+    const body = await request.json().catch(() => ({}))
+    const { dryRun = false, useBoondManagerActions = false } = body
+
+    const db = await connectToDatabase()
+    const candidateStates = await getCandidateStates()
+
+    // Fetch all candidates
+    const candidates = await db.collection('candidates').find({}).toArray()
+
+    const updates: Array<{
+      id: string
+      boondManagerId?: number
+      name: string
+      oldState: number
+      newState: number
+      stateLabel: string
+      source: string
+    }> = []
+
+    // Mode 2: Use BoondManager actions to determine state
+    if (useBoondManagerActions) {
+      console.log('[Fix States] Using BoondManager actions to determine recruitment state')
+      const client = createBoondClient('production')
+
+      // First, fetch the dictionary to get real states and action types
+      let boondCandidateStates: Map<number, string> = new Map()
+      let boondActionTypes: Map<number, string> = new Map()
+      try {
+        const dictionary = await client.getDictionary()
+        boondCandidateStates = dictionaryToMap(dictionary.data.attributes.candidateStates)
+        boondActionTypes = dictionaryToMap(dictionary.data.attributes.actionTypes)
+        console.log('[Fix States] BoondManager candidateStates:', Object.fromEntries(boondCandidateStates))
+        console.log('[Fix States] BoondManager actionTypes:', Object.fromEntries(boondActionTypes))
+      } catch (dictError) {
+        console.warn('[Fix States] Could not fetch dictionary:', dictError)
+      }
+
+      // Process candidates with boondManagerId in batches
+      const candidatesWithBoondId = candidates.filter(c => c.boondManagerId)
+      console.log(`[Fix States] Processing ${candidatesWithBoondId.length} candidates with BoondManager ID`)
+
+      const BATCH_SIZE = 20
+      for (let i = 0; i < candidatesWithBoondId.length; i += BATCH_SIZE) {
+        const batch = candidatesWithBoondId.slice(i, i + BATCH_SIZE)
+
+        // Fetch actions for this batch in parallel
+        const results = await Promise.all(
+          batch.map(async (candidate) => {
+            try {
+              const response = await client.getCandidateActions(candidate.boondManagerId)
+              return {
+                candidate,
+                actions: response.data || [],
+              }
+            } catch (error) {
+              console.warn(`Could not fetch actions for candidate ${candidate.boondManagerId}:`, error)
+              return { candidate, actions: [] as BoondAction[] }
+            }
+          })
+        )
+
+        // Process results
+        for (const { candidate, actions } of results) {
+          const currentState = candidate.state as number
+          const { state: newState, stateLabel: newLabel, matchedAction } = determineRecruitmentStateFromActions(
+            actions,
+            currentState,
+            boondActionTypes // Pass the dictionary for better matching
+          )
+
+          if (newState !== currentState) {
+            updates.push({
+              id: String(candidate._id),
+              boondManagerId: candidate.boondManagerId,
+              name: `${candidate.firstName || ''} ${candidate.lastName || ''}`.trim(),
+              oldState: currentState,
+              newState,
+              stateLabel: newLabel,
+              source: `${actions.length} actions BoondManager${matchedAction ? ` (${matchedAction})` : ''}`,
+            })
+
+            if (!dryRun) {
+              await db.collection('candidates').updateOne(
+                { _id: candidate._id },
+                {
+                  $set: {
+                    state: newState,
+                    stateLabel: newLabel,
+                    updatedAt: new Date(),
+                  }
+                }
+              )
+            }
+          }
+        }
+      }
+    } else {
+      // Mode 1: Use stateLabel to determine state (fallback)
+      console.log('[Fix States] Using stateLabel to determine recruitment state')
+
+      for (const candidate of candidates) {
+        const currentState = candidate.state as number
+        const stateLabel = candidate.stateLabel as string | undefined
+
+        // Calculate the correct state from stateLabel
+        const correctState = mapStateLabelToState(stateLabel, currentState)
+
+        // Only update if there's a change
+        if (correctState !== currentState) {
+          updates.push({
+            id: String(candidate._id),
+            boondManagerId: candidate.boondManagerId,
+            name: `${candidate.firstName || ''} ${candidate.lastName || ''}`.trim(),
+            oldState: currentState,
+            newState: correctState,
+            stateLabel: stateLabel || candidateStates[correctState] || 'Inconnu',
+            source: 'stateLabel mapping',
+          })
+
+          if (!dryRun) {
+            await db.collection('candidates').updateOne(
+              { _id: candidate._id },
+              {
+                $set: {
+                  state: correctState,
+                  stateLabel: stateLabel || candidateStates[correctState] || 'Inconnu',
+                  updatedAt: new Date(),
+                }
+              }
+            )
+          }
+        }
+      }
+    }
+
+    // Build response with dictionary info if available
+    const response: Record<string, unknown> = {
+      success: true,
+      dryRun,
+      mode: useBoondManagerActions ? 'boondManagerActions' : 'stateLabel',
+      totalCandidates: candidates.length,
+      updated: updates.length,
+      updates: updates.slice(0, 100), // Limit to 100 for response size
+      message: dryRun
+        ? `Simulation: ${updates.length} candidats seraient mis à jour`
+        : `${updates.length} candidats ont été corrigés`,
+    }
+
+    return NextResponse.json(response)
+
+  } catch (error) {
+    console.error('Error fixing candidate states:', error)
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Erreur inconnue',

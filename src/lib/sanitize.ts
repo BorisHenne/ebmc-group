@@ -4,19 +4,23 @@
  */
 
 /**
- * Check if a value is a BoondManager complex object like {typeOf, detail}
+ * List of keys that should always be string arrays
  */
-function isBoondManagerObject(obj: Record<string, unknown>): boolean {
-  return (
-    ('typeOf' in obj && 'detail' in obj) ||
-    ('typeOf' in obj && typeof obj.typeOf === 'number')
-  )
-}
+const STRING_ARRAY_KEYS = new Set([
+  'missions',
+  'missionsEn',
+  'requirements',
+  'requirementsEn',
+  'skills',
+  'certifications',
+])
 
 /**
- * Extract string value from BoondManager complex object
+ * Extract string value from any complex object
+ * Handles BoondManager objects and other nested structures
  */
-function extractBoondManagerValue(obj: Record<string, unknown>): string | undefined {
+function extractStringFromObject(obj: Record<string, unknown>): string {
+  // Try common string field names
   if ('detail' in obj && typeof obj.detail === 'string') {
     return obj.detail
   }
@@ -29,14 +33,28 @@ function extractBoondManagerValue(obj: Record<string, unknown>): string | undefi
   if ('name' in obj && typeof obj.name === 'string') {
     return obj.name
   }
-  return undefined
+  if ('title' in obj && typeof obj.title === 'string') {
+    return obj.title
+  }
+  if ('text' in obj && typeof obj.text === 'string') {
+    return obj.text
+  }
+  // Fallback to JSON string
+  try {
+    return JSON.stringify(obj)
+  } catch {
+    return '[Object]'
+  }
 }
 
 /**
  * Deep sanitize any value to ensure it's React-renderable
  * Recursively processes all nested objects and arrays
+ * @param value - The value to sanitize
+ * @param key - Optional key name for context-aware sanitization
+ * @param forceString - If true, converts objects to strings instead of recursing
  */
-export function sanitizeValue(value: unknown): unknown {
+export function sanitizeValue(value: unknown, key?: string, forceString = false): unknown {
   // Handle null/undefined
   if (value === null || value === undefined) {
     return value
@@ -52,9 +70,21 @@ export function sanitizeValue(value: unknown): unknown {
     return value.toISOString()
   }
 
-  // Handle arrays - recursively sanitize each element
+  // Handle arrays
   if (Array.isArray(value)) {
-    return value.map(item => sanitizeValue(item))
+    // For known string array keys, ensure all elements are strings
+    if (key && STRING_ARRAY_KEYS.has(key)) {
+      return value.map(item => {
+        if (typeof item === 'string') return item
+        if (item === null || item === undefined) return ''
+        if (typeof item === 'object') {
+          return extractStringFromObject(item as Record<string, unknown>)
+        }
+        return String(item)
+      })
+    }
+    // Otherwise recursively sanitize
+    return value.map(item => sanitizeValue(item, undefined, forceString))
   }
 
   // Handle objects
@@ -66,20 +96,40 @@ export function sanitizeValue(value: unknown): unknown {
       return String(obj)
     }
 
-    // Check for BoondManager complex objects - extract the meaningful value
-    if (isBoondManagerObject(obj)) {
-      const extracted = extractBoondManagerValue(obj)
-      if (extracted !== undefined) {
-        return extracted
-      }
-      // If we can't extract, stringify it
-      return JSON.stringify(obj)
+    // Check if it's a MongoDB BSON type (like Decimal128, etc.)
+    if ('_bsontype' in obj) {
+      return String(obj)
+    }
+
+    // If forceString is true, convert to string
+    if (forceString) {
+      return extractStringFromObject(obj)
+    }
+
+    // Check for BoondManager-style objects (have typeOf field)
+    // Also handle when typeOf is a string (edge case)
+    if ('typeOf' in obj) {
+      return extractStringFromObject(obj)
+    }
+
+    // Check for objects that look like BoondManager data (have detail field with typeOf-like structure)
+    if ('detail' in obj && Object.keys(obj).length <= 3) {
+      return extractStringFromObject(obj)
+    }
+
+    // Check for objects with only metadata (not data objects)
+    // These are likely complex types that should be stringified
+    const keys = Object.keys(obj)
+    if (keys.length > 0 && keys.every(k => k.startsWith('$') || k.startsWith('_'))) {
+      return extractStringFromObject(obj)
     }
 
     // Recursively sanitize all object properties
     const sanitized: Record<string, unknown> = {}
-    for (const [key, val] of Object.entries(obj)) {
-      sanitized[key] = sanitizeValue(val)
+    for (const [objKey, val] of Object.entries(obj)) {
+      // Skip internal MongoDB fields except _id
+      if (objKey.startsWith('$')) continue
+      sanitized[objKey] = sanitizeValue(val, objKey, false)
     }
     return sanitized
   }

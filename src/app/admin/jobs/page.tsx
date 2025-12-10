@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Briefcase,
@@ -15,7 +15,11 @@ import {
   UserCheck,
   Search,
   XCircle,
-  AlertCircle
+  AlertCircle,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight
 } from 'lucide-react'
 
 interface User {
@@ -45,6 +49,15 @@ interface Job {
   assignedTo?: string
   assignedToName?: string
   createdAt: string
+}
+
+interface Pagination {
+  page: number
+  limit: number
+  total: number
+  totalPages: number
+  hasNextPage: boolean
+  hasPrevPage: boolean
 }
 
 const emptyJob: Omit<Job, '_id' | 'createdAt'> = {
@@ -84,6 +97,8 @@ const TYPE_COLORS: Record<string, string> = {
   Freelance: 'from-purple-500 to-pink-500'
 }
 
+const ITEMS_PER_PAGE = 50
+
 export default function JobsPage() {
   const [jobs, setJobs] = useState<Job[]>([])
   const [loading, setLoading] = useState(true)
@@ -93,15 +108,45 @@ export default function JobsPage() {
   const [error, setError] = useState('')
   const [commerciaux, setCommerciaux] = useState<User[]>([])
 
+  // Pagination
+  const [pagination, setPagination] = useState<Pagination>({
+    page: 1,
+    limit: ITEMS_PER_PAGE,
+    total: 0,
+    totalPages: 0,
+    hasNextPage: false,
+    hasPrevPage: false
+  })
+
   // Search and filters
   const [searchTerm, setSearchTerm] = useState('')
   const [filterCategory, setFilterCategory] = useState<string>('all')
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [filterType, setFilterType] = useState<string>('all')
 
+  // Ref to track if data has loaded (for timeout)
+  const loadedRef = useRef(false)
+
   useEffect(() => {
-    fetchJobs()
-    fetchCommerciaux()
+    // Add timeout to prevent infinite loading
+    const timeout = setTimeout(() => {
+      if (!loadedRef.current) {
+        setLoading(false)
+        setError('Le chargement prend trop de temps. Vérifiez la connexion au serveur.')
+      }
+    }, 30000) // 30 seconds timeout
+
+    const loadData = async () => {
+      try {
+        await Promise.all([fetchJobs(), fetchCommerciaux()])
+      } finally {
+        loadedRef.current = true
+      }
+    }
+    loadData()
+
+    return () => clearTimeout(timeout)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const fetchCommerciaux = async () => {
@@ -119,17 +164,77 @@ export default function JobsPage() {
     }
   }
 
-  const fetchJobs = async () => {
+  const fetchJobs = async (page: number = 1) => {
     try {
-      const res = await fetch('/api/admin/jobs', { credentials: 'include' })
+      setError('')
+      setLoading(true)
+      const res = await fetch(`/api/admin/jobs?page=${page}&limit=${ITEMS_PER_PAGE}`, { credentials: 'include' })
       if (res.ok) {
         const data = await res.json()
-        setJobs(data.jobs || [])
+        // Sanitize jobs data on the client side as a safety measure
+        const sanitizedJobs = (data.jobs || []).map((job: Record<string, unknown>) => {
+          const sanitizeField = (value: unknown): string => {
+            if (value === null || value === undefined) return ''
+            if (typeof value === 'string') return value
+            if (typeof value === 'object' && value !== null) {
+              const obj = value as Record<string, unknown>
+              if ('detail' in obj && typeof obj.detail === 'string') return obj.detail
+              if ('value' in obj && typeof obj.value === 'string') return obj.value
+              if ('label' in obj && typeof obj.label === 'string') return obj.label
+              return JSON.stringify(value)
+            }
+            return String(value)
+          }
+
+          const sanitizeArray = (arr: unknown): string[] => {
+            if (!Array.isArray(arr)) return ['']
+            return arr.map(item => sanitizeField(item))
+          }
+
+          return {
+            ...job,
+            _id: String(job._id || ''),
+            title: sanitizeField(job.title),
+            titleEn: sanitizeField(job.titleEn),
+            location: sanitizeField(job.location),
+            type: sanitizeField(job.type),
+            typeEn: sanitizeField(job.typeEn),
+            category: sanitizeField(job.category),
+            experience: sanitizeField(job.experience),
+            experienceEn: sanitizeField(job.experienceEn),
+            description: sanitizeField(job.description),
+            descriptionEn: sanitizeField(job.descriptionEn),
+            missions: sanitizeArray(job.missions),
+            missionsEn: sanitizeArray(job.missionsEn),
+            requirements: sanitizeArray(job.requirements),
+            requirementsEn: sanitizeArray(job.requirementsEn),
+            active: Boolean(job.active),
+            assignedTo: sanitizeField(job.assignedTo),
+            assignedToName: sanitizeField(job.assignedToName),
+            createdAt: sanitizeField(job.createdAt)
+          } as Job
+        })
+        setJobs(sanitizedJobs)
+
+        // Update pagination state
+        if (data.pagination) {
+          setPagination(data.pagination)
+        }
+      } else {
+        const data = await res.json().catch(() => ({}))
+        setError(data.error || 'Erreur lors du chargement des offres')
       }
     } catch (error) {
       console.error('Error fetching jobs:', error)
+      setError('Erreur de connexion au serveur')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const goToPage = (page: number) => {
+    if (page >= 1 && page <= pagination.totalPages) {
+      fetchJobs(page)
     }
   }
 
@@ -178,7 +283,7 @@ export default function JobsPage() {
       }
 
       closeModal()
-      fetchJobs()
+      fetchJobs(pagination.page)
     } catch (error) {
       console.error('Error saving job:', error)
       setError('Erreur de connexion au serveur')
@@ -203,7 +308,7 @@ export default function JobsPage() {
         return
       }
 
-      fetchJobs()
+      fetchJobs(pagination.page)
     } catch (error) {
       console.error('Error deleting job:', error)
       alert('Erreur de connexion au serveur')
@@ -233,14 +338,34 @@ export default function JobsPage() {
     updateField(field, arr)
   }
 
+  // Helper to safely get string value (handles objects and nulls)
+  const safeString = (value: unknown): string => {
+    if (value === null || value === undefined) return ''
+    if (typeof value === 'string') return value
+    if (typeof value === 'object') {
+      // Handle potential BoondManager objects or MongoDB objects
+      const obj = value as Record<string, unknown>
+      if ('detail' in obj && typeof obj.detail === 'string') return obj.detail
+      if ('value' in obj && typeof obj.value === 'string') return obj.value
+      if ('label' in obj && typeof obj.label === 'string') return obj.label
+      return JSON.stringify(value)
+    }
+    return String(value)
+  }
+
   // Filter jobs
   const filteredJobs = jobs.filter(job => {
     const searchLower = searchTerm.toLowerCase()
+    const titleStr = safeString(job.title)
+    const titleEnStr = safeString(job.titleEn)
+    const locationStr = safeString(job.location)
+    const descriptionStr = safeString(job.description)
+
     const matchesSearch = !searchTerm ||
-      job.title.toLowerCase().includes(searchLower) ||
-      job.titleEn?.toLowerCase().includes(searchLower) ||
-      job.location.toLowerCase().includes(searchLower) ||
-      job.description?.toLowerCase().includes(searchLower)
+      titleStr.toLowerCase().includes(searchLower) ||
+      titleEnStr.toLowerCase().includes(searchLower) ||
+      locationStr.toLowerCase().includes(searchLower) ||
+      descriptionStr.toLowerCase().includes(searchLower)
 
     const matchesCategory = filterCategory === 'all' || job.category === filterCategory
     const matchesStatus = filterStatus === 'all' ||
@@ -267,7 +392,7 @@ export default function JobsPage() {
             </div>
             <div>
               <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">Offres d&apos;emploi</h1>
-              <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">{jobs.length} offre{jobs.length > 1 ? 's' : ''} au total</p>
+              <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">{pagination.total} offre{pagination.total > 1 ? 's' : ''} au total</p>
             </div>
           </div>
         </div>
@@ -333,6 +458,20 @@ export default function JobsPage() {
         </div>
       </div>
 
+      {/* Error Alert */}
+      {error && !showModal && (
+        <div className="mb-6 flex items-center gap-3 p-4 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 rounded-xl text-red-600 dark:text-red-400">
+          <AlertCircle className="w-5 h-5 flex-shrink-0" />
+          <span className="text-sm">{error}</span>
+          <button
+            onClick={() => { setError(''); fetchJobs(pagination.page); }}
+            className="ml-auto px-3 py-1 text-sm bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-900/50 rounded-lg transition"
+          >
+            Réessayer
+          </button>
+        </div>
+      )}
+
       {/* Jobs Table */}
       <div className="glass-card overflow-hidden">
         {loading ? (
@@ -373,15 +512,15 @@ export default function JobsPage() {
                   >
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-full bg-gradient-to-r ${CATEGORY_COLORS[job.category] || 'from-slate-500 to-slate-600'} flex items-center justify-center`}>
+                        <div className={`w-10 h-10 rounded-full bg-gradient-to-r ${CATEGORY_COLORS[safeString(job.category)] || 'from-slate-500 to-slate-600'} flex items-center justify-center`}>
                           <Briefcase className="w-5 h-5 text-white" />
                         </div>
                         <div>
-                          <span className="font-medium text-gray-900 dark:text-white block">{job.title}</span>
+                          <span className="font-medium text-gray-900 dark:text-white block">{safeString(job.title) || 'Sans titre'}</span>
                           {job.assignedTo && (
                             <span className="text-xs text-purple-600 dark:text-purple-400 flex items-center gap-1 mt-1">
                               <UserCheck className="w-3 h-3" />
-                              {job.assignedToName || 'Assigné'}
+                              {safeString(job.assignedToName) || 'Assigné'}
                             </span>
                           )}
                         </div>
@@ -390,18 +529,18 @@ export default function JobsPage() {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
                         <MapPin className="w-4 h-4 text-gray-400 dark:text-gray-500" />
-                        {job.location}
+                        {safeString(job.location) || '-'}
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r ${TYPE_COLORS[job.type] || 'from-slate-500 to-slate-600'} text-white`}>
+                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r ${TYPE_COLORS[safeString(job.type)] || 'from-slate-500 to-slate-600'} text-white`}>
                         <Clock className="w-3 h-3" />
-                        {job.type}
+                        {safeString(job.type) || '-'}
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getCategoryBadgeClass(job.category)}`}>
-                        {CATEGORY_LABELS[job.category] || job.category}
+                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getCategoryBadgeClass(safeString(job.category))}`}>
+                        {CATEGORY_LABELS[safeString(job.category)] || safeString(job.category) || '-'}
                       </span>
                     </td>
                     <td className="px-6 py-4">
@@ -431,6 +570,89 @@ export default function JobsPage() {
           </div>
         )}
       </div>
+
+      {/* Pagination */}
+      {!loading && pagination.totalPages > 1 && (
+        <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="text-sm text-gray-500 dark:text-gray-400">
+            Affichage de {((pagination.page - 1) * pagination.limit) + 1} à {Math.min(pagination.page * pagination.limit, pagination.total)} sur {pagination.total} offres
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => goToPage(1)}
+              disabled={!pagination.hasPrevPage}
+              className="p-2 rounded-lg border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              title="Première page"
+            >
+              <ChevronsLeft className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+            </button>
+            <button
+              onClick={() => goToPage(pagination.page - 1)}
+              disabled={!pagination.hasPrevPage}
+              className="p-2 rounded-lg border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              title="Page précédente"
+            >
+              <ChevronLeft className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+            </button>
+
+            <div className="flex items-center gap-1">
+              {/* Generate page numbers */}
+              {(() => {
+                const pages: (number | string)[] = []
+                const current = pagination.page
+                const total = pagination.totalPages
+
+                if (total <= 7) {
+                  for (let i = 1; i <= total; i++) pages.push(i)
+                } else {
+                  pages.push(1)
+                  if (current > 3) pages.push('...')
+                  for (let i = Math.max(2, current - 1); i <= Math.min(total - 1, current + 1); i++) {
+                    pages.push(i)
+                  }
+                  if (current < total - 2) pages.push('...')
+                  pages.push(total)
+                }
+
+                return pages.map((p, idx) => (
+                  typeof p === 'number' ? (
+                    <button
+                      key={idx}
+                      onClick={() => goToPage(p)}
+                      className={`min-w-[40px] h-10 rounded-lg font-medium transition ${
+                        p === current
+                          ? 'bg-gradient-to-r from-ebmc-turquoise to-cyan-500 text-white'
+                          : 'border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 text-gray-600 dark:text-gray-400'
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  ) : (
+                    <span key={idx} className="px-2 text-gray-400">...</span>
+                  )
+                ))
+              })()}
+            </div>
+
+            <button
+              onClick={() => goToPage(pagination.page + 1)}
+              disabled={!pagination.hasNextPage}
+              className="p-2 rounded-lg border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              title="Page suivante"
+            >
+              <ChevronRight className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+            </button>
+            <button
+              onClick={() => goToPage(pagination.totalPages)}
+              disabled={!pagination.hasNextPage}
+              className="p-2 rounded-lg border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              title="Dernière page"
+            >
+              <ChevronsRight className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Create/Edit Modal */}
       <AnimatePresence>

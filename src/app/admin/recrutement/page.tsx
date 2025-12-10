@@ -20,7 +20,8 @@ import {
   MapPin,
   CheckCircle,
   XCircle,
-  Archive
+  Archive,
+  Wrench
 } from 'lucide-react'
 import Link from 'next/link'
 import { CANDIDATE_STATES } from '@/lib/boondmanager-client'
@@ -72,6 +73,55 @@ interface KanbanColumn {
   candidates: SiteCandidate[]
 }
 
+// Client-side sanitization to handle BoondManager objects like {typeOf, detail}
+function sanitizeField(value: unknown): string {
+  if (value === null || value === undefined) return ''
+  if (typeof value === 'string') return value
+  if (typeof value === 'number') return String(value)
+  if (typeof value === 'object' && value !== null) {
+    const obj = value as Record<string, unknown>
+    // Handle BoondManager objects
+    if ('detail' in obj && typeof obj.detail === 'string') return obj.detail
+    if ('value' in obj && typeof obj.value === 'string') return obj.value
+    if ('label' in obj && typeof obj.label === 'string') return obj.label
+    if ('name' in obj && typeof obj.name === 'string') return obj.name
+    // Fallback to JSON for debugging
+    try {
+      return JSON.stringify(value)
+    } catch {
+      return '[Object]'
+    }
+  }
+  return String(value)
+}
+
+function sanitizeArray(arr: unknown): string[] {
+  if (!Array.isArray(arr)) return []
+  return arr.map(item => sanitizeField(item))
+}
+
+function sanitizeCandidate(candidate: Record<string, unknown>): SiteCandidate {
+  return {
+    id: String(candidate.id || candidate._id || ''),
+    _id: candidate._id ? String(candidate._id) : undefined,
+    boondManagerId: typeof candidate.boondManagerId === 'number' ? candidate.boondManagerId : undefined,
+    firstName: sanitizeField(candidate.firstName),
+    lastName: sanitizeField(candidate.lastName),
+    email: candidate.email ? sanitizeField(candidate.email) : undefined,
+    phone: candidate.phone ? sanitizeField(candidate.phone) : undefined,
+    title: candidate.title ? sanitizeField(candidate.title) : undefined,
+    state: typeof candidate.state === 'number' ? candidate.state : 0,
+    stateLabel: sanitizeField(candidate.stateLabel),
+    location: candidate.location ? sanitizeField(candidate.location) : undefined,
+    skills: sanitizeArray(candidate.skills),
+    experience: candidate.experience ? sanitizeField(candidate.experience) : undefined,
+    source: candidate.source ? sanitizeField(candidate.source) : undefined,
+    notes: candidate.notes ? sanitizeField(candidate.notes) : undefined,
+    createdAt: sanitizeField(candidate.createdAt),
+    updatedAt: sanitizeField(candidate.updatedAt),
+  }
+}
+
 export default function RecrutementPage() {
   const [columns, setColumns] = useState<KanbanColumn[]>([])
   const [loading, setLoading] = useState(true)
@@ -80,6 +130,8 @@ export default function RecrutementPage() {
   const [selectedCandidate, setSelectedCandidate] = useState<SiteCandidate | null>(null)
   const [updating, setUpdating] = useState(false)
   const [showArchived, setShowArchived] = useState(false)
+  const [fixingStates, setFixingStates] = useState(false)
+  const [fixResult, setFixResult] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
 
   const fetchCandidates = useCallback(async () => {
     setLoading(true)
@@ -95,7 +147,8 @@ export default function RecrutementPage() {
       }
 
       const data = await response.json()
-      const candidates: SiteCandidate[] = data.data || []
+      // Sanitize all candidate data to prevent React rendering errors
+      const candidates: SiteCandidate[] = (data.data || []).map((c: Record<string, unknown>) => sanitizeCandidate(c))
 
       // Organize candidates into columns by state
       const boardColumns: KanbanColumn[] = RECRUITMENT_STAGES.map(stage => ({
@@ -115,6 +168,43 @@ export default function RecrutementPage() {
   useEffect(() => {
     fetchCandidates()
   }, [fetchCandidates])
+
+  // Fix states based on BoondManager Actions (most accurate)
+  const fixCandidateStates = async (useBoondManagerActions = true) => {
+    setFixingStates(true)
+    setFixResult(null)
+
+    try {
+      const response = await fetch('/api/site/candidates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ dryRun: false, useBoondManagerActions }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erreur lors de la correction')
+      }
+
+      setFixResult({
+        message: `${data.message} (Mode: ${data.mode === 'boondManagerActions' ? 'Actions BoondManager' : 'stateLabel'})`,
+        type: 'success',
+      })
+
+      // Refresh the kanban after fixing states
+      await fetchCandidates()
+    } catch (err) {
+      console.error('Error fixing states:', err)
+      setFixResult({
+        message: err instanceof Error ? err.message : 'Erreur inconnue',
+        type: 'error',
+      })
+    } finally {
+      setFixingStates(false)
+    }
+  }
 
   // Handle drag end - update candidate state
   const handleDragEnd = async (result: DropResult) => {
@@ -308,6 +398,15 @@ export default function RecrutementPage() {
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             Actualiser
           </button>
+          <button
+            onClick={() => fixCandidateStates(true)}
+            disabled={fixingStates}
+            title="Synchroniser les états avec les actions BoondManager (entretiens, propositions, etc.)"
+            className="flex items-center gap-2 px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition disabled:opacity-50"
+          >
+            <Wrench className={`w-4 h-4 ${fixingStates ? 'animate-spin' : ''}`} />
+            {fixingStates ? 'Synchronisation...' : 'Sync BoondManager'}
+          </button>
           <Link
             href="/admin/boondmanager-v2"
             className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg hover:shadow-lg transition"
@@ -317,6 +416,32 @@ export default function RecrutementPage() {
           </Link>
         </div>
       </div>
+
+      {/* Fix Result Message */}
+      {fixResult && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className={`mb-4 p-3 rounded-lg flex items-center gap-2 ${
+            fixResult.type === 'success'
+              ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+              : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
+          }`}
+        >
+          {fixResult.type === 'success' ? (
+            <CheckCircle className="w-5 h-5" />
+          ) : (
+            <AlertCircle className="w-5 h-5" />
+          )}
+          <span>{fixResult.message}</span>
+          <button
+            onClick={() => setFixResult(null)}
+            className="ml-auto text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+          >
+            &times;
+          </button>
+        </motion.div>
+      )}
 
       {/* Stats Row */}
       <div className={`grid gap-4 mb-6 ${showArchived ? 'grid-cols-9' : 'grid-cols-8'}`}>
