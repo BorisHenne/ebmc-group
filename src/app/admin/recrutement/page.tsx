@@ -18,32 +18,50 @@ import {
   Briefcase,
   Clock,
   MapPin,
-  Euro,
-  Globe2
+  CheckCircle,
+  XCircle,
+  Archive
 } from 'lucide-react'
 import Link from 'next/link'
-import {
-  Candidate,
-  CandidateStatus,
-  STATUS_LABELS,
-  STATUS_COLORS,
-  getInitials,
-  getFullName,
-  generateDemoCandidates
-} from '@/types/candidate'
+import { CANDIDATE_STATES } from '@/lib/boondmanager-client'
 
-// Recruitment stages - each stage is a column
-const RECRUITMENT_STAGES: { id: CandidateStatus; name: string; color: string; lightBg: string; darkBg: string; lightBorder: string; darkBorder: string; headerBg: string }[] = [
-  { id: 'a_qualifier', name: 'À qualifier', color: '#94a3b8', lightBg: 'bg-slate-50', darkBg: 'dark:bg-slate-800/50', lightBorder: 'border-slate-300', darkBorder: 'dark:border-slate-600', headerBg: 'from-slate-100 to-slate-50 dark:from-slate-700 dark:to-slate-800' },
-  { id: 'qualifie', name: 'Qualifié', color: '#06b6d4', lightBg: 'bg-cyan-50/50', darkBg: 'dark:bg-cyan-900/20', lightBorder: 'border-cyan-200', darkBorder: 'dark:border-cyan-800', headerBg: 'from-cyan-100 to-cyan-50 dark:from-cyan-900/40 dark:to-cyan-900/20' },
-  { id: 'en_cours', name: 'En cours', color: '#8b5cf6', lightBg: 'bg-purple-50/50', darkBg: 'dark:bg-purple-900/20', lightBorder: 'border-purple-200', darkBorder: 'dark:border-purple-800', headerBg: 'from-purple-100 to-purple-50 dark:from-purple-900/40 dark:to-purple-900/20' },
-  { id: 'entretien', name: 'Entretien', color: '#f59e0b', lightBg: 'bg-amber-50/50', darkBg: 'dark:bg-amber-900/20', lightBorder: 'border-amber-200', darkBorder: 'dark:border-amber-700', headerBg: 'from-amber-100 to-amber-50 dark:from-amber-900/40 dark:to-amber-900/20' },
-  { id: 'proposition', name: 'Proposition', color: '#3b82f6', lightBg: 'bg-blue-50/50', darkBg: 'dark:bg-blue-900/20', lightBorder: 'border-blue-200', darkBorder: 'dark:border-blue-800', headerBg: 'from-blue-100 to-blue-50 dark:from-blue-900/40 dark:to-blue-900/20' },
-  { id: 'embauche', name: 'Embauché', color: '#10b981', lightBg: 'bg-emerald-50/50', darkBg: 'dark:bg-emerald-900/20', lightBorder: 'border-emerald-200', darkBorder: 'dark:border-emerald-800', headerBg: 'from-emerald-100 to-emerald-50 dark:from-emerald-900/40 dark:to-emerald-900/20' },
+// Site candidate from MongoDB (imported from BoondManager)
+interface SiteCandidate {
+  id: string
+  _id?: string
+  boondManagerId?: number
+  firstName: string
+  lastName: string
+  email?: string
+  phone?: string
+  title?: string
+  state: number
+  stateLabel: string
+  location?: string
+  skills: string[]
+  experience?: string
+  source?: string
+  notes?: string
+  createdAt: string
+  updatedAt: string
+}
+
+// Recruitment stages based on BoondManager CANDIDATE_STATES
+// States 0-6 are active pipeline, 7=Refuse, 8=Archive
+const RECRUITMENT_STAGES: { id: number; name: string; color: string; lightBg: string; darkBg: string; lightBorder: string; darkBorder: string; headerBg: string; icon?: React.ReactNode }[] = [
+  { id: 0, name: 'Nouveau', color: '#64748b', lightBg: 'bg-slate-50', darkBg: 'dark:bg-slate-800/50', lightBorder: 'border-slate-300', darkBorder: 'dark:border-slate-600', headerBg: 'from-slate-100 to-slate-50 dark:from-slate-700 dark:to-slate-800' },
+  { id: 1, name: 'A qualifier', color: '#94a3b8', lightBg: 'bg-gray-50', darkBg: 'dark:bg-gray-800/50', lightBorder: 'border-gray-300', darkBorder: 'dark:border-gray-600', headerBg: 'from-gray-100 to-gray-50 dark:from-gray-700 dark:to-gray-800' },
+  { id: 2, name: 'Qualifie', color: '#06b6d4', lightBg: 'bg-cyan-50/50', darkBg: 'dark:bg-cyan-900/20', lightBorder: 'border-cyan-200', darkBorder: 'dark:border-cyan-800', headerBg: 'from-cyan-100 to-cyan-50 dark:from-cyan-900/40 dark:to-cyan-900/20' },
+  { id: 3, name: 'En cours', color: '#8b5cf6', lightBg: 'bg-purple-50/50', darkBg: 'dark:bg-purple-900/20', lightBorder: 'border-purple-200', darkBorder: 'dark:border-purple-800', headerBg: 'from-purple-100 to-purple-50 dark:from-purple-900/40 dark:to-purple-900/20' },
+  { id: 4, name: 'Entretien', color: '#f59e0b', lightBg: 'bg-amber-50/50', darkBg: 'dark:bg-amber-900/20', lightBorder: 'border-amber-200', darkBorder: 'dark:border-amber-700', headerBg: 'from-amber-100 to-amber-50 dark:from-amber-900/40 dark:to-amber-900/20' },
+  { id: 5, name: 'Proposition', color: '#3b82f6', lightBg: 'bg-blue-50/50', darkBg: 'dark:bg-blue-900/20', lightBorder: 'border-blue-200', darkBorder: 'dark:border-blue-800', headerBg: 'from-blue-100 to-blue-50 dark:from-blue-900/40 dark:to-blue-900/20' },
+  { id: 6, name: 'Embauche', color: '#10b981', lightBg: 'bg-emerald-50/50', darkBg: 'dark:bg-emerald-900/20', lightBorder: 'border-emerald-200', darkBorder: 'dark:border-emerald-800', headerBg: 'from-emerald-100 to-emerald-50 dark:from-emerald-900/40 dark:to-emerald-900/20' },
+  { id: 7, name: 'Refuse', color: '#ef4444', lightBg: 'bg-red-50/50', darkBg: 'dark:bg-red-900/20', lightBorder: 'border-red-200', darkBorder: 'dark:border-red-800', headerBg: 'from-red-100 to-red-50 dark:from-red-900/40 dark:to-red-900/20' },
+  { id: 8, name: 'Archive', color: '#475569', lightBg: 'bg-slate-100/50', darkBg: 'dark:bg-slate-800/30', lightBorder: 'border-slate-300', darkBorder: 'dark:border-slate-700', headerBg: 'from-slate-200 to-slate-100 dark:from-slate-800 dark:to-slate-900' },
 ]
 
 interface KanbanColumn {
-  id: CandidateStatus
+  id: number
   name: string
   color: string
   lightBg: string
@@ -51,89 +69,139 @@ interface KanbanColumn {
   lightBorder: string
   darkBorder: string
   headerBg: string
-  candidates: Candidate[]
+  candidates: SiteCandidate[]
 }
 
 export default function RecrutementPage() {
   const [columns, setColumns] = useState<KanbanColumn[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
-  const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null)
+  const [selectedCandidate, setSelectedCandidate] = useState<SiteCandidate | null>(null)
+  const [updating, setUpdating] = useState(false)
+  const [showArchived, setShowArchived] = useState(false)
 
-  const initializeBoard = useCallback(() => {
+  const fetchCandidates = useCallback(async () => {
     setLoading(true)
+    setError(null)
 
-    // Generate demo candidates
-    const candidates = generateDemoCandidates()
+    try {
+      const response = await fetch('/api/site/candidates?stats=true', {
+        credentials: 'include'
+      })
 
-    // Organize candidates into columns
-    const boardColumns: KanbanColumn[] = RECRUITMENT_STAGES.map(stage => ({
-      ...stage,
-      candidates: candidates.filter(c => c.status === stage.id)
-    }))
+      if (!response.ok) {
+        throw new Error('Erreur lors de la recuperation des candidats')
+      }
 
-    setColumns(boardColumns)
-    setLoading(false)
+      const data = await response.json()
+      const candidates: SiteCandidate[] = data.data || []
+
+      // Organize candidates into columns by state
+      const boardColumns: KanbanColumn[] = RECRUITMENT_STAGES.map(stage => ({
+        ...stage,
+        candidates: candidates.filter((c: SiteCandidate) => c.state === stage.id)
+      }))
+
+      setColumns(boardColumns)
+    } catch (err) {
+      console.error('Error fetching candidates:', err)
+      setError(err instanceof Error ? err.message : 'Erreur inconnue')
+    } finally {
+      setLoading(false)
+    }
   }, [])
 
   useEffect(() => {
-    initializeBoard()
-  }, [initializeBoard])
+    fetchCandidates()
+  }, [fetchCandidates])
 
-  // Handle drag end
-  const handleDragEnd = (result: DropResult) => {
+  // Handle drag end - update candidate state
+  const handleDragEnd = async (result: DropResult) => {
     const { source, destination, draggableId } = result
 
     // No destination = dropped outside
     if (!destination) return
 
+    const sourceState = parseInt(source.droppableId)
+    const destState = parseInt(destination.droppableId)
+
     // Same position = no change
-    if (source.droppableId === destination.droppableId && source.index === destination.index) {
+    if (sourceState === destState && source.index === destination.index) {
       return
     }
 
     // Find source and destination columns
-    const sourceColIndex = columns.findIndex(col => col.id === source.droppableId)
-    const destColIndex = columns.findIndex(col => col.id === destination.droppableId)
+    const sourceColIndex = columns.findIndex(col => col.id === sourceState)
+    const destColIndex = columns.findIndex(col => col.id === destState)
 
     if (sourceColIndex === -1 || destColIndex === -1) return
 
+    // Optimistic update
     const newColumns = [...columns]
-    const sourceCol = { ...newColumns[sourceColIndex] }
-    const destCol = source.droppableId === destination.droppableId
+    const sourceCol = { ...newColumns[sourceColIndex], candidates: [...newColumns[sourceColIndex].candidates] }
+    const destCol = sourceState === destState
       ? sourceCol
-      : { ...newColumns[destColIndex] }
+      : { ...newColumns[destColIndex], candidates: [...newColumns[destColIndex].candidates] }
 
     // Remove from source
     const [movedCandidate] = sourceCol.candidates.splice(source.index, 1)
 
-    // Update candidate status
-    movedCandidate.status = destination.droppableId as CandidateStatus
-    movedCandidate.lastActivity = new Date().toISOString()
+    // Update candidate state
+    const updatedCandidate: SiteCandidate = {
+      ...movedCandidate,
+      state: destState,
+      stateLabel: CANDIDATE_STATES[destState] || 'Inconnu',
+      updatedAt: new Date().toISOString()
+    }
 
     // Add to destination
-    destCol.candidates.splice(destination.index, 0, movedCandidate)
+    destCol.candidates.splice(destination.index, 0, updatedCandidate)
 
     // Update columns
     newColumns[sourceColIndex] = sourceCol
-    if (source.droppableId !== destination.droppableId) {
+    if (sourceState !== destState) {
       newColumns[destColIndex] = destCol
     }
 
     setColumns(newColumns)
 
-    // Here you would typically also call an API to persist the change
-    console.log(`Moved ${movedCandidate.firstName} ${movedCandidate.lastName} to ${destination.droppableId}`)
+    // Persist to API
+    try {
+      setUpdating(true)
+      const response = await fetch('/api/site/candidates', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          id: movedCandidate.id || movedCandidate._id,
+          state: destState,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Erreur lors de la mise a jour')
+      }
+
+      console.log(`Moved ${movedCandidate.firstName} ${movedCandidate.lastName} to ${CANDIDATE_STATES[destState]}`)
+    } catch (err) {
+      // Revert on error
+      console.error('Error updating candidate:', err)
+      fetchCandidates()
+    } finally {
+      setUpdating(false)
+    }
   }
 
   // Filter candidates across all columns
-  const filterCandidates = (candidates: Candidate[]) => {
+  const filterCandidates = (candidates: SiteCandidate[]) => {
     if (!searchQuery) return candidates
     const query = searchQuery.toLowerCase()
     return candidates.filter(c =>
       `${c.firstName} ${c.lastName}`.toLowerCase().includes(query) ||
-      c.email.toLowerCase().includes(query) ||
-      c.title?.toLowerCase().includes(query)
+      c.email?.toLowerCase().includes(query) ||
+      c.title?.toLowerCase().includes(query) ||
+      c.source?.toLowerCase().includes(query)
     )
   }
 
@@ -151,10 +219,34 @@ export default function RecrutementPage() {
     return `Il y a ${Math.floor(diffDays / 30)} mois`
   }
 
+  // Get total candidates count
+  const totalCandidates = columns.reduce((sum, col) => sum + col.candidates.length, 0)
+
+  // Filter columns based on showArchived
+  const visibleColumns = showArchived
+    ? columns
+    : columns.filter(col => col.id !== 8) // Hide Archive column by default
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="w-8 h-8 animate-spin text-ebmc-turquoise" />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 gap-4">
+        <AlertCircle className="w-12 h-12 text-red-500" />
+        <p className="text-red-600 dark:text-red-400">{error}</p>
+        <button
+          onClick={fetchCandidates}
+          className="flex items-center gap-2 px-4 py-2 bg-ebmc-turquoise text-white rounded-lg hover:bg-ebmc-turquoise/90 transition"
+        >
+          <RefreshCw className="w-4 h-4" />
+          Reessayer
+        </button>
       </div>
     )
   }
@@ -175,15 +267,29 @@ export default function RecrutementPage() {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Parcours de recrutement</h1>
-            <p className="text-gray-500 dark:text-gray-400">Gérez vos candidats par étape de recrutement</p>
+            <p className="text-gray-500 dark:text-gray-400">
+              {totalCandidates} candidats dans le pipeline
+              {updating && <span className="ml-2 text-amber-500">• Mise a jour...</span>}
+            </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <span className="px-3 py-1.5 bg-amber-100 text-amber-700 rounded-full text-sm font-medium flex items-center gap-1.5">
-            <AlertCircle className="w-4 h-4" />
-            Mode Démo
-          </span>
+        <div className="flex items-center gap-3 flex-wrap">
+          {totalCandidates === 0 && (
+            <span className="px-3 py-1.5 bg-amber-100 text-amber-700 rounded-full text-sm font-medium flex items-center gap-1.5">
+              <AlertCircle className="w-4 h-4" />
+              Aucun candidat - Importez depuis BoondManager
+            </span>
+          )}
+          <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+            <input
+              type="checkbox"
+              checked={showArchived}
+              onChange={(e) => setShowArchived(e.target.checked)}
+              className="rounded border-gray-300"
+            />
+            Afficher archives
+          </label>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
             <input
@@ -191,33 +297,41 @@ export default function RecrutementPage() {
               placeholder="Rechercher un candidat..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 pr-4 py-2 w-64 border border-gray-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise"
+              className="pl-10 pr-4 py-2 w-64 border border-gray-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise bg-white dark:bg-slate-800 text-gray-900 dark:text-white"
             />
           </div>
           <button
-            onClick={initializeBoard}
-            className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition"
+            onClick={fetchCandidates}
+            disabled={loading}
+            className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition disabled:opacity-50"
           >
-            <RefreshCw className="w-4 h-4" />
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             Actualiser
           </button>
+          <Link
+            href="/admin/boondmanager-v2"
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg hover:shadow-lg transition"
+          >
+            <Plus className="w-4 h-4" />
+            Importer
+          </Link>
         </div>
       </div>
 
       {/* Stats Row */}
-      <div className="grid grid-cols-6 gap-4 mb-6">
-        {columns.map(col => (
+      <div className={`grid gap-4 mb-6 ${showArchived ? 'grid-cols-9' : 'grid-cols-8'}`}>
+        {visibleColumns.map(col => (
           <motion.div
             key={col.id}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className={`rounded-xl p-4 shadow-sm border-l-4 ${col.lightBg} ${col.darkBg} border ${col.lightBorder} ${col.darkBorder}`}
+            className={`rounded-xl p-3 shadow-sm border-l-4 ${col.lightBg} ${col.darkBg} border ${col.lightBorder} ${col.darkBorder}`}
             style={{ borderLeftColor: col.color }}
           >
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-gray-600 dark:text-gray-300">{col.name}</span>
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs font-medium text-gray-600 dark:text-gray-300 truncate">{col.name}</span>
             </div>
-            <p className="text-2xl font-bold" style={{ color: col.color }}>{col.candidates.length}</p>
+            <p className="text-xl font-bold" style={{ color: col.color }}>{col.candidates.length}</p>
           </motion.div>
         ))}
       </div>
@@ -225,18 +339,21 @@ export default function RecrutementPage() {
       {/* Kanban Board */}
       <DragDropContext onDragEnd={handleDragEnd}>
         <div className="flex-1 overflow-x-auto pb-4">
-          <div className="flex gap-4 min-w-max h-full">
-            {columns.map(column => (
+          <div className="flex gap-3 min-w-max h-full">
+            {visibleColumns.map(column => (
               <div
                 key={column.id}
-                className={`w-80 flex-shrink-0 flex flex-col rounded-xl border-t-4 overflow-hidden ${column.lightBg} ${column.darkBg} ${column.lightBorder} ${column.darkBorder} border`}
+                className={`w-72 flex-shrink-0 flex flex-col rounded-xl border-t-4 overflow-hidden ${column.lightBg} ${column.darkBg} ${column.lightBorder} ${column.darkBorder} border`}
                 style={{ borderTopColor: column.color }}
               >
                 {/* Column Header */}
-                <div className={`p-4 bg-gradient-to-b ${column.headerBg}`}>
+                <div className={`p-3 bg-gradient-to-b ${column.headerBg}`}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <h3 className="font-semibold text-gray-900 dark:text-white">{column.name}</h3>
+                      {column.id === 6 && <CheckCircle className="w-4 h-4 text-emerald-500" />}
+                      {column.id === 7 && <XCircle className="w-4 h-4 text-red-500" />}
+                      {column.id === 8 && <Archive className="w-4 h-4 text-slate-500" />}
+                      <h3 className="font-semibold text-gray-900 dark:text-white text-sm">{column.name}</h3>
                       <span
                         className="px-2 py-0.5 rounded-full text-xs font-medium text-white"
                         style={{ backgroundColor: column.color }}
@@ -244,14 +361,11 @@ export default function RecrutementPage() {
                         {filterCandidates(column.candidates).length}
                       </span>
                     </div>
-                    <button className="p-1 hover:bg-white/50 dark:hover:bg-slate-600 rounded transition">
-                      <Plus className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                    </button>
                   </div>
                 </div>
 
                 {/* Column Content */}
-                <Droppable droppableId={column.id}>
+                <Droppable droppableId={column.id.toString()}>
                   {(provided, snapshot) => (
                     <div
                       ref={provided.innerRef}
@@ -262,8 +376,8 @@ export default function RecrutementPage() {
                     >
                       {filterCandidates(column.candidates).map((candidate, index) => (
                         <Draggable
-                          key={candidate.id}
-                          draggableId={candidate.id}
+                          key={candidate.id || candidate._id}
+                          draggableId={candidate.id || candidate._id || `candidate-${index}`}
                           index={index}
                         >
                           {(provided, snapshot) => (
@@ -278,38 +392,54 @@ export default function RecrutementPage() {
                             >
                               <div className="flex items-start justify-between mb-2">
                                 <div className="flex items-center gap-2">
-                                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center text-gray-600 text-xs font-medium">
-                                    {candidate.firstName[0]}{candidate.lastName[0]}
+                                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 dark:from-slate-600 dark:to-slate-700 flex items-center justify-center text-gray-600 dark:text-gray-300 text-xs font-medium">
+                                    {candidate.firstName?.[0]}{candidate.lastName?.[0]}
                                   </div>
                                   <div>
                                     <p className="font-medium text-gray-900 dark:text-white text-sm">
                                       {candidate.firstName} {candidate.lastName}
                                     </p>
-                                    <p className="text-xs text-gray-500 dark:text-gray-400">{candidate.title}</p>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[150px]">
+                                      {candidate.title || 'Candidat'}
+                                    </p>
                                   </div>
                                 </div>
                                 <button
                                   className="p-1 hover:bg-gray-100 dark:hover:bg-slate-600 rounded opacity-0 group-hover:opacity-100 transition"
                                   onClick={(e) => {
                                     e.stopPropagation()
-                                    // Open menu
                                   }}
                                 >
                                   <MoreVertical className="w-4 h-4 text-gray-400 dark:text-gray-500" />
                                 </button>
                               </div>
 
-                              <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
+                              <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 flex-wrap">
                                 <span className="flex items-center gap-1">
                                   <Clock className="w-3 h-3" />
-                                  {formatRelativeTime(candidate.lastActivity || candidate.createdAt)}
+                                  {formatRelativeTime(candidate.updatedAt || candidate.createdAt)}
                                 </span>
                                 {candidate.source && (
-                                  <span className="px-1.5 py-0.5 bg-gray-100 dark:bg-slate-700 rounded text-gray-600 dark:text-gray-300">
+                                  <span className="px-1.5 py-0.5 bg-gray-100 dark:bg-slate-700 rounded text-gray-600 dark:text-gray-300 truncate max-w-[80px]">
                                     {candidate.source}
                                   </span>
                                 )}
                               </div>
+
+                              {candidate.skills && candidate.skills.length > 0 && (
+                                <div className="mt-2 flex flex-wrap gap-1">
+                                  {candidate.skills.slice(0, 2).map((skill, i) => (
+                                    <span key={i} className="px-1.5 py-0.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded text-xs truncate max-w-[60px]">
+                                      {skill}
+                                    </span>
+                                  ))}
+                                  {candidate.skills.length > 2 && (
+                                    <span className="px-1.5 py-0.5 bg-gray-100 dark:bg-slate-700 text-gray-500 dark:text-gray-400 rounded text-xs">
+                                      +{candidate.skills.length - 2}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
                             </div>
                           )}
                         </Draggable>
@@ -347,43 +477,40 @@ export default function RecrutementPage() {
           >
             <div className="flex items-start gap-4 mb-6">
               <div className="w-16 h-16 rounded-full bg-gradient-to-br from-ebmc-turquoise to-cyan-500 flex items-center justify-center text-white text-xl font-bold">
-                {getInitials(selectedCandidate)}
+                {selectedCandidate.firstName?.[0]}{selectedCandidate.lastName?.[0]}
               </div>
               <div className="flex-1">
                 <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                  {getFullName(selectedCandidate)}
+                  {selectedCandidate.firstName} {selectedCandidate.lastName}
                 </h2>
-                <p className="text-gray-600 dark:text-gray-300">{selectedCandidate.title}</p>
+                <p className="text-gray-600 dark:text-gray-300">{selectedCandidate.title || 'Candidat'}</p>
                 <div className="flex items-center gap-2 mt-2 flex-wrap">
                   <span
                     className="px-2 py-1 rounded-full text-xs font-medium"
                     style={{
-                      backgroundColor: `${STATUS_COLORS[selectedCandidate.status]}20`,
-                      color: STATUS_COLORS[selectedCandidate.status]
+                      backgroundColor: `${RECRUITMENT_STAGES.find(s => s.id === selectedCandidate.state)?.color}20`,
+                      color: RECRUITMENT_STAGES.find(s => s.id === selectedCandidate.state)?.color
                     }}
                   >
-                    {STATUS_LABELS[selectedCandidate.status]}
+                    {selectedCandidate.stateLabel || CANDIDATE_STATES[selectedCandidate.state]}
                   </span>
-                  <span className="px-2 py-1 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300">
-                    {selectedCandidate.experience?.seniority} • {selectedCandidate.experience?.years} ans
-                  </span>
+                  {selectedCandidate.experience && (
+                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300">
+                      {selectedCandidate.experience}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
 
-            {/* Modules SAP */}
-            {selectedCandidate.modules && selectedCandidate.modules.length > 0 && (
+            {/* Skills */}
+            {selectedCandidate.skills && selectedCandidate.skills.length > 0 && (
               <div className="mb-4">
-                <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Modules SAP</h4>
+                <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Competences</h4>
                 <div className="flex flex-wrap gap-1">
-                  {selectedCandidate.modules.map((mod) => (
-                    <span key={mod} className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs rounded-full">
-                      {mod}
-                    </span>
-                  ))}
-                  {selectedCandidate.subModules?.map((sub) => (
-                    <span key={sub} className="px-2 py-1 bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 text-xs rounded-full">
-                      {sub}
+                  {selectedCandidate.skills.map((skill, i) => (
+                    <span key={i} className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs rounded-full">
+                      {skill}
                     </span>
                   ))}
                 </div>
@@ -391,10 +518,12 @@ export default function RecrutementPage() {
             )}
 
             <div className="space-y-3">
-              <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-slate-700/50 rounded-lg">
-                <Mail className="w-5 h-5 text-gray-400 dark:text-gray-500" />
-                <span className="text-gray-700 dark:text-gray-300 text-sm">{selectedCandidate.email}</span>
-              </div>
+              {selectedCandidate.email && (
+                <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-slate-700/50 rounded-lg">
+                  <Mail className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+                  <span className="text-gray-700 dark:text-gray-300 text-sm">{selectedCandidate.email}</span>
+                </div>
+              )}
 
               {selectedCandidate.phone && (
                 <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-slate-700/50 rounded-lg">
@@ -403,53 +532,39 @@ export default function RecrutementPage() {
                 </div>
               )}
 
-              <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-slate-700/50 rounded-lg">
-                <MapPin className="w-5 h-5 text-gray-400 dark:text-gray-500" />
-                <span className="text-gray-700 dark:text-gray-300 text-sm">
-                  {selectedCandidate.location?.city}, {selectedCandidate.location?.country}
-                  {selectedCandidate.remoteWork && <span className="ml-2 text-green-600 dark:text-green-400">• Télétravail OK</span>}
-                </span>
-              </div>
-
-              {selectedCandidate.dailyRate && (
+              {selectedCandidate.location && (
                 <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-slate-700/50 rounded-lg">
-                  <Euro className="w-5 h-5 text-gray-400 dark:text-gray-500" />
-                  <span className="text-gray-700 dark:text-gray-300 text-sm">
-                    TJM: {selectedCandidate.dailyRate.min}€ - {selectedCandidate.dailyRate.max}€
-                    {selectedCandidate.dailyRate.target && <span className="text-gray-500"> (cible: {selectedCandidate.dailyRate.target}€)</span>}
-                  </span>
+                  <MapPin className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+                  <span className="text-gray-700 dark:text-gray-300 text-sm">{selectedCandidate.location}</span>
+                </div>
+              )}
+
+              {selectedCandidate.source && (
+                <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-slate-700/50 rounded-lg">
+                  <Briefcase className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+                  <span className="text-gray-700 dark:text-gray-300 text-sm">Source: {selectedCandidate.source}</span>
                 </div>
               )}
 
               <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-slate-700/50 rounded-lg">
-                <Globe2 className="w-5 h-5 text-gray-400 dark:text-gray-500" />
-                <span className="text-gray-700 dark:text-gray-300 text-sm">
-                  {selectedCandidate.languages?.join(', ')}
-                </span>
-              </div>
-
-              <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-slate-700/50 rounded-lg">
-                <Clock className="w-5 h-5 text-gray-400 dark:text-gray-500" />
-                <span className="text-gray-700 dark:text-gray-300 text-sm">
-                  {selectedCandidate.availability?.isAvailable ? (
-                    <span className="text-green-600 dark:text-green-400">Disponible {selectedCandidate.availability.availableIn}</span>
-                  ) : (
-                    <span className="text-orange-600 dark:text-orange-400">Non disponible</span>
-                  )}
-                </span>
-              </div>
-
-              <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-slate-700/50 rounded-lg">
-                <Briefcase className="w-5 h-5 text-gray-400 dark:text-gray-500" />
-                <span className="text-gray-700 dark:text-gray-300 text-sm">Source: {selectedCandidate.source || 'Inconnue'}</span>
-              </div>
-
-              <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-slate-700/50 rounded-lg">
                 <Calendar className="w-5 h-5 text-gray-400 dark:text-gray-500" />
                 <span className="text-gray-700 dark:text-gray-300 text-sm">
-                  Ajouté le {new Date(selectedCandidate.createdAt).toLocaleDateString('fr-FR')}
+                  Mis a jour le {new Date(selectedCandidate.updatedAt).toLocaleDateString('fr-FR')}
                 </span>
               </div>
+
+              {selectedCandidate.notes && (
+                <div className="p-3 bg-gray-50 dark:bg-slate-700/50 rounded-lg">
+                  <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Notes</h4>
+                  <p className="text-gray-700 dark:text-gray-300 text-sm">{selectedCandidate.notes}</p>
+                </div>
+              )}
+
+              {selectedCandidate.boondManagerId && (
+                <div className="text-xs text-gray-400 dark:text-gray-500 text-center">
+                  BoondManager ID: {selectedCandidate.boondManagerId}
+                </div>
+              )}
             </div>
 
             <div className="flex gap-3 mt-6">
@@ -459,9 +574,14 @@ export default function RecrutementPage() {
               >
                 Fermer
               </button>
-              <button className="flex-1 px-4 py-2 bg-ebmc-turquoise text-white rounded-lg hover:bg-ebmc-turquoise/90 transition">
-                Voir le profil complet
-              </button>
+              {selectedCandidate.boondManagerId && (
+                <Link
+                  href={`/admin/boondmanager-v2?tab=candidates&id=${selectedCandidate.boondManagerId}`}
+                  className="flex-1 px-4 py-2 bg-ebmc-turquoise text-white rounded-lg hover:bg-ebmc-turquoise/90 transition text-center"
+                >
+                  Voir dans BoondManager
+                </Link>
+              )}
             </div>
           </motion.div>
         </motion.div>

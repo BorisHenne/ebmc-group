@@ -1,12 +1,70 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
-import { createBoondClient, BoondEnvironment } from '@/lib/boondmanager-client'
+import { createBoondClient, BoondEnvironment, BoondManagerClient, BoondResource, BoondCandidate, BoondOpportunity } from '@/lib/boondmanager-client'
 import { boondImportService } from '@/lib/boondmanager-import'
 import { hasPermission } from '@/lib/roles'
 
 function getEnvironment(request: NextRequest): BoondEnvironment {
   const env = request.nextUrl.searchParams.get('env') || 'production'
   return env === 'sandbox' ? 'sandbox' : 'production'
+}
+
+// Helper to fetch all pages of data from BoondManager
+const PAGE_SIZE = 500
+
+async function fetchAllResources(client: BoondManagerClient): Promise<BoondResource[]> {
+  const allData: BoondResource[] = []
+  let page = 1
+  let hasMore = true
+
+  while (hasMore) {
+    const response = await client.getResources({ page, maxResults: PAGE_SIZE })
+    const data = response.data || []
+    allData.push(...data)
+
+    // Check if there are more pages
+    const total = response.meta?.totals?.rows || 0
+    hasMore = allData.length < total && data.length === PAGE_SIZE
+    page++
+  }
+
+  return allData
+}
+
+async function fetchAllCandidates(client: BoondManagerClient): Promise<BoondCandidate[]> {
+  const allData: BoondCandidate[] = []
+  let page = 1
+  let hasMore = true
+
+  while (hasMore) {
+    const response = await client.getCandidates({ page, maxResults: PAGE_SIZE })
+    const data = response.data || []
+    allData.push(...data)
+
+    const total = response.meta?.totals?.rows || 0
+    hasMore = allData.length < total && data.length === PAGE_SIZE
+    page++
+  }
+
+  return allData
+}
+
+async function fetchAllOpportunities(client: BoondManagerClient): Promise<BoondOpportunity[]> {
+  const allData: BoondOpportunity[] = []
+  let page = 1
+  let hasMore = true
+
+  while (hasMore) {
+    const response = await client.getOpportunities({ page, maxResults: PAGE_SIZE })
+    const data = response.data || []
+    allData.push(...data)
+
+    const total = response.meta?.totals?.rows || 0
+    hasMore = allData.length < total && data.length === PAGE_SIZE
+    page++
+  }
+
+  return allData
 }
 
 // GET - Preview import (what would be imported)
@@ -31,11 +89,11 @@ export async function GET(request: NextRequest) {
   try {
     const client = createBoondClient(environment)
 
-    // Fetch data from BoondManager
+    // Fetch ALL data from BoondManager with pagination
     const [resources, candidates, opportunities] = await Promise.all([
-      client.getResources({ maxResults: 500 }).then(r => r.data || []),
-      client.getCandidates({ maxResults: 500 }).then(r => r.data || []),
-      client.getOpportunities({ maxResults: 500 }).then(r => r.data || []),
+      fetchAllResources(client),
+      fetchAllCandidates(client),
+      fetchAllOpportunities(client),
     ])
 
     // Preview what would be imported
@@ -100,16 +158,16 @@ export async function POST(request: NextRequest) {
 
     const client = createBoondClient(environment)
 
-    // Fetch data from BoondManager based on options
+    // Fetch ALL data from BoondManager with pagination (based on options)
     const [resources, candidates, opportunities] = await Promise.all([
       importResources
-        ? client.getResources({ maxResults: 500 }).then(r => r.data || [])
+        ? fetchAllResources(client)
         : Promise.resolve([]),
       importCandidates
-        ? client.getCandidates({ maxResults: 500 }).then(r => r.data || [])
+        ? fetchAllCandidates(client)
         : Promise.resolve([]),
       importOpportunities
-        ? client.getOpportunities({ maxResults: 500 }).then(r => r.data || [])
+        ? fetchAllOpportunities(client)
         : Promise.resolve([]),
     ])
 
