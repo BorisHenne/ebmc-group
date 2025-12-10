@@ -15,7 +15,11 @@ import {
   UserCheck,
   Search,
   XCircle,
-  AlertCircle
+  AlertCircle,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight
 } from 'lucide-react'
 
 interface User {
@@ -45,6 +49,15 @@ interface Job {
   assignedTo?: string
   assignedToName?: string
   createdAt: string
+}
+
+interface Pagination {
+  page: number
+  limit: number
+  total: number
+  totalPages: number
+  hasNextPage: boolean
+  hasPrevPage: boolean
 }
 
 const emptyJob: Omit<Job, '_id' | 'createdAt'> = {
@@ -84,6 +97,8 @@ const TYPE_COLORS: Record<string, string> = {
   Freelance: 'from-purple-500 to-pink-500'
 }
 
+const ITEMS_PER_PAGE = 50
+
 export default function JobsPage() {
   const [jobs, setJobs] = useState<Job[]>([])
   const [loading, setLoading] = useState(true)
@@ -92,6 +107,16 @@ export default function JobsPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [commerciaux, setCommerciaux] = useState<User[]>([])
+
+  // Pagination
+  const [pagination, setPagination] = useState<Pagination>({
+    page: 1,
+    limit: ITEMS_PER_PAGE,
+    total: 0,
+    totalPages: 0,
+    hasNextPage: false,
+    hasPrevPage: false
+  })
 
   // Search and filters
   const [searchTerm, setSearchTerm] = useState('')
@@ -139,10 +164,11 @@ export default function JobsPage() {
     }
   }
 
-  const fetchJobs = async () => {
+  const fetchJobs = async (page: number = 1) => {
     try {
       setError('')
-      const res = await fetch('/api/admin/jobs', { credentials: 'include' })
+      setLoading(true)
+      const res = await fetch(`/api/admin/jobs?page=${page}&limit=${ITEMS_PER_PAGE}`, { credentials: 'include' })
       if (res.ok) {
         const data = await res.json()
         // Sanitize jobs data on the client side as a safety measure
@@ -189,6 +215,11 @@ export default function JobsPage() {
           } as Job
         })
         setJobs(sanitizedJobs)
+
+        // Update pagination state
+        if (data.pagination) {
+          setPagination(data.pagination)
+        }
       } else {
         const data = await res.json().catch(() => ({}))
         setError(data.error || 'Erreur lors du chargement des offres')
@@ -198,6 +229,12 @@ export default function JobsPage() {
       setError('Erreur de connexion au serveur')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const goToPage = (page: number) => {
+    if (page >= 1 && page <= pagination.totalPages) {
+      fetchJobs(page)
     }
   }
 
@@ -246,7 +283,7 @@ export default function JobsPage() {
       }
 
       closeModal()
-      fetchJobs()
+      fetchJobs(pagination.page)
     } catch (error) {
       console.error('Error saving job:', error)
       setError('Erreur de connexion au serveur')
@@ -271,7 +308,7 @@ export default function JobsPage() {
         return
       }
 
-      fetchJobs()
+      fetchJobs(pagination.page)
     } catch (error) {
       console.error('Error deleting job:', error)
       alert('Erreur de connexion au serveur')
@@ -355,7 +392,7 @@ export default function JobsPage() {
             </div>
             <div>
               <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">Offres d&apos;emploi</h1>
-              <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">{jobs.length} offre{jobs.length > 1 ? 's' : ''} au total</p>
+              <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">{pagination.total} offre{pagination.total > 1 ? 's' : ''} au total</p>
             </div>
           </div>
         </div>
@@ -427,7 +464,7 @@ export default function JobsPage() {
           <AlertCircle className="w-5 h-5 flex-shrink-0" />
           <span className="text-sm">{error}</span>
           <button
-            onClick={() => { setError(''); fetchJobs(); }}
+            onClick={() => { setError(''); fetchJobs(pagination.page); }}
             className="ml-auto px-3 py-1 text-sm bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-900/50 rounded-lg transition"
           >
             Réessayer
@@ -533,6 +570,89 @@ export default function JobsPage() {
           </div>
         )}
       </div>
+
+      {/* Pagination */}
+      {!loading && pagination.totalPages > 1 && (
+        <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="text-sm text-gray-500 dark:text-gray-400">
+            Affichage de {((pagination.page - 1) * pagination.limit) + 1} à {Math.min(pagination.page * pagination.limit, pagination.total)} sur {pagination.total} offres
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => goToPage(1)}
+              disabled={!pagination.hasPrevPage}
+              className="p-2 rounded-lg border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              title="Première page"
+            >
+              <ChevronsLeft className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+            </button>
+            <button
+              onClick={() => goToPage(pagination.page - 1)}
+              disabled={!pagination.hasPrevPage}
+              className="p-2 rounded-lg border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              title="Page précédente"
+            >
+              <ChevronLeft className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+            </button>
+
+            <div className="flex items-center gap-1">
+              {/* Generate page numbers */}
+              {(() => {
+                const pages: (number | string)[] = []
+                const current = pagination.page
+                const total = pagination.totalPages
+
+                if (total <= 7) {
+                  for (let i = 1; i <= total; i++) pages.push(i)
+                } else {
+                  pages.push(1)
+                  if (current > 3) pages.push('...')
+                  for (let i = Math.max(2, current - 1); i <= Math.min(total - 1, current + 1); i++) {
+                    pages.push(i)
+                  }
+                  if (current < total - 2) pages.push('...')
+                  pages.push(total)
+                }
+
+                return pages.map((p, idx) => (
+                  typeof p === 'number' ? (
+                    <button
+                      key={idx}
+                      onClick={() => goToPage(p)}
+                      className={`min-w-[40px] h-10 rounded-lg font-medium transition ${
+                        p === current
+                          ? 'bg-gradient-to-r from-ebmc-turquoise to-cyan-500 text-white'
+                          : 'border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 text-gray-600 dark:text-gray-400'
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  ) : (
+                    <span key={idx} className="px-2 text-gray-400">...</span>
+                  )
+                ))
+              })()}
+            </div>
+
+            <button
+              onClick={() => goToPage(pagination.page + 1)}
+              disabled={!pagination.hasNextPage}
+              className="p-2 rounded-lg border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              title="Page suivante"
+            >
+              <ChevronRight className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+            </button>
+            <button
+              onClick={() => goToPage(pagination.totalPages)}
+              disabled={!pagination.hasNextPage}
+              className="p-2 rounded-lg border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              title="Dernière page"
+            >
+              <ChevronsRight className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Create/Edit Modal */}
       <AnimatePresence>
