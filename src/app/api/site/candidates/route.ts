@@ -1,11 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { connectToDatabase } from '@/lib/mongodb'
-import { getCandidateStates } from '@/lib/boondmanager-dictionary'
+import { getCandidateStates, fetchDictionary } from '@/lib/boondmanager-dictionary'
 import { sanitizeDocument } from '@/lib/sanitize'
 import { hasPermission } from '@/lib/roles'
 import { createBoondClient, BoondAction, BoondDictionaryItem } from '@/lib/boondmanager-client'
 import { determineRecruitmentStateFromActions } from '@/lib/boondmanager-import'
+
+// Helper to extract candidate types from dictionary
+async function getCandidateTypes(): Promise<Map<number, { value: string; color?: string }>> {
+  const map = new Map<number, { value: string; color?: string }>()
+  try {
+    const dictionary = await fetchDictionary('production')
+    const types = dictionary?.data?.attributes?.candidateTypes
+    if (types && Array.isArray(types)) {
+      for (const type of types) {
+        const id = typeof type.id === 'string' ? parseInt(type.id, 10) : type.id
+        map.set(id, { value: type.value, color: type.color })
+      }
+    }
+  } catch (error) {
+    console.warn('Could not fetch candidate types from dictionary:', error)
+  }
+  return map
+}
 
 // Helper to convert dictionary items to a map
 function dictionaryToMap(items: BoondDictionaryItem[] | undefined): Map<number, string> {
@@ -56,14 +74,19 @@ export async function GET(request: NextRequest) {
     // Parse query params
     const searchParams = request.nextUrl.searchParams
     const state = searchParams.get('state')
+    const typeOf = searchParams.get('typeOf')
     const search = searchParams.get('search')
     const limit = parseInt(searchParams.get('limit') || '500')
     const includeStats = searchParams.get('stats') === 'true'
+    const includeTypes = searchParams.get('includeTypes') === 'true'
 
     // Build query
     const query: Record<string, unknown> = {}
     if (state !== null && state !== '') {
       query.state = parseInt(state)
+    }
+    if (typeOf !== null && typeOf !== '') {
+      query.typeOf = parseInt(typeOf)
     }
     if (search) {
       query.$or = [
@@ -81,32 +104,48 @@ export async function GET(request: NextRequest) {
       .limit(limit)
       .toArray()
 
-    // Fetch dynamic state labels from BoondManager
+    // Fetch dynamic state labels and candidate types from BoondManager
     const candidateStates = await getCandidateStates()
+    const candidateTypes = await getCandidateTypes()
 
-    // Sanitize and add state labels
+    // Sanitize and add state labels and type labels
     const candidatesWithLabels = candidates.map(c => {
       const sanitized = sanitizeDocument(c as Record<string, unknown>)
+      const typeInfo = c.typeOf !== undefined ? candidateTypes.get(c.typeOf as number) : undefined
       return {
         ...sanitized,
         id: String(c._id),
         stateLabel: sanitized.stateLabel || candidateStates[c.state as number] || 'Inconnu',
+        typeOfLabel: sanitized.typeOfLabel || typeInfo?.value || undefined,
+        typeOfColor: typeInfo?.color || undefined,
       }
     })
 
     // Optionally include stats
     let stats = null
     if (includeStats) {
-      const pipeline = [
+      // Stats by state
+      const statsByState = await db.collection('candidates').aggregate([
         { $group: { _id: '$state', count: { $sum: 1 } } },
-      ]
-      const statsByState = await db.collection('candidates').aggregate(pipeline).toArray()
+      ]).toArray()
 
       const byState: Record<number, number> = {}
       let total = 0
       statsByState.forEach(s => {
         byState[s._id] = s.count
         total += s.count
+      })
+
+      // Stats by typeOf (étapes)
+      const statsByType = await db.collection('candidates').aggregate([
+        { $group: { _id: '$typeOf', count: { $sum: 1 } } },
+      ]).toArray()
+
+      const byTypeOf: Record<number, number> = {}
+      statsByType.forEach(s => {
+        if (s._id !== null && s._id !== undefined) {
+          byTypeOf[s._id] = s.count
+        }
       })
 
       stats = {
@@ -117,7 +156,27 @@ export async function GET(request: NextRequest) {
           label: candidateStates[parseInt(state)] || 'Inconnu',
           count,
         })),
+        byTypeOf,
+        byTypeOfLabeled: Object.entries(byTypeOf).map(([typeId, count]) => {
+          const typeInfo = candidateTypes.get(parseInt(typeId))
+          return {
+            typeOf: parseInt(typeId),
+            label: typeInfo?.value || `Type ${typeId}`,
+            color: typeInfo?.color,
+            count,
+          }
+        }),
       }
+    }
+
+    // Optionally include the list of available types (for kanban columns)
+    let types = null
+    if (includeTypes) {
+      types = Array.from(candidateTypes.entries()).map(([id, info]) => ({
+        id,
+        value: info.value,
+        color: info.color,
+      })).sort((a, b) => a.id - b.id)
     }
 
     return NextResponse.json({
@@ -125,6 +184,7 @@ export async function GET(request: NextRequest) {
       data: candidatesWithLabels,
       total: candidatesWithLabels.length,
       stats,
+      types,
     })
 
   } catch (error) {
@@ -312,7 +372,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// PATCH - Update a candidate's state (for kanban drag & drop)
+// PATCH - Update a candidate's state or typeOf (for kanban drag & drop)
 export async function PATCH(request: NextRequest) {
   const session = await getSession()
   if (!session) {
@@ -321,14 +381,15 @@ export async function PATCH(request: NextRequest) {
 
   try {
     const body = await request.json()
-    const { id, state, boondManagerId } = body
+    const { id, state, typeOf, boondManagerId } = body
 
     if (!id && !boondManagerId) {
       return NextResponse.json({ error: 'ID requis' }, { status: 400 })
     }
 
-    if (state === undefined || state === null) {
-      return NextResponse.json({ error: 'State requis' }, { status: 400 })
+    // At least one of state or typeOf must be provided
+    if (state === undefined && typeOf === undefined) {
+      return NextResponse.json({ error: 'State ou typeOf requis' }, { status: 400 })
     }
 
     const db = await connectToDatabase()
@@ -337,18 +398,29 @@ export async function PATCH(request: NextRequest) {
       ? { boondManagerId: parseInt(boondManagerId) }
       : { _id: new (await import('mongodb')).ObjectId(id) }
 
-    // Fetch dynamic state labels from BoondManager
-    const candidateStates = await getCandidateStates()
+    // Build update object
+    const updateFields: Record<string, unknown> = {
+      updatedAt: new Date(),
+    }
+
+    // Update state if provided
+    if (state !== undefined && state !== null) {
+      const candidateStates = await getCandidateStates()
+      updateFields.state = parseInt(state)
+      updateFields.stateLabel = candidateStates[parseInt(state)] || 'Inconnu'
+    }
+
+    // Update typeOf (étape) if provided
+    if (typeOf !== undefined && typeOf !== null) {
+      const candidateTypes = await getCandidateTypes()
+      const typeInfo = candidateTypes.get(parseInt(typeOf))
+      updateFields.typeOf = parseInt(typeOf)
+      updateFields.typeOfLabel = typeInfo?.value || `Type ${typeOf}`
+    }
 
     const result = await db.collection('candidates').updateOne(
       query,
-      {
-        $set: {
-          state: parseInt(state),
-          stateLabel: candidateStates[parseInt(state)] || 'Inconnu',
-          updatedAt: new Date(),
-        }
-      }
+      { $set: updateFields }
     )
 
     if (result.matchedCount === 0) {
@@ -358,6 +430,7 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message: 'Candidat mis à jour',
+      updates: updateFields,
     })
 
   } catch (error) {
