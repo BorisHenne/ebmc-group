@@ -117,6 +117,47 @@ export interface SiteCandidate {
   updatedAt: Date
 }
 
+// ==================== HELPER FUNCTIONS ====================
+
+/**
+ * Safely extract a string value from BoondManager field
+ * BoondManager sometimes returns objects like {typeOf: 1, detail: "value"} instead of strings
+ */
+function safeString(value: unknown): string | undefined {
+  if (value === null || value === undefined) {
+    return undefined
+  }
+  if (typeof value === 'string') {
+    return value
+  }
+  if (typeof value === 'number') {
+    return String(value)
+  }
+  if (typeof value === 'object' && value !== null) {
+    // Handle BoondManager complex objects like {typeOf: number, detail: string}
+    const obj = value as Record<string, unknown>
+    if ('detail' in obj && typeof obj.detail === 'string') {
+      return obj.detail
+    }
+    if ('value' in obj && typeof obj.value === 'string') {
+      return obj.value
+    }
+    if ('label' in obj && typeof obj.label === 'string') {
+      return obj.label
+    }
+    if ('name' in obj && typeof obj.name === 'string') {
+      return obj.name
+    }
+    // Fallback: try to stringify
+    try {
+      return JSON.stringify(value)
+    } catch {
+      return undefined
+    }
+  }
+  return String(value)
+}
+
 // ==================== MAPPING FUNCTIONS ====================
 
 /**
@@ -131,7 +172,7 @@ export function mapResourceToConsultant(resource: BoondResource): Partial<SiteCo
   const available = attrs.state === 1 || attrs.state === 2
 
   // Determine category based on title or default
-  const title = (attrs.title as string) || 'Consultant'
+  const title = safeString(attrs.title) || 'Consultant'
   let category = 'consulting'
   if (title.toLowerCase().includes('sap')) category = 'sap'
   else if (title.toLowerCase().includes('cyber') || title.toLowerCase().includes('security')) category = 'cybersecurity'
@@ -225,18 +266,18 @@ export function mapCandidateToSiteCandidate(candidate: BoondCandidate): Partial<
 
   return {
     boondManagerId: candidate.id,
-    firstName: attrs.firstName || '',
-    lastName: attrs.lastName || '',
-    email: attrs.email,
-    phone: attrs.phone1,
-    title: attrs.title as string | undefined,
+    firstName: safeString(attrs.firstName) || '',
+    lastName: safeString(attrs.lastName) || '',
+    email: safeString(attrs.email),
+    phone: safeString(attrs.phone1),
+    title: safeString(attrs.title),
     state,
     stateLabel: getCandidateStateLabelSync(state),
-    location: attrs.town || attrs.country,
+    location: safeString(attrs.town) || safeString(attrs.country),
     skills,
     experience: attrs.experienceYears ? `${attrs.experienceYears} ans` : undefined,
-    source: (attrs as Record<string, unknown>).source as string | undefined,
-    notes: (attrs as Record<string, unknown>).notes as string | undefined,
+    source: safeString((attrs as Record<string, unknown>).source),
+    notes: safeString((attrs as Record<string, unknown>).notes),
     updatedAt: new Date(),
   }
 }
