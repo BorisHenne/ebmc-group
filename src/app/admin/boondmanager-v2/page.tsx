@@ -162,6 +162,7 @@ export default function BoondManagerV2Page() {
   const [importPreview, setImportPreview] = useState<{
     consultants: { new: number; existing: number }
     users: { new: number; existing: number; skipped: number }
+    candidates: { new: number; existing: number }
     jobs: { new: number; existing: number }
   } | null>(null)
   const [importResult, setImportResult] = useState<{
@@ -1227,12 +1228,19 @@ export default function BoondManagerV2Page() {
             <ArrowRight className="w-4 h-4" />
             Correspondance des donnees
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
             <div className="flex items-center gap-3 p-3 rounded-lg bg-white dark:bg-slate-700/50">
               <Briefcase className="w-5 h-5 text-blue-500" />
               <div>
                 <p className="font-medium text-slate-700 dark:text-slate-200">Ressources</p>
                 <p className="text-slate-500 dark:text-slate-400">→ Consultants + Utilisateurs</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-white dark:bg-slate-700/50">
+              <Users className="w-5 h-5 text-purple-500" />
+              <div>
+                <p className="font-medium text-slate-700 dark:text-slate-200">Candidats</p>
+                <p className="text-slate-500 dark:text-slate-400">→ Candidats (pipeline)</p>
               </div>
             </div>
             <div className="flex items-center gap-3 p-3 rounded-lg bg-white dark:bg-slate-700/50">
@@ -1271,7 +1279,7 @@ export default function BoondManagerV2Page() {
           <div className="space-y-4">
             <h3 className="font-semibold text-slate-800 dark:text-white">Resultat de la previsualisation</h3>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {/* Consultants */}
               <div className="p-4 rounded-xl border-2 border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20">
                 <div className="flex items-center gap-2 mb-2">
@@ -1291,9 +1299,9 @@ export default function BoondManagerV2Page() {
               </div>
 
               {/* Users */}
-              <div className="p-4 rounded-xl border-2 border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-900/20">
+              <div className="p-4 rounded-xl border-2 border-cyan-200 dark:border-cyan-800 bg-cyan-50 dark:bg-cyan-900/20">
                 <div className="flex items-center gap-2 mb-2">
-                  <Users className="w-5 h-5 text-purple-500" />
+                  <UserCircle className="w-5 h-5 text-cyan-500" />
                   <span className="font-medium text-slate-800 dark:text-white">Utilisateurs</span>
                 </div>
                 <div className="space-y-1 text-sm">
@@ -1306,8 +1314,26 @@ export default function BoondManagerV2Page() {
                     <span className="font-medium text-blue-600 dark:text-blue-400">{importPreview.users.existing}</span>
                   </p>
                   <p className="flex justify-between">
-                    <span className="text-slate-600 dark:text-slate-400">Ignores (sans email):</span>
+                    <span className="text-slate-600 dark:text-slate-400">Ignores:</span>
                     <span className="font-medium text-slate-500">{importPreview.users.skipped}</span>
+                  </p>
+                </div>
+              </div>
+
+              {/* Candidates */}
+              <div className="p-4 rounded-xl border-2 border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-900/20">
+                <div className="flex items-center gap-2 mb-2">
+                  <Users className="w-5 h-5 text-purple-500" />
+                  <span className="font-medium text-slate-800 dark:text-white">Candidats</span>
+                </div>
+                <div className="space-y-1 text-sm">
+                  <p className="flex justify-between">
+                    <span className="text-slate-600 dark:text-slate-400">Nouveaux:</span>
+                    <span className="font-medium text-green-600 dark:text-green-400">{importPreview.candidates.new}</span>
+                  </p>
+                  <p className="flex justify-between">
+                    <span className="text-slate-600 dark:text-slate-400">A mettre a jour:</span>
+                    <span className="font-medium text-blue-600 dark:text-blue-400">{importPreview.candidates.existing}</span>
                   </p>
                 </div>
               </div>
@@ -1334,7 +1360,7 @@ export default function BoondManagerV2Page() {
             {/* Action buttons */}
             <div className="flex flex-wrap gap-3 pt-4">
               <button
-                onClick={() => handleExecuteImport(['resources', 'opportunities'])}
+                onClick={() => handleExecuteImport(['resources', 'candidates', 'opportunities'])}
                 disabled={importing}
                 className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg hover:shadow-lg transition disabled:opacity-50"
               >
@@ -1348,6 +1374,14 @@ export default function BoondManagerV2Page() {
               >
                 <Briefcase className="w-4 h-4" />
                 Ressources seulement
+              </button>
+              <button
+                onClick={() => handleExecuteImport(['candidates'])}
+                disabled={importing}
+                className="flex items-center gap-2 px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition disabled:opacity-50"
+              >
+                <Users className="w-4 h-4" />
+                Candidats seulement
               </button>
               <button
                 onClick={() => handleExecuteImport(['opportunities'])}
@@ -1454,11 +1488,11 @@ export default function BoondManagerV2Page() {
           </li>
           <li className="flex items-start gap-2">
             <Check className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-            <span>Les <strong>Opportunites</strong> sont importees comme Offres d&apos;emploi avec missions et exigences</span>
+            <span>Les <strong>Candidats</strong> (pipeline de recrutement) sont synchronises dans la collection Candidats du site</span>
           </li>
           <li className="flex items-start gap-2">
-            <Info className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
-            <span>Les <strong>Candidats</strong> restent dans le pipeline BoondManager (non importes)</span>
+            <Check className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+            <span>Les <strong>Opportunites</strong> sont importees comme Offres d&apos;emploi avec missions et exigences</span>
           </li>
           <li className="flex items-start gap-2">
             <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />

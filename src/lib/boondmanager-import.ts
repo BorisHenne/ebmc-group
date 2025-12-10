@@ -3,17 +3,17 @@
  *
  * Maps BoondManager entities to site collections:
  * - Resources → Consultants (public profiles) + Users (consultant_cdi/freelance login)
+ * - Candidates → Candidates (recruitment pipeline)
  * - Opportunities → Jobs (public job listings)
- *
- * Note: Candidates stay in BoondManager recruitment pipeline.
- * When a candidate is hired (state=6), they become a Resource in BoondManager.
  */
 
 import { connectToDatabase } from '@/lib/mongodb'
 import { ObjectId } from 'mongodb'
 import {
   BoondResource,
+  BoondCandidate,
   BoondOpportunity,
+  CANDIDATE_STATES,
 } from './boondmanager-client'
 import { RoleType } from './roles'
 
@@ -87,6 +87,25 @@ export interface SiteJob {
   requirements: string[]
   requirementsEn: string[]
   active: boolean
+  createdAt: Date
+  updatedAt: Date
+}
+
+export interface SiteCandidate {
+  _id?: ObjectId
+  boondManagerId?: number  // Link to BoondManager
+  firstName: string
+  lastName: string
+  email?: string
+  phone?: string
+  title?: string
+  state: number
+  stateLabel: string
+  location?: string
+  skills: string[]
+  experience?: string
+  source?: string
+  notes?: string
   createdAt: Date
   updatedAt: Date
 }
@@ -177,6 +196,39 @@ export function mapResourceToUser(resource: BoondResource): Partial<SiteUser> {
     name,
     role,
     active,
+    updatedAt: new Date(),
+  }
+}
+
+/**
+ * Map BoondManager Candidate to Site Candidate
+ */
+export function mapCandidateToSiteCandidate(candidate: BoondCandidate): Partial<SiteCandidate> {
+  const attrs = candidate.attributes
+  const state = attrs.state ?? 0
+
+  // Extract skills from custom fields if available
+  const rawSkills = (attrs as Record<string, unknown>).skills as string[] | string | undefined
+  const skills: string[] = Array.isArray(rawSkills)
+    ? rawSkills
+    : typeof rawSkills === 'string'
+      ? rawSkills.split(',').map(s => s.trim()).filter(Boolean)
+      : []
+
+  return {
+    boondManagerId: candidate.id,
+    firstName: attrs.firstName || '',
+    lastName: attrs.lastName || '',
+    email: attrs.email,
+    phone: attrs.phone1,
+    title: attrs.title as string | undefined,
+    state,
+    stateLabel: CANDIDATE_STATES[state] || 'Inconnu',
+    location: attrs.town || attrs.country,
+    skills,
+    experience: attrs.experienceYears ? `${attrs.experienceYears} ans` : undefined,
+    source: (attrs as Record<string, unknown>).source as string | undefined,
+    notes: (attrs as Record<string, unknown>).notes as string | undefined,
     updatedAt: new Date(),
   }
 }
@@ -354,6 +406,53 @@ export class BoondImportService {
   }
 
   /**
+   * Import Candidates to Candidates collection
+   * Syncs the recruitment pipeline from BoondManager
+   */
+  async importCandidates(candidates: BoondCandidate[]): Promise<ImportResult> {
+    const result: ImportResult = {
+      entity: 'candidates → candidates',
+      total: candidates.length,
+      created: 0,
+      updated: 0,
+      skipped: 0,
+      errors: [],
+    }
+
+    const db = await connectToDatabase()
+    const collection = db.collection('candidates')
+
+    for (const candidate of candidates) {
+      try {
+        const candidateData = mapCandidateToSiteCandidate(candidate)
+
+        // Check if already exists by boondManagerId
+        const existing = await collection.findOne({ boondManagerId: candidate.id })
+
+        if (existing) {
+          // Update existing
+          await collection.updateOne(
+            { _id: existing._id },
+            { $set: candidateData }
+          )
+          result.updated++
+        } else {
+          // Create new
+          await collection.insertOne({
+            ...candidateData,
+            createdAt: new Date(),
+          } as SiteCandidate)
+          result.created++
+        }
+      } catch (error) {
+        result.errors.push(`Candidate ${candidate.id}: ${error instanceof Error ? error.message : 'Erreur inconnue'}`)
+      }
+    }
+
+    return result
+  }
+
+  /**
    * Import Opportunities to Jobs collection
    */
   async importOpportunities(opportunities: BoondOpportunity[]): Promise<ImportResult> {
@@ -401,12 +500,13 @@ export class BoondImportService {
 
   /**
    * Import all data from BoondManager
-   * - Resources → Consultants (public profiles)
-   * - Resources → Users (login accounts for consultants)
+   * - Resources → Consultants (public profiles) + Users (login accounts)
+   * - Candidates → Candidates (recruitment pipeline)
    * - Opportunities → Jobs (job listings)
    */
   async importAll(
     resources: BoondResource[],
+    candidates: BoondCandidate[],
     opportunities: BoondOpportunity[],
     options: { createUsersFromResources?: boolean } = {}
   ): Promise<ImportSummary> {
@@ -423,6 +523,12 @@ export class BoondImportService {
         const userResult = await this.importResourcesAsUsers(resources)
         results.push(userResult)
       }
+    }
+
+    // Import candidates to candidates collection
+    if (candidates.length > 0) {
+      const candidateResult = await this.importCandidates(candidates)
+      results.push(candidateResult)
     }
 
     // Import opportunities to jobs
@@ -448,14 +554,17 @@ export class BoondImportService {
    * Preview import without actually importing
    * Returns what would be created/updated
    * - Resources → Consultants + Users
+   * - Candidates → Candidates
    * - Opportunities → Jobs
    */
   async previewImport(
     resources: BoondResource[],
+    candidates: BoondCandidate[],
     opportunities: BoondOpportunity[]
   ): Promise<{
     consultants: { new: number; existing: number }
     users: { new: number; existing: number; skipped: number }
+    candidates: { new: number; existing: number }
     jobs: { new: number; existing: number }
   }> {
     const db = await connectToDatabase()
@@ -479,6 +588,15 @@ export class BoondImportService {
       ).map(u => u.boondManagerId)
     )
 
+    // Check candidates
+    const existingCandidateIds = new Set(
+      (await db.collection('candidates')
+        .find({ boondManagerId: { $in: candidates.map(c => c.id) } })
+        .project({ boondManagerId: 1 })
+        .toArray()
+      ).map(c => c.boondManagerId)
+    )
+
     // Check opportunities
     const existingJobIds = new Set(
       (await db.collection('jobs')
@@ -497,6 +615,10 @@ export class BoondImportService {
         new: resourcesWithEmail.filter(r => !existingUserIds.has(r.id)).length,
         existing: resourcesWithEmail.filter(r => existingUserIds.has(r.id)).length,
         skipped: resources.length - resourcesWithEmail.length, // Resources without email
+      },
+      candidates: {
+        new: candidates.filter(c => !existingCandidateIds.has(c.id)).length,
+        existing: candidates.filter(c => existingCandidateIds.has(c.id)).length,
       },
       jobs: {
         new: opportunities.filter(o => !existingJobIds.has(o.id)).length,
