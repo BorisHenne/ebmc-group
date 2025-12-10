@@ -123,7 +123,12 @@ export interface SiteCandidate {
 /**
  * Determine recruitment pipeline state from candidate's actions
  *
- * BoondManager ACTION_TYPES:
+ * This function analyzes the actions associated with a candidate and determines
+ * their position in the recruitment pipeline. It can use either:
+ * - Default action type IDs (fallback)
+ * - Action type labels from the BoondManager dictionary (more accurate)
+ *
+ * BoondManager ACTION_TYPES (default mapping):
  * 1: Positionnement
  * 2: Entretien client
  * 3: Entretien interne
@@ -147,8 +152,9 @@ export interface SiteCandidate {
  */
 export function determineRecruitmentStateFromActions(
   actions: BoondAction[],
-  candidateState?: number
-): { state: number; stateLabel: string } {
+  candidateState?: number,
+  actionTypesDict?: Map<number, string>
+): { state: number; stateLabel: string; matchedAction?: string } {
   // Default: Nouveau
   if (!actions || actions.length === 0) {
     return { state: 0, stateLabel: 'Nouveau' }
@@ -162,36 +168,53 @@ export function determineRecruitmentStateFromActions(
   })
 
   // Find the most significant action type
+  // We check both by ID and by label (if dictionary is provided) for robustness
   const actionTypes = sortedActions.map(a => a.attributes.typeOf)
+  const actionLabels = actionTypesDict
+    ? sortedActions.map(a => actionTypesDict.get(a.attributes.typeOf)?.toLowerCase() || '')
+    : []
 
-  // Check for "Démarrage" (type 5) = Embauché
-  if (actionTypes.includes(5)) {
-    return { state: 6, stateLabel: 'Embauché' }
+  // Helper to check if action type matches by ID or label
+  const hasAction = (ids: number[], labelPatterns: string[]): boolean => {
+    // Check by ID first
+    if (ids.some(id => actionTypes.includes(id))) return true
+    // Then check by label pattern (case insensitive)
+    if (actionLabels.length > 0) {
+      return labelPatterns.some(pattern =>
+        actionLabels.some(label => label.includes(pattern.toLowerCase()))
+      )
+    }
+    return false
   }
 
-  // Check for "Proposition" (type 4) = Proposition
-  if (actionTypes.includes(4)) {
-    return { state: 5, stateLabel: 'Proposition' }
+  // Check for "Démarrage" = Embauché
+  if (hasAction([5], ['démarrage', 'demarrage', 'start', 'embauche', 'hired'])) {
+    return { state: 6, stateLabel: 'Embauché', matchedAction: 'Démarrage' }
   }
 
-  // Check for "Entretien client" (type 2) or "Entretien interne" (type 3) = Entretien
-  if (actionTypes.includes(2) || actionTypes.includes(3)) {
-    return { state: 4, stateLabel: 'Entretien' }
+  // Check for "Proposition" = Proposition
+  if (hasAction([4], ['proposition', 'offre', 'offer'])) {
+    return { state: 5, stateLabel: 'Proposition', matchedAction: 'Proposition' }
   }
 
-  // Check for "Positionnement" (type 1) = En cours
-  if (actionTypes.includes(1)) {
-    return { state: 3, stateLabel: 'En cours' }
+  // Check for "Entretien client/interne" = Entretien
+  if (hasAction([2, 3], ['entretien', 'interview'])) {
+    return { state: 4, stateLabel: 'Entretien', matchedAction: 'Entretien' }
   }
 
-  // Check for "Appel" (type 6), "Email" (type 7), "Réunion" (type 8) = A qualifier
-  if (actionTypes.includes(6) || actionTypes.includes(7) || actionTypes.includes(8)) {
-    return { state: 1, stateLabel: 'A qualifier' }
+  // Check for "Positionnement" = En cours
+  if (hasAction([1], ['positionnement', 'positioning', 'position'])) {
+    return { state: 3, stateLabel: 'En cours', matchedAction: 'Positionnement' }
+  }
+
+  // Check for "Appel/Email/Réunion" = A qualifier
+  if (hasAction([6, 7, 8], ['appel', 'call', 'email', 'mail', 'réunion', 'reunion', 'meeting'])) {
+    return { state: 1, stateLabel: 'A qualifier', matchedAction: 'Contact' }
   }
 
   // Has some actions but nothing specific = Qualifié (at least they're being processed)
   if (sortedActions.length > 0) {
-    return { state: 2, stateLabel: 'Qualifié' }
+    return { state: 2, stateLabel: 'Qualifié', matchedAction: 'Autre action' }
   }
 
   // Default
