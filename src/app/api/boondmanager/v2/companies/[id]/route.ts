@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
-import { createBoondClient, BoondEnvironment } from '@/lib/boondmanager-client'
+import { createBoondClient, BoondEnvironment, BOOND_FEATURES } from '@/lib/boondmanager-client'
 
 function getEnvironment(request: NextRequest): BoondEnvironment {
   const env = request.nextUrl.searchParams.get('env') || 'sandbox'
@@ -32,6 +32,16 @@ export async function GET(
         result = await client.getCompanyInformation(companyId)
         break
       case 'contacts':
+        // Return empty when contacts API is disabled
+        if (!BOOND_FEATURES.CONTACTS_ENABLED) {
+          return NextResponse.json({
+            success: true,
+            environment,
+            data: [],
+            disabled: true,
+            message: 'API Contacts desactivee'
+          })
+        }
         result = await client.getCompanyContacts(companyId)
         break
       case 'opportunities':
