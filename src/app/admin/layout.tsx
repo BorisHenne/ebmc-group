@@ -11,7 +11,6 @@ import {
   Users,
   UserCheck,
   Briefcase,
-  MessageSquare,
   Settings,
   LogOut,
   Menu,
@@ -31,7 +30,8 @@ import {
   Kanban,
   Cloud,
   Layers,
-  LucideIcon
+  LucideIcon,
+  UserPlus
 } from 'lucide-react'
 import { LightBackground } from '@/components/ui/TechBackground'
 import { hasPermission, RolePermissions, ROLE_LABELS, ROLE_COLORS, RoleType } from '@/lib/roles'
@@ -81,8 +81,8 @@ const menuSections: MenuSection[] = [
     title: 'Donnees',
     items: [
       { href: '/admin/jobs', icon: Briefcase, label: 'Offres', color: 'from-blue-500 to-indigo-500', permission: 'jobs' },
+      { href: '/admin/candidats', icon: UserPlus, label: 'Candidats', color: 'from-orange-500 to-amber-500', permission: 'candidates' },
       { href: '/admin/ressources', icon: Users, label: 'Ressources', color: 'from-purple-500 to-pink-500', permission: 'consultants' },
-      { href: '/admin/messages', icon: MessageSquare, label: 'Messages', color: 'from-green-500 to-emerald-500', permission: 'messages' },
     ]
   },
   {
