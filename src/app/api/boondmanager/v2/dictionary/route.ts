@@ -39,6 +39,11 @@ export async function GET(request: NextRequest) {
     const client = createBoondClient(environment)
     const dictionary = await client.getDictionary()
 
+    // Debug: Log the raw dictionary structure
+    console.log('[Dictionary API] Raw response keys:', Object.keys(dictionary || {}))
+    console.log('[Dictionary API] dictionary.data keys:', Object.keys(dictionary?.data || {}))
+    console.log('[Dictionary API] dictionary.data.attributes keys:', Object.keys(dictionary?.data?.attributes || {}))
+
     // Update cache
     cachedDictionary = {
       data: dictionary,
@@ -47,8 +52,28 @@ export async function GET(request: NextRequest) {
     }
 
     // Normalize dictionary structure for frontend
-    // Handle both { data: { attributes: {...} } } and direct { candidateStates: [...] } formats
-    const attributes = dictionary?.data?.attributes || dictionary || {}
+    // BoondManager API returns: { data: { type, id, attributes: {...} } }
+    // We need to extract attributes and send them to frontend
+    let attributes: Record<string, unknown> = {}
+
+    if (dictionary?.data?.attributes) {
+      // Standard JSON:API format
+      attributes = dictionary.data.attributes
+    } else if (dictionary?.data && typeof dictionary.data === 'object') {
+      // Check if data itself contains the states directly
+      const dataKeys = Object.keys(dictionary.data)
+      if (dataKeys.some(k => k.includes('States') || k.includes('Types'))) {
+        attributes = dictionary.data as Record<string, unknown>
+      }
+    } else if (dictionary && typeof dictionary === 'object') {
+      // Direct format - dictionary itself contains the states
+      const dictKeys = Object.keys(dictionary)
+      if (dictKeys.some(k => k.includes('States') || k.includes('Types'))) {
+        attributes = dictionary as unknown as Record<string, unknown>
+      }
+    }
+
+    console.log('[Dictionary API] Final attributes keys:', Object.keys(attributes))
 
     return NextResponse.json({
       success: true,
