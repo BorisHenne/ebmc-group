@@ -9,7 +9,8 @@ import {
   Shield, ShieldOff, Download, Upload, Sparkles, AlertTriangle, Info,
   Copy, CheckCircle, XCircle, FileJson, FileSpreadsheet, Trash, ArrowRight,
   BarChart3, Globe, MapPin, Book, ChevronDown, ChevronUp, FileText, ExternalLink,
-  DatabaseBackup, Database, Bug, Play, Terminal
+  DatabaseBackup, Database, Bug, Play, Terminal,
+  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight
 } from 'lucide-react'
 
 // Types
@@ -117,6 +118,17 @@ interface DebugResults {
   }
 }
 
+interface Pagination {
+  page: number
+  limit: number
+  total: number
+  totalPages: number
+  hasNextPage: boolean
+  hasPrevPage: boolean
+}
+
+const ITEMS_PER_PAGE = 50
+
 // State labels
 const STATE_LABELS = {
   candidates: { 0: 'Nouveau', 1: 'A qualifier', 2: 'Qualifie', 3: 'En cours', 4: 'Entretien', 5: 'Proposition', 6: 'Embauche', 7: 'Refuse', 8: 'Archive' },
@@ -158,6 +170,16 @@ export default function BoondManagerV2Page() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
+
+  // Pagination
+  const [pagination, setPagination] = useState<Pagination>({
+    page: 1,
+    limit: ITEMS_PER_PAGE,
+    total: 0,
+    totalPages: 0,
+    hasNextPage: false,
+    hasPrevPage: false
+  })
 
   // Data
   const [stats, setStats] = useState<DashboardStats | null>(null)
@@ -245,8 +267,8 @@ export default function BoondManagerV2Page() {
 
   const canWrite = environment === 'sandbox'
 
-  // Fetch data
-  const fetchData = useCallback(async () => {
+  // Fetch data with pagination
+  const fetchData = useCallback(async (page = 1) => {
     setLoading(true)
     setError(null)
 
@@ -274,8 +296,10 @@ export default function BoondManagerV2Page() {
         setLoading(false)
         return
       } else {
+        // Data tabs with pagination
         const searchParam = search ? `&search=${encodeURIComponent(search)}` : ''
-        const res = await fetch(`/api/boondmanager/v2/${activeTab}?env=${environment}${searchParam}&_t=${Date.now()}`, {
+        const paginationParams = `&page=${page}&limit=${ITEMS_PER_PAGE}`
+        const res = await fetch(`/api/boondmanager/v2/${activeTab}?env=${environment}${searchParam}${paginationParams}&_t=${Date.now()}`, {
           credentials: 'include',
           cache: 'no-store'
         })
@@ -283,6 +307,17 @@ export default function BoondManagerV2Page() {
         const data = await res.json()
         if (data.success) {
           setItems(data.data || [])
+          // Update pagination from meta
+          const total = data.meta?.totals?.rows || data.data?.length || 0
+          const totalPages = Math.ceil(total / ITEMS_PER_PAGE)
+          setPagination({
+            page,
+            limit: ITEMS_PER_PAGE,
+            total,
+            totalPages,
+            hasNextPage: page < totalPages,
+            hasPrevPage: page > 1
+          })
         } else {
           throw new Error(data.error || 'Erreur inconnue')
         }
@@ -294,9 +329,19 @@ export default function BoondManagerV2Page() {
     }
   }, [activeTab, environment, search])
 
+  // Reset pagination when changing tab or search
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
-    fetchData()
-  }, [fetchData])
+    setPagination(prev => ({ ...prev, page: 1 }))
+    fetchData(1)
+  }, [activeTab, environment, search])
+
+  // Go to specific page
+  const goToPage = (page: number) => {
+    if (page >= 1 && page <= pagination.totalPages) {
+      fetchData(page)
+    }
+  }
 
   // Sync Production to Sandbox
   const handleSync = async () => {
@@ -2625,14 +2670,99 @@ export default function BoondManagerV2Page() {
       ) : activeTab === 'debug' ? (
         renderDebugTab()
       ) : (
-        <div className="grid gap-4">
-          {items.map((item) => renderListItem(item))}
-          {items.length === 0 && (
-            <div className="text-center py-12 text-slate-500 dark:text-slate-400">
-              Aucun element trouve
+        <>
+          <div className="grid gap-4">
+            {items.map((item) => renderListItem(item))}
+            {items.length === 0 && (
+              <div className="text-center py-12 text-slate-500 dark:text-slate-400">
+                Aucun element trouve
+              </div>
+            )}
+          </div>
+
+          {/* Pagination */}
+          {!loading && pagination.totalPages > 1 && (
+            <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="text-sm text-gray-500 dark:text-gray-400">
+                Affichage de {((pagination.page - 1) * pagination.limit) + 1} à {Math.min(pagination.page * pagination.limit, pagination.total)} sur {pagination.total} éléments
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => goToPage(1)}
+                  disabled={!pagination.hasPrevPage}
+                  className="p-2 rounded-lg border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                  title="Première page"
+                >
+                  <ChevronsLeft className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                </button>
+                <button
+                  onClick={() => goToPage(pagination.page - 1)}
+                  disabled={!pagination.hasPrevPage}
+                  className="p-2 rounded-lg border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                  title="Page précédente"
+                >
+                  <ChevronLeft className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                </button>
+
+                <div className="flex items-center gap-1">
+                  {/* Generate page numbers */}
+                  {(() => {
+                    const pages: (number | string)[] = []
+                    const current = pagination.page
+                    const total = pagination.totalPages
+
+                    if (total <= 7) {
+                      for (let i = 1; i <= total; i++) pages.push(i)
+                    } else {
+                      pages.push(1)
+                      if (current > 3) pages.push('...')
+                      for (let i = Math.max(2, current - 1); i <= Math.min(total - 1, current + 1); i++) {
+                        pages.push(i)
+                      }
+                      if (current < total - 2) pages.push('...')
+                      pages.push(total)
+                    }
+
+                    return pages.map((p, idx) => (
+                      typeof p === 'number' ? (
+                        <button
+                          key={idx}
+                          onClick={() => goToPage(p)}
+                          className={`min-w-[40px] h-10 rounded-lg font-medium transition ${
+                            p === current
+                              ? 'bg-gradient-to-r from-ebmc-turquoise to-cyan-500 text-white'
+                              : 'border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 text-gray-600 dark:text-gray-400'
+                          }`}
+                        >
+                          {p}
+                        </button>
+                      ) : (
+                        <span key={idx} className="px-2 text-gray-400">...</span>
+                      )
+                    ))
+                  })()}
+                </div>
+
+                <button
+                  onClick={() => goToPage(pagination.page + 1)}
+                  disabled={!pagination.hasNextPage}
+                  className="p-2 rounded-lg border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                  title="Page suivante"
+                >
+                  <ChevronRight className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                </button>
+                <button
+                  onClick={() => goToPage(pagination.totalPages)}
+                  disabled={!pagination.hasNextPage}
+                  className="p-2 rounded-lg border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                  title="Dernière page"
+                >
+                  <ChevronsRight className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                </button>
+              </div>
             </div>
           )}
-        </div>
+        </>
       )}
 
       {/* Modal */}
