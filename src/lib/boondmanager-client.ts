@@ -1,6 +1,6 @@
 // BoondManager API Client - Dual Environment (Production & Sandbox)
 // Documentation: https://doc.boondmanager.com/api-externe/
-// Authentication: JWT App (X-Jwt-App-BoondManager header)
+// Authentication: JWT Client (X-Jwt-Client-BoondManager header)
 
 import { SignJWT } from 'jose'
 
@@ -515,7 +515,7 @@ export const BOOND_CREDENTIALS = {
     password: 'Henne2024@!',
     userToken: '322e65626d635f73616e64626f78',
     clientToken: '65626d635f73616e64626f78',
-    clientKey: '76466d84db825e33c801',
+    clientKey: '826cc16cca2d6bae6fef',
   },
 }
 
@@ -541,11 +541,18 @@ export class BoondManagerClient {
   private async generateJWT(): Promise<string> {
     const secret = new TextEncoder().encode(this.credentials.clientKey)
 
+    // Decode hex tokens to UTF-8 strings as BoondManager expects
+    const decodedClientToken = Buffer.from(this.credentials.clientToken, 'hex').toString('utf-8')
+    const decodedUserToken = Buffer.from(this.credentials.userToken, 'hex').toString('utf-8')
+
+    console.log(`[BoondManager] JWT clientToken (decoded): ${decodedClientToken}`)
+    console.log(`[BoondManager] JWT userToken (decoded): ${decodedUserToken}`)
+
     const jwt = await new SignJWT({
-      // clientToken identifies the application (required for X-Jwt-App-BoondManager)
-      clientToken: this.credentials.clientToken,
-      // userToken identifies the user/space (LMGC or LMGC-SANDBOX)
-      userToken: this.credentials.userToken,
+      // clientToken identifies the application (decoded from hex)
+      clientToken: decodedClientToken,
+      // userToken identifies the user/space (decoded from hex)
+      userToken: decodedUserToken,
     })
       .setProtectedHeader({ alg: 'HS256' })
       .setIssuedAt()
@@ -599,8 +606,8 @@ export class BoondManagerClient {
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        // JWT App authentication - identifies the space (LMGC or LMGC-SANDBOX)
-        'X-Jwt-App-BoondManager': jwtToken,
+        // JWT Client authentication - identifies the space (LMGC or LMGC-SANDBOX)
+        'X-Jwt-Client-BoondManager': jwtToken,
         ...options.headers,
       },
       // Disable Next.js cache for API calls
@@ -1327,7 +1334,7 @@ export class BoondManagerClient {
 
     const response = await fetch(`${this.baseUrl}/documents/${documentId}`, {
       headers: {
-        'X-Jwt-App-BoondManager': jwtToken,
+        'X-Jwt-Client-BoondManager': jwtToken,
       },
     })
 
@@ -1420,7 +1427,7 @@ export class BoondManagerClient {
     const response = await fetch(`${this.baseUrl}/documents`, {
       method: 'POST',
       headers: {
-        'X-Jwt-App-BoondManager': jwtToken,
+        'X-Jwt-Client-BoondManager': jwtToken,
       },
       body: formData,
     })
