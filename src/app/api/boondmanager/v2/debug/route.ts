@@ -5,7 +5,7 @@ import {
   BOOND_BASE_URL,
   BoondEnvironment,
 } from '@/lib/boondmanager-client'
-import { SignJWT } from 'jose'
+import { SignJWT, decodeJwt } from 'jose'
 
 // Force dynamic rendering - no caching
 export const dynamic = 'force-dynamic'
@@ -26,17 +26,27 @@ export async function GET(request: NextRequest) {
   // Test 1: Verify credentials are different
   const test1 = {
     name: 'Credentials Difference',
-    production: {
-      userToken: BOOND_CREDENTIALS.production.userToken,
-      clientToken: BOOND_CREDENTIALS.production.clientToken,
-      clientKey: BOOND_CREDENTIALS.production.clientKey.substring(0, 8) + '...',
+    data: {
+      production: {
+        userToken: BOOND_CREDENTIALS.production.userToken,
+        userTokenDecoded: Buffer.from(BOOND_CREDENTIALS.production.userToken, 'hex').toString('utf-8'),
+        clientToken: BOOND_CREDENTIALS.production.clientToken,
+        clientTokenDecoded: Buffer.from(BOOND_CREDENTIALS.production.clientToken, 'hex').toString('utf-8'),
+        clientKey: BOOND_CREDENTIALS.production.clientKey,
+      },
+      sandbox: {
+        userToken: BOOND_CREDENTIALS.sandbox.userToken,
+        userTokenDecoded: Buffer.from(BOOND_CREDENTIALS.sandbox.userToken, 'hex').toString('utf-8'),
+        clientToken: BOOND_CREDENTIALS.sandbox.clientToken,
+        clientTokenDecoded: Buffer.from(BOOND_CREDENTIALS.sandbox.clientToken, 'hex').toString('utf-8'),
+        clientKey: BOOND_CREDENTIALS.sandbox.clientKey,
+      },
+      comparison: {
+        userTokensDifferent: BOOND_CREDENTIALS.production.userToken !== BOOND_CREDENTIALS.sandbox.userToken,
+        clientTokensDifferent: BOOND_CREDENTIALS.production.clientToken !== BOOND_CREDENTIALS.sandbox.clientToken,
+        clientKeysDifferent: BOOND_CREDENTIALS.production.clientKey !== BOOND_CREDENTIALS.sandbox.clientKey,
+      }
     },
-    sandbox: {
-      userToken: BOOND_CREDENTIALS.sandbox.userToken,
-      clientToken: BOOND_CREDENTIALS.sandbox.clientToken,
-      clientKey: BOOND_CREDENTIALS.sandbox.clientKey.substring(0, 8) + '...',
-    },
-    tokensAreDifferent: BOOND_CREDENTIALS.production.userToken !== BOOND_CREDENTIALS.sandbox.userToken,
     passed: BOOND_CREDENTIALS.production.userToken !== BOOND_CREDENTIALS.sandbox.userToken,
   }
   results.tests = [...(results.tests as unknown[]), test1]
@@ -60,91 +70,157 @@ export async function GET(request: NextRequest) {
   const prodJWT = await generateJWT('production')
   const sandboxJWT = await generateJWT('sandbox')
 
+  // Decode JWTs to show payload
+  const prodPayload = decodeJwt(prodJWT)
+  const sandboxPayload = decodeJwt(sandboxJWT)
+
   const test2 = {
     name: 'JWT Generation',
-    productionJWT: prodJWT.substring(0, 50) + '...',
-    sandboxJWT: sandboxJWT.substring(0, 50) + '...',
-    jwtsAreDifferent: prodJWT !== sandboxJWT,
+    data: {
+      production: {
+        jwt: prodJWT,
+        payload: prodPayload,
+        header: { alg: 'HS256' },
+      },
+      sandbox: {
+        jwt: sandboxJWT,
+        payload: sandboxPayload,
+        header: { alg: 'HS256' },
+      },
+      comparison: {
+        jwtsAreDifferent: prodJWT !== sandboxJWT,
+        payloadsAreDifferent: JSON.stringify(prodPayload) !== JSON.stringify(sandboxPayload),
+      }
+    },
     passed: prodJWT !== sandboxJWT,
   }
   results.tests = [...(results.tests as unknown[]), test2]
 
   // Test 3: Make actual API calls to both environments and compare
-  const fetchFromBoond = async (env: BoondEnvironment) => {
-    const creds = BOOND_CREDENTIALS[env]
-    const secret = new TextEncoder().encode(creds.clientKey)
-
-    const jwt = await new SignJWT({
-      userToken: creds.userToken,
-    })
-      .setProtectedHeader({ alg: 'HS256' })
-      .setIssuedAt()
-      .setExpirationTime('1h')
-      .sign(secret)
+  const fetchFromBoond = async (env: BoondEnvironment, jwt: string) => {
+    const requestUrl = `${BOOND_BASE_URL}/candidates?maxResults=5`
+    const requestHeaders = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'X-Jwt-App-BoondManager': jwt,
+    }
 
     try {
-      const response = await fetch(`${BOOND_BASE_URL}/candidates?maxResults=1`, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'X-Jwt-App-BoondManager': jwt,
-        },
+      const startTime = Date.now()
+      const response = await fetch(requestUrl, {
+        headers: requestHeaders,
         cache: 'no-store',
       })
+      const endTime = Date.now()
 
-      const status = response.status
-      const headers: Record<string, string> = {}
+      const responseHeaders: Record<string, string> = {}
       response.headers.forEach((value, key) => {
-        headers[key] = value
+        responseHeaders[key] = value
       })
 
       let data = null
-      let totalRows = null
+      let rawText = null
       if (response.ok) {
-        data = await response.json()
-        totalRows = data?.meta?.totals?.rows
+        rawText = await response.text()
+        try {
+          data = JSON.parse(rawText)
+        } catch {
+          data = rawText
+        }
       } else {
-        data = await response.text()
+        rawText = await response.text()
+        data = rawText
       }
 
+      // Extract useful info
+      const totalRows = data?.meta?.totals?.rows
+      const firstFewIds = data?.data?.slice(0, 5).map((item: { id: number }) => item.id)
+
       return {
-        status,
-        ok: response.ok,
-        totalRows,
-        responseHeaders: headers,
-        error: response.ok ? null : data,
+        request: {
+          url: requestUrl,
+          method: 'GET',
+          headers: requestHeaders,
+        },
+        response: {
+          status: response.status,
+          statusText: response.statusText,
+          ok: response.ok,
+          headers: responseHeaders,
+          timing: `${endTime - startTime}ms`,
+        },
+        data: {
+          totalRows,
+          firstFewIds,
+          meta: data?.meta,
+          sampleData: data?.data?.slice(0, 2),
+        },
+        error: response.ok ? null : rawText,
       }
     } catch (error) {
       return {
-        status: 0,
-        ok: false,
+        request: {
+          url: requestUrl,
+          method: 'GET',
+          headers: requestHeaders,
+        },
+        response: {
+          status: 0,
+          ok: false,
+        },
         error: error instanceof Error ? error.message : 'Unknown error',
       }
     }
   }
 
-  const prodResult = await fetchFromBoond('production')
-  const sandboxResult = await fetchFromBoond('sandbox')
+  const prodResult = await fetchFromBoond('production', prodJWT)
+  const sandboxResult = await fetchFromBoond('sandbox', sandboxJWT)
 
   const test3 = {
     name: 'API Response Comparison',
-    production: prodResult,
-    sandbox: sandboxResult,
-    totalRowsAreDifferent: prodResult.totalRows !== sandboxResult.totalRows,
-    passed: prodResult.ok && sandboxResult.ok && prodResult.totalRows !== sandboxResult.totalRows,
-    issue: prodResult.totalRows === sandboxResult.totalRows
-      ? `SAME DATA! Both return ${prodResult.totalRows} rows - JWT may not be switching spaces`
+    data: {
+      production: prodResult,
+      sandbox: sandboxResult,
+      comparison: {
+        totalRowsAreDifferent: prodResult.data?.totalRows !== sandboxResult.data?.totalRows,
+        productionRows: prodResult.data?.totalRows,
+        sandboxRows: sandboxResult.data?.totalRows,
+        sameIds: JSON.stringify(prodResult.data?.firstFewIds) === JSON.stringify(sandboxResult.data?.firstFewIds),
+      }
+    },
+    passed: prodResult.response?.ok && sandboxResult.response?.ok && prodResult.data?.totalRows !== sandboxResult.data?.totalRows,
+    issue: prodResult.data?.totalRows === sandboxResult.data?.totalRows
+      ? `PROBLEME: Les deux environnements retournent ${prodResult.data?.totalRows} lignes avec les memes IDs - Le JWT ne change pas l'espace`
       : null,
   }
   results.tests = [...(results.tests as unknown[]), test3]
 
-  // Test 4: Check if the userToken is being used in the right header
+  // Test 4: Check header configuration and alternatives
   const test4 = {
     name: 'Header Configuration',
-    headerName: 'X-Jwt-App-BoondManager',
-    productionUserToken: BOOND_CREDENTIALS.production.userToken,
-    sandboxUserToken: BOOND_CREDENTIALS.sandbox.userToken,
-    note: 'JWT payload contains userToken which should identify the space (LMGC vs LMGC-SANDBOX)',
+    data: {
+      currentMethod: {
+        headerName: 'X-Jwt-App-BoondManager',
+        description: 'JWT App authentication - JWT signe avec clientKey, contient userToken',
+      },
+      alternativeMethods: [
+        {
+          headerName: 'X-Jwt-Client-BoondManager',
+          description: 'JWT Client authentication - peut necessiter un format different',
+        },
+        {
+          headerName: 'Authorization: Basic',
+          description: 'Basic Auth - username:password en base64',
+        },
+      ],
+      tokenAnalysis: {
+        productionUserToken: BOOND_CREDENTIALS.production.userToken,
+        productionUserTokenDecoded: Buffer.from(BOOND_CREDENTIALS.production.userToken, 'hex').toString('utf-8'),
+        sandboxUserToken: BOOND_CREDENTIALS.sandbox.userToken,
+        sandboxUserTokenDecoded: Buffer.from(BOOND_CREDENTIALS.sandbox.userToken, 'hex').toString('utf-8'),
+        note: 'Le userToken decode devrait identifier l\'espace (ex: "322.ebmc" pour prod, "2.ebmc_sandbox" pour sandbox)',
+      },
+    },
   }
   results.tests = [...(results.tests as unknown[]), test4]
 
@@ -158,7 +234,7 @@ export async function GET(request: NextRequest) {
   }
 
   // Diagnosis
-  if (prodResult.totalRows === sandboxResult.totalRows) {
+  if (prodResult.data?.totalRows === sandboxResult.data?.totalRows) {
     results.diagnosis = {
       problem: 'Sandbox returns same data as production',
       possibleCauses: [
