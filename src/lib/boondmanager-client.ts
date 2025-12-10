@@ -636,7 +636,19 @@ export class BoondManagerClient {
       return {} as T
     }
 
-    return JSON.parse(text)
+    // Check if response is HTML instead of JSON (indicates auth issue or redirect)
+    if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
+      console.error(`[BoondManager] Received HTML instead of JSON for ${endpoint}`)
+      console.error(`[BoondManager] First 500 chars: ${text.substring(0, 500)}`)
+      throw new Error(`BoondManager returned HTML instead of JSON - possible auth issue or redirect. Status: ${response.status}`)
+    }
+
+    try {
+      return JSON.parse(text)
+    } catch (parseError) {
+      console.error(`[BoondManager] Failed to parse JSON for ${endpoint}:`, text.substring(0, 500))
+      throw new Error(`BoondManager returned invalid JSON: ${text.substring(0, 200)}...`)
+    }
   }
 
   // Get current environment
