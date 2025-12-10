@@ -106,6 +106,7 @@ export async function GET(request: NextRequest) {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
       'X-Jwt-App-BoondManager': jwt,
+      'x-Debug-Boondmanager': 'true',  // Enable debug mode for more error details
     }
 
     try {
