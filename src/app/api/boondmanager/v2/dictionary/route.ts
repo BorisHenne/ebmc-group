@@ -25,11 +25,13 @@ export async function GET(request: NextRequest) {
       cachedDictionary.environment === environment &&
       now - cachedDictionary.timestamp < CACHE_DURATION
     ) {
+      // Normalize cached dictionary structure for frontend
+      const cachedAttributes = cachedDictionary.data?.data?.attributes || cachedDictionary.data || {}
       return NextResponse.json({
         success: true,
         cached: true,
         environment,
-        data: cachedDictionary.data
+        data: cachedAttributes
       })
     }
 
@@ -44,11 +46,15 @@ export async function GET(request: NextRequest) {
       environment
     }
 
+    // Normalize dictionary structure for frontend
+    // Handle both { data: { attributes: {...} } } and direct { candidateStates: [...] } formats
+    const attributes = dictionary?.data?.attributes || dictionary || {}
+
     return NextResponse.json({
       success: true,
       cached: false,
       environment,
-      data: dictionary
+      data: attributes
     })
 
   } catch (error) {

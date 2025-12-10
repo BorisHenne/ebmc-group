@@ -259,7 +259,8 @@ export default function BoondManagerV2Page() {
       const data = await res.json()
 
       if (data.success) {
-        setDictionary(data.data?.data?.attributes || null)
+        // data.data now contains the normalized dictionary attributes directly
+        setDictionary(data.data || null)
       } else {
         throw new Error(data.error)
       }
