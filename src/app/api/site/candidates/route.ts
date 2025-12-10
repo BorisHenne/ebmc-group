@@ -4,8 +4,20 @@ import { connectToDatabase } from '@/lib/mongodb'
 import { getCandidateStates } from '@/lib/boondmanager-dictionary'
 import { sanitizeDocument } from '@/lib/sanitize'
 import { hasPermission } from '@/lib/roles'
-import { createBoondClient, BoondAction } from '@/lib/boondmanager-client'
+import { createBoondClient, BoondAction, BoondDictionaryItem } from '@/lib/boondmanager-client'
 import { determineRecruitmentStateFromActions } from '@/lib/boondmanager-import'
+
+// Helper to convert dictionary items to a map
+function dictionaryToMap(items: BoondDictionaryItem[] | undefined): Map<number, string> {
+  const map = new Map<number, string>()
+  if (items) {
+    for (const item of items) {
+      const id = typeof item.id === 'string' ? parseInt(item.id, 10) : item.id
+      map.set(id, item.value)
+    }
+  }
+  return map
+}
 
 /**
  * Map stateLabel string to state number
@@ -165,6 +177,19 @@ export async function POST(request: NextRequest) {
       console.log('[Fix States] Using BoondManager actions to determine recruitment state')
       const client = createBoondClient('production')
 
+      // First, fetch the dictionary to get real states and action types
+      let boondCandidateStates: Map<number, string> = new Map()
+      let boondActionTypes: Map<number, string> = new Map()
+      try {
+        const dictionary = await client.getDictionary()
+        boondCandidateStates = dictionaryToMap(dictionary.data.attributes.candidateStates)
+        boondActionTypes = dictionaryToMap(dictionary.data.attributes.actionTypes)
+        console.log('[Fix States] BoondManager candidateStates:', Object.fromEntries(boondCandidateStates))
+        console.log('[Fix States] BoondManager actionTypes:', Object.fromEntries(boondActionTypes))
+      } catch (dictError) {
+        console.warn('[Fix States] Could not fetch dictionary:', dictError)
+      }
+
       // Process candidates with boondManagerId in batches
       const candidatesWithBoondId = candidates.filter(c => c.boondManagerId)
       console.log(`[Fix States] Processing ${candidatesWithBoondId.length} candidates with BoondManager ID`)
@@ -192,9 +217,10 @@ export async function POST(request: NextRequest) {
         // Process results
         for (const { candidate, actions } of results) {
           const currentState = candidate.state as number
-          const { state: newState, stateLabel: newLabel } = determineRecruitmentStateFromActions(
+          const { state: newState, stateLabel: newLabel, matchedAction } = determineRecruitmentStateFromActions(
             actions,
-            currentState
+            currentState,
+            boondActionTypes // Pass the dictionary for better matching
           )
 
           if (newState !== currentState) {
@@ -205,7 +231,7 @@ export async function POST(request: NextRequest) {
               oldState: currentState,
               newState,
               stateLabel: newLabel,
-              source: `${actions.length} actions BoondManager`,
+              source: `${actions.length} actions BoondManager${matchedAction ? ` (${matchedAction})` : ''}`,
             })
 
             if (!dryRun) {
@@ -262,7 +288,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({
+    // Build response with dictionary info if available
+    const response: Record<string, unknown> = {
       success: true,
       dryRun,
       mode: useBoondManagerActions ? 'boondManagerActions' : 'stateLabel',
@@ -272,7 +299,9 @@ export async function POST(request: NextRequest) {
       message: dryRun
         ? `Simulation: ${updates.length} candidats seraient mis à jour`
         : `${updates.length} candidats ont été corrigés`,
-    })
+    }
+
+    return NextResponse.json(response)
 
   } catch (error) {
     console.error('Error fixing candidate states:', error)
