@@ -81,7 +81,7 @@ const menuSections: MenuSection[] = [
     title: 'Donnees',
     items: [
       { href: '/admin/jobs', icon: Briefcase, label: 'Offres', color: 'from-blue-500 to-indigo-500', permission: 'jobs' },
-      { href: '/admin/consultants', icon: UserCheck, label: 'Consultants', color: 'from-purple-500 to-pink-500', permission: 'consultants' },
+      { href: '/admin/ressources', icon: Users, label: 'Ressources', color: 'from-purple-500 to-pink-500', permission: 'consultants' },
       { href: '/admin/messages', icon: MessageSquare, label: 'Messages', color: 'from-green-500 to-emerald-500', permission: 'messages' },
     ]
   },

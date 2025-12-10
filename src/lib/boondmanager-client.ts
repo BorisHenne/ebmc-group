@@ -570,6 +570,8 @@ export class BoondManagerClient {
         'Authorization': this.authHeader,
         'Content-Type': 'application/json',
         'Accept': 'application/json',
+        'X-Boondmanager-Token': this.credentials.clientToken,
+        'X-Boondmanager-Client-Key': this.credentials.clientKey,
         ...options.headers,
       },
     })
