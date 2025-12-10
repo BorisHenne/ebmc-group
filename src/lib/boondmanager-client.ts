@@ -513,7 +513,7 @@ export const BOOND_CREDENTIALS = {
   sandbox: {
     username: 'b.henne@ebmc.eu',
     password: 'Henne2024@!',
-    userToken: '322e65626d635f73616e616e64626f78',
+    userToken: '322e65626d635f73616e64626f78',
     clientToken: '65626d635f73616e64626f78',
     clientKey: '826cc16cca2d6bae6fef',
   },
