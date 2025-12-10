@@ -83,11 +83,14 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json().catch(() => ({}))
     const {
-      importResources = true,
-      importCandidates = true,
-      importOpportunities = true,
-      createAllCandidatesAsUsers = false, // Only import hired candidates by default
+      entities = ['resources', 'candidates', 'opportunities'],
+      options = {},
     } = body
+
+    const importResources = entities.includes('resources')
+    const importCandidates = entities.includes('candidates')
+    const importOpportunities = entities.includes('opportunities')
+    const createAllCandidatesAsUsers = options.createAllCandidatesAsUsers || false
 
     const client = createBoondClient(environment)
 
@@ -105,7 +108,7 @@ export async function POST(request: NextRequest) {
     ])
 
     // Execute import
-    const summary = await boondImportService.importAll(
+    const result = await boondImportService.importAll(
       resources,
       candidates,
       opportunities,
@@ -115,8 +118,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       environment,
-      summary,
-      message: `Import termine: ${summary.totalCreated} crees, ${summary.totalUpdated} mis a jour, ${summary.totalSkipped} ignores`,
+      result,
+      message: `Import termine: ${result.totalCreated} crees, ${result.totalUpdated} mis a jour, ${result.totalSkipped} ignores`,
     })
 
   } catch (error) {
