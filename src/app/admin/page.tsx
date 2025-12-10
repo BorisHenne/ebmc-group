@@ -1,25 +1,40 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
-import { motion } from 'framer-motion'
+import { useEffect, useState, useCallback } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import {
   Users,
-  TrendingUp,
   Briefcase,
   UserCheck,
-  ArrowRight,
-  ArrowUpRight,
-  ArrowDownRight,
-  Target,
-  Euro,
+  Mail,
+  Database,
+  Activity,
+  Server,
   Clock,
-  Search,
+  RefreshCw,
+  TrendingUp,
+  TrendingDown,
+  AlertCircle,
+  CheckCircle,
+  Zap,
+  HardDrive,
+  Layers,
+  FileText,
+  Calendar,
+  Settings,
+  ExternalLink,
+  BarChart3,
+  PieChart as PieChartIcon,
+  GitBranch,
+  Webhook,
+  Key,
+  ChevronRight,
+  Eye,
   Building2,
-  Award,
-  BarChart3
+  UserPlus,
+  MessageSquare,
 } from 'lucide-react'
-import { TextGradient } from '@/components/ui/aceternity'
 import {
   AreaChart,
   Area,
@@ -32,515 +47,738 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  ResponsiveContainer
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  RadialBarChart,
+  RadialBar,
+  Legend,
 } from 'recharts'
-import {
-  generateDemoCandidates,
-  getCandidateCountsByStatus,
-  getAverageTJM,
-  STATUS_LABELS,
-  STATUS_COLORS,
-  SAP_MODULES,
-  CandidateStatus
-} from '@/types/candidate'
 
-// Types for dashboard data
-interface TeamMember {
-  id: string
-  name: string
-  role: 'sourceur' | 'commercial'
-  avatar?: string
-  stats: {
-    candidatesSourced?: number
-    candidatesPlaced?: number
-    conversionRate?: number
-    opportunities?: number
-    dealsWon?: number
-    revenue?: number
-    avgDealSize?: number
-  }
-}
-
+// Types
 interface DashboardStats {
-  totalCandidates: number
-  candidatesThisMonth: number
-  candidatesGrowth: number
-  totalConsultants: number
-  consultantsActive: number
-  totalOpportunities: number
-  opportunitiesWon: number
-  conversionRate: number
-  avgTJM: number
-  totalRevenue: number
-  revenueGrowth: number
+  overview: {
+    totalUsers: number
+    totalCandidates: number
+    totalJobs: number
+    activeJobs: number
+    totalConsultants: number
+    totalMessages: number
+    totalTimesheets: number
+    totalAbsences: number
+    totalWebhooks: number
+    totalApiTokens: number
+  }
+  recent: {
+    candidatesLast30Days: number
+    messagesLast30Days: number
+  }
+  distributions: {
+    usersByRole: Record<string, number>
+    candidatesByStatus: Record<string, number>
+    consultantsByState: Record<string, number>
+    consultantsByContract: Record<string, number>
+    jobsByCategory: Record<string, number>
+    topSkills: Record<string, number>
+  }
+  monthlyStats: Array<{
+    month: string
+    year: number
+    candidates: number
+    jobs: number
+    messages: number
+  }>
+  syncs: Array<{
+    date: string
+    status: string
+    records: number
+    errors: number
+  }>
+  database: {
+    collections: number
+    dataSize: number
+    storageSize: number
+    indexes: number
+    avgObjSize: number
+  }
+  timestamp: string
 }
 
-// Demo data for charts
-const monthlyData = [
-  { month: 'Jan', candidats: 45, embauches: 8, opportunites: 12 },
-  { month: 'Fév', candidats: 52, embauches: 10, opportunites: 15 },
-  { month: 'Mar', candidats: 61, embauches: 12, opportunites: 18 },
-  { month: 'Avr', candidats: 48, embauches: 9, opportunites: 14 },
-  { month: 'Mai', candidats: 55, embauches: 11, opportunites: 16 },
-  { month: 'Juin', candidats: 67, embauches: 14, opportunites: 20 },
-  { month: 'Juil', candidats: 58, embauches: 12, opportunites: 17 },
-  { month: 'Août', candidats: 42, embauches: 8, opportunites: 11 },
-  { month: 'Sep', candidats: 71, embauches: 15, opportunites: 22 },
-  { month: 'Oct', candidats: 65, embauches: 13, opportunites: 19 },
-  { month: 'Nov', candidats: 78, embauches: 16, opportunites: 24 },
-  { month: 'Déc', candidats: 54, embauches: 11, opportunites: 15 },
-]
+// Grafana color palette
+const GRAFANA_COLORS = {
+  green: '#73BF69',
+  yellow: '#FADE2A',
+  orange: '#FF9830',
+  red: '#F2495C',
+  blue: '#5794F2',
+  purple: '#B877D9',
+  cyan: '#8AB8FF',
+  pink: '#FF85A1',
+  teal: '#2BA3AD',
+}
 
-// Pipeline data will be computed from shared candidates
+const STATUS_COLORS: Record<string, string> = {
+  a_qualifier: GRAFANA_COLORS.yellow,
+  qualifie: GRAFANA_COLORS.blue,
+  en_cours: GRAFANA_COLORS.cyan,
+  entretien: GRAFANA_COLORS.purple,
+  proposition: GRAFANA_COLORS.orange,
+  embauche: GRAFANA_COLORS.green,
+  refuse: GRAFANA_COLORS.red,
+  unknown: '#6B7280',
+}
 
-// Demo team members
-const sourceurs: TeamMember[] = [
-  { id: 's1', name: 'Marie Dupont', role: 'sourceur', stats: { candidatesSourced: 156, candidatesPlaced: 28, conversionRate: 18 } },
-  { id: 's2', name: 'Thomas Martin', role: 'sourceur', stats: { candidatesSourced: 142, candidatesPlaced: 24, conversionRate: 17 } },
-  { id: 's3', name: 'Sophie Bernard', role: 'sourceur', stats: { candidatesSourced: 128, candidatesPlaced: 22, conversionRate: 17 } },
-  { id: 's4', name: 'Lucas Petit', role: 'sourceur', stats: { candidatesSourced: 98, candidatesPlaced: 15, conversionRate: 15 } },
-]
+const STATUS_LABELS: Record<string, string> = {
+  a_qualifier: 'A qualifier',
+  qualifie: 'Qualifie',
+  en_cours: 'En cours',
+  entretien: 'Entretien',
+  proposition: 'Proposition',
+  embauche: 'Embauche',
+  refuse: 'Refuse',
+  unknown: 'Autre',
+}
 
-const commerciaux: TeamMember[] = [
-  { id: 'c1', name: 'Alexandre Leroy', role: 'commercial', stats: { opportunities: 45, dealsWon: 18, revenue: 892000, avgDealSize: 49500 } },
-  { id: 'c2', name: 'Julie Moreau', role: 'commercial', stats: { opportunities: 38, dealsWon: 15, revenue: 745000, avgDealSize: 49700 } },
-  { id: 'c3', name: 'Nicolas Garcia', role: 'commercial', stats: { opportunities: 32, dealsWon: 12, revenue: 584000, avgDealSize: 48700 } },
-  { id: 'c4', name: 'Camille Roux', role: 'commercial', stats: { opportunities: 28, dealsWon: 10, revenue: 478000, avgDealSize: 47800 } },
-]
+const ROLE_COLORS: Record<string, string> = {
+  admin: GRAFANA_COLORS.red,
+  commercial: GRAFANA_COLORS.blue,
+  sourceur: GRAFANA_COLORS.purple,
+  rh: GRAFANA_COLORS.yellow,
+  consultant_cdi: GRAFANA_COLORS.teal,
+  freelance: GRAFANA_COLORS.green,
+  candidat: '#6B7280',
+}
+
+// Utility functions
+function formatBytes(bytes: number): string {
+  if (bytes === 0) return '0 B'
+  const k = 1024
+  const sizes = ['B', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+}
+
+function formatNumber(num: number): string {
+  if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M'
+  if (num >= 1000) return (num / 1000).toFixed(1) + 'K'
+  return num.toString()
+}
+
+// Panel component (Grafana style)
+function Panel({
+  title,
+  children,
+  className = '',
+  icon: Icon,
+  actions,
+  noPadding = false,
+}: {
+  title: string
+  children: React.ReactNode
+  className?: string
+  icon?: React.ComponentType<{ className?: string }>
+  actions?: React.ReactNode
+  noPadding?: boolean
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className={`bg-[#181B1F] rounded-lg border border-[#2D3035] overflow-hidden ${className}`}
+    >
+      <div className="flex items-center justify-between px-4 py-3 border-b border-[#2D3035] bg-[#1F2229]">
+        <div className="flex items-center gap-2">
+          {Icon && <Icon className="w-4 h-4 text-[#8E9196]" />}
+          <h3 className="text-sm font-medium text-white">{title}</h3>
+        </div>
+        {actions}
+      </div>
+      <div className={noPadding ? '' : 'p-4'}>{children}</div>
+    </motion.div>
+  )
+}
+
+// Stat card component
+function StatCard({
+  label,
+  value,
+  subValue,
+  icon: Icon,
+  color,
+  trend,
+  link,
+}: {
+  label: string
+  value: string | number
+  subValue?: string
+  icon: React.ComponentType<{ className?: string }>
+  color: string
+  trend?: { value: number; positive: boolean }
+  link?: string
+}) {
+  const content = (
+    <div className="bg-[#181B1F] rounded-lg border border-[#2D3035] p-4 hover:border-[#3D4045] transition-colors group">
+      <div className="flex items-start justify-between mb-3">
+        <div
+          className="w-10 h-10 rounded-lg flex items-center justify-center"
+          style={{ backgroundColor: `${color}20` }}
+        >
+          <Icon className="w-5 h-5" style={{ color }} />
+        </div>
+        {trend && (
+          <div className={`flex items-center gap-1 text-xs ${trend.positive ? 'text-[#73BF69]' : 'text-[#F2495C]'}`}>
+            {trend.positive ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+            {Math.abs(trend.value)}%
+          </div>
+        )}
+        {link && (
+          <ChevronRight className="w-4 h-4 text-[#6B7280] group-hover:text-white transition-colors" />
+        )}
+      </div>
+      <p className="text-2xl font-bold text-white mb-1">{value}</p>
+      <p className="text-xs text-[#8E9196]">{label}</p>
+      {subValue && <p className="text-xs text-[#6B7280] mt-1">{subValue}</p>}
+    </div>
+  )
+
+  if (link) {
+    return <Link href={link}>{content}</Link>
+  }
+  return content
+}
+
+// Status indicator
+function StatusIndicator({ status }: { status: 'healthy' | 'warning' | 'error' }) {
+  const colors = {
+    healthy: 'bg-[#73BF69]',
+    warning: 'bg-[#FADE2A]',
+    error: 'bg-[#F2495C]',
+  }
+  return (
+    <span className={`w-2 h-2 rounded-full ${colors[status]} animate-pulse`} />
+  )
+}
+
+// Custom Tooltip
+const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: Array<{ name: string; value: number; color: string }>; label?: string }) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-[#1F2229] border border-[#2D3035] rounded-lg px-3 py-2 shadow-xl">
+        <p className="text-xs text-[#8E9196] mb-1">{label}</p>
+        {payload.map((entry, index) => (
+          <p key={index} className="text-sm text-white">
+            <span className="inline-block w-2 h-2 rounded-full mr-2" style={{ backgroundColor: entry.color }} />
+            {entry.name}: <span className="font-semibold">{entry.value}</span>
+          </p>
+        ))}
+      </div>
+    )
+  }
+  return null
+}
 
 export default function AdminDashboard() {
+  const [stats, setStats] = useState<DashboardStats | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [lastUpdate, setLastUpdate] = useState<Date>(new Date())
+  const [autoRefresh, setAutoRefresh] = useState(true)
 
-  // Use same seed (42) as recruitment page for consistency
-  const candidates = useMemo(() => generateDemoCandidates(24, 42), [])
-  const statusCounts = useMemo(() => getCandidateCountsByStatus(candidates), [candidates])
-  const avgTJM = useMemo(() => getAverageTJM(candidates), [candidates])
-
-  // Compute pipeline data from real candidates
-  const pipelineData = useMemo(() => {
-    const statuses: CandidateStatus[] = ['a_qualifier', 'qualifie', 'en_cours', 'entretien', 'proposition', 'embauche']
-    return statuses.map(status => ({
-      name: STATUS_LABELS[status],
-      value: statusCounts[status],
-      color: STATUS_COLORS[status]
-    }))
-  }, [statusCounts])
-
-  // Compute module stats from real candidates
-  const moduleStats = useMemo(() => {
-    const moduleCounts: Record<string, { candidates: number; placements: number }> = {}
-
-    candidates.forEach(c => {
-      c.modules.forEach(mod => {
-        if (!moduleCounts[mod]) {
-          moduleCounts[mod] = { candidates: 0, placements: 0 }
-        }
-        moduleCounts[mod].candidates++
-        if (c.status === 'embauche') {
-          moduleCounts[mod].placements++
-        }
-      })
-    })
-
-    return Object.entries(moduleCounts)
-      .map(([module, data]) => ({ module, ...data }))
-      .sort((a, b) => b.candidates - a.candidates)
-      .slice(0, 6)
-  }, [candidates])
-
-  // Compute stats from real candidates
-  const stats = useMemo<DashboardStats>(() => ({
-    totalCandidates: candidates.length,
-    candidatesThisMonth: candidates.filter(c => {
-      const createdAt = new Date(c.createdAt)
-      const now = new Date()
-      return createdAt.getMonth() === now.getMonth() && createdAt.getFullYear() === now.getFullYear()
-    }).length,
-    candidatesGrowth: 12.5,
-    totalConsultants: statusCounts.embauche,
-    consultantsActive: statusCounts.embauche,
-    totalOpportunities: statusCounts.proposition + statusCounts.entretien + statusCounts.en_cours,
-    opportunitiesWon: statusCounts.embauche,
-    conversionRate: candidates.length > 0 ? Math.round((statusCounts.embauche / candidates.length) * 100 * 10) / 10 : 0,
-    avgTJM,
-    totalRevenue: statusCounts.embauche * avgTJM * 220, // Approximate yearly revenue
-    revenueGrowth: 18.3,
-  }), [candidates, statusCounts, avgTJM])
-
-  useEffect(() => {
-    // Simulate loading
-    const timer = setTimeout(() => setLoading(false), 500)
-    return () => clearTimeout(timer)
+  const fetchStats = useCallback(async () => {
+    try {
+      const res = await fetch('/api/admin/dashboard-stats')
+      if (!res.ok) throw new Error('Erreur de chargement')
+      const data = await res.json()
+      setStats(data)
+      setError(null)
+      setLastUpdate(new Date())
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur inconnue')
+    } finally {
+      setLoading(false)
+    }
   }, [])
 
-  const kpiCards = [
-    {
-      label: 'Candidats totaux',
-      value: stats.totalCandidates,
-      change: stats.candidatesGrowth,
-      icon: Users,
-      gradient: 'from-blue-500 to-indigo-500',
-      bgLight: 'bg-blue-50 dark:bg-blue-900/20'
-    },
-    {
-      label: 'Consultants actifs',
-      value: stats.consultantsActive,
-      subValue: `/ ${stats.totalConsultants} total`,
-      icon: UserCheck,
-      gradient: 'from-green-500 to-emerald-500',
-      bgLight: 'bg-green-50 dark:bg-green-900/20'
-    },
-    {
-      label: 'Taux de conversion',
-      value: `${stats.conversionRate}%`,
-      change: 2.3,
-      icon: Target,
-      gradient: 'from-purple-500 to-pink-500',
-      bgLight: 'bg-purple-50 dark:bg-purple-900/20'
-    },
-    {
-      label: 'TJM moyen',
-      value: `${stats.avgTJM}€`,
-      change: 5.2,
-      icon: Euro,
-      gradient: 'from-amber-500 to-orange-500',
-      bgLight: 'bg-amber-50 dark:bg-amber-900/20'
-    },
-    {
-      label: 'CA généré',
-      value: `${(stats.totalRevenue / 1000000).toFixed(2)}M€`,
-      change: stats.revenueGrowth,
-      icon: TrendingUp,
-      gradient: 'from-ebmc-turquoise to-cyan-500',
-      bgLight: 'bg-cyan-50 dark:bg-cyan-900/20'
-    },
-    {
-      label: 'Opportunités gagnées',
-      value: stats.opportunitiesWon,
-      subValue: `/ ${stats.totalOpportunities} total`,
-      icon: Award,
-      gradient: 'from-rose-500 to-red-500',
-      bgLight: 'bg-rose-50 dark:bg-rose-900/20'
-    },
-  ]
+  useEffect(() => {
+    fetchStats()
+  }, [fetchStats])
+
+  // Auto refresh every 30 seconds
+  useEffect(() => {
+    if (!autoRefresh) return
+    const interval = setInterval(fetchStats, 30000)
+    return () => clearInterval(interval)
+  }, [autoRefresh, fetchStats])
+
+  // Prepare chart data
+  const pipelineData = stats?.distributions.candidatesByStatus
+    ? Object.entries(stats.distributions.candidatesByStatus).map(([status, count]) => ({
+        name: STATUS_LABELS[status] || status,
+        value: count,
+        fill: STATUS_COLORS[status] || '#6B7280',
+      }))
+    : []
+
+  const roleData = stats?.distributions.usersByRole
+    ? Object.entries(stats.distributions.usersByRole).map(([role, count]) => ({
+        name: role,
+        value: count,
+        fill: ROLE_COLORS[role] || '#6B7280',
+      }))
+    : []
+
+  const skillsData = stats?.distributions.topSkills
+    ? Object.entries(stats.distributions.topSkills)
+        .slice(0, 8)
+        .map(([skill, count]) => ({
+          skill,
+          count,
+        }))
+    : []
+
+  const categoryData = stats?.distributions.jobsByCategory
+    ? Object.entries(stats.distributions.jobsByCategory).map(([category, count]) => ({
+        category,
+        count,
+      }))
+    : []
+
+  // Database health metrics
+  const dbHealth = stats?.database
+    ? [
+        { name: 'Collections', value: stats.database.collections, fill: GRAFANA_COLORS.blue },
+        { name: 'Indexes', value: stats.database.indexes, fill: GRAFANA_COLORS.green },
+      ]
+    : []
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#111217] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-[#2BA3AD] border-t-transparent rounded-full animate-spin" />
+          <p className="text-[#8E9196]">Chargement du dashboard...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error && !stats) {
+    return (
+      <div className="min-h-screen bg-[#111217] flex items-center justify-center">
+        <div className="bg-[#181B1F] rounded-lg border border-[#F2495C] p-8 max-w-md">
+          <div className="flex items-center gap-3 mb-4">
+            <AlertCircle className="w-6 h-6 text-[#F2495C]" />
+            <h2 className="text-lg font-semibold text-white">Erreur de connexion</h2>
+          </div>
+          <p className="text-[#8E9196] mb-4">{error}</p>
+          <button
+            onClick={fetchStats}
+            className="w-full px-4 py-2 bg-[#2BA3AD] text-white rounded-lg hover:bg-[#238A93] transition-colors"
+          >
+            Reessayer
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-[#111217] text-white p-4 md:p-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <div className="p-1.5 rounded-lg bg-gradient-to-r from-ebmc-turquoise to-cyan-400">
-              <BarChart3 className="w-4 h-4 text-white" />
-            </div>
-            <span className="text-sm font-medium text-ebmc-turquoise">Dashboard Admin</span>
+            <Activity className="w-5 h-5 text-[#2BA3AD]" />
+            <span className="text-sm font-medium text-[#2BA3AD]">EBMC Dashboard</span>
+            <StatusIndicator status="healthy" />
           </div>
-          <h1 className="text-3xl md:text-4xl font-bold text-slate-800 dark:text-white">
-            <TextGradient animate={false}>Vue d&apos;ensemble</TextGradient>
-          </h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-2">Performance globale de l&apos;équipe EBMC GROUP</p>
+          <h1 className="text-2xl md:text-3xl font-bold">Monitoring & Analytics</h1>
+          <p className="text-[#8E9196] mt-1">Vue en temps reel des donnees MongoDB</p>
         </div>
-        <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
-          <Clock className="w-4 h-4" />
-          <span>Mis à jour: {new Date().toLocaleDateString('fr-FR')} à {new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
-        </div>
-      </div>
-
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        {kpiCards.map((kpi, index) => (
-          <motion.div
-            key={kpi.label}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.05 }}
-            className={`${kpi.bgLight} rounded-xl p-4 border border-slate-200/60 dark:border-slate-700`}
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 text-sm text-[#8E9196]">
+            <Clock className="w-4 h-4" />
+            <span>
+              Mis a jour: {lastUpdate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+            </span>
+          </div>
+          <button
+            onClick={() => setAutoRefresh(!autoRefresh)}
+            className={`p-2 rounded-lg border transition-colors ${
+              autoRefresh
+                ? 'bg-[#2BA3AD]/20 border-[#2BA3AD] text-[#2BA3AD]'
+                : 'bg-[#1F2229] border-[#2D3035] text-[#8E9196]'
+            }`}
+            title={autoRefresh ? 'Auto-refresh actif (30s)' : 'Auto-refresh desactive'}
           >
-            <div className="flex items-center justify-between mb-3">
-              <div className={`p-2 rounded-lg bg-gradient-to-r ${kpi.gradient}`}>
-                <kpi.icon className="w-4 h-4 text-white" />
-              </div>
-              {kpi.change !== undefined && (
-                <div className={`flex items-center gap-0.5 text-xs font-medium ${kpi.change >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                  {kpi.change >= 0 ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
-                  {Math.abs(kpi.change)}%
-                </div>
-              )}
-            </div>
-            <p className="text-2xl font-bold text-slate-800 dark:text-white">{loading ? '...' : kpi.value}</p>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              {kpi.label}
-              {kpi.subValue && <span className="ml-1 text-slate-400">{kpi.subValue}</span>}
-            </p>
-          </motion.div>
-        ))}
+            <RefreshCw className={`w-4 h-4 ${autoRefresh ? 'animate-spin' : ''}`} style={{ animationDuration: '3s' }} />
+          </button>
+          <button
+            onClick={fetchStats}
+            className="px-4 py-2 bg-[#2BA3AD] text-white rounded-lg hover:bg-[#238A93] transition-colors flex items-center gap-2"
+          >
+            <RefreshCw className="w-4 h-4" />
+            Actualiser
+          </button>
+        </div>
       </div>
 
-      {/* Charts Row */}
-      <div className="grid lg:grid-cols-3 gap-6">
-        {/* Activity Chart */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="lg:col-span-2 bg-white dark:bg-slate-800 rounded-xl p-6 border border-slate-200/60 dark:border-slate-700"
-        >
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-semibold text-slate-800 dark:text-white">Activité annuelle</h2>
+      {/* Main Stats Grid */}
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-6">
+        <StatCard
+          label="Utilisateurs"
+          value={stats?.overview.totalUsers || 0}
+          icon={Users}
+          color={GRAFANA_COLORS.blue}
+          link="/admin/users"
+        />
+        <StatCard
+          label="Candidats"
+          value={stats?.overview.totalCandidates || 0}
+          subValue={`+${stats?.recent.candidatesLast30Days || 0} ce mois`}
+          icon={UserPlus}
+          color={GRAFANA_COLORS.purple}
+          trend={stats?.recent.candidatesLast30Days ? { value: 12, positive: true } : undefined}
+          link="/admin/candidats"
+        />
+        <StatCard
+          label="Offres actives"
+          value={stats?.overview.activeJobs || 0}
+          subValue={`/ ${stats?.overview.totalJobs || 0} total`}
+          icon={Briefcase}
+          color={GRAFANA_COLORS.orange}
+          link="/admin/jobs"
+        />
+        <StatCard
+          label="Consultants"
+          value={stats?.overview.totalConsultants || 0}
+          icon={UserCheck}
+          color={GRAFANA_COLORS.green}
+          link="/admin/consultants"
+        />
+        <StatCard
+          label="Messages"
+          value={stats?.overview.totalMessages || 0}
+          subValue={`+${stats?.recent.messagesLast30Days || 0} ce mois`}
+          icon={MessageSquare}
+          color={GRAFANA_COLORS.cyan}
+          link="/admin/messages"
+        />
+        <StatCard
+          label="Webhooks"
+          value={stats?.overview.totalWebhooks || 0}
+          icon={Webhook}
+          color={GRAFANA_COLORS.pink}
+          link="/admin/webhooks"
+        />
+      </div>
+
+      {/* Charts Row 1 */}
+      <div className="grid lg:grid-cols-3 gap-4 mb-6">
+        {/* Monthly Activity */}
+        <Panel
+          title="Activite Mensuelle"
+          icon={BarChart3}
+          className="lg:col-span-2"
+          actions={
             <div className="flex items-center gap-4 text-xs">
-              <div className="flex items-center gap-1.5">
-                <div className="w-3 h-3 rounded-full bg-blue-500" />
-                <span className="text-slate-500 dark:text-slate-400">Candidats</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-3 h-3 rounded-full bg-green-500" />
-                <span className="text-slate-500 dark:text-slate-400">Embauches</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-3 h-3 rounded-full bg-purple-500" />
-                <span className="text-slate-500 dark:text-slate-400">Opportunités</span>
-              </div>
+              <span className="flex items-center gap-1.5">
+                <span className="w-3 h-3 rounded-full" style={{ backgroundColor: GRAFANA_COLORS.blue }} />
+                Candidats
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="w-3 h-3 rounded-full" style={{ backgroundColor: GRAFANA_COLORS.green }} />
+                Jobs
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="w-3 h-3 rounded-full" style={{ backgroundColor: GRAFANA_COLORS.orange }} />
+                Messages
+              </span>
             </div>
-          </div>
+          }
+        >
           <ResponsiveContainer width="100%" height={280}>
-            <AreaChart data={monthlyData}>
+            <AreaChart data={stats?.monthlyStats || []}>
               <defs>
-                <linearGradient id="colorCandidats" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                <linearGradient id="colorCandidates" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor={GRAFANA_COLORS.blue} stopOpacity={0.4} />
+                  <stop offset="95%" stopColor={GRAFANA_COLORS.blue} stopOpacity={0} />
                 </linearGradient>
-                <linearGradient id="colorEmbauches" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
-                  <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                <linearGradient id="colorJobs" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor={GRAFANA_COLORS.green} stopOpacity={0.4} />
+                  <stop offset="95%" stopColor={GRAFANA_COLORS.green} stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-              <XAxis dataKey="month" tick={{ fontSize: 12 }} stroke="#94a3b8" />
-              <YAxis tick={{ fontSize: 12 }} stroke="#94a3b8" />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: '#1e293b',
-                  border: 'none',
-                  borderRadius: '8px',
-                  color: '#fff'
-                }}
+              <CartesianGrid strokeDasharray="3 3" stroke="#2D3035" />
+              <XAxis dataKey="month" tick={{ fill: '#8E9196', fontSize: 11 }} stroke="#2D3035" />
+              <YAxis tick={{ fill: '#8E9196', fontSize: 11 }} stroke="#2D3035" />
+              <Tooltip content={<CustomTooltip />} />
+              <Area
+                type="monotone"
+                dataKey="candidates"
+                name="Candidats"
+                stroke={GRAFANA_COLORS.blue}
+                fill="url(#colorCandidates)"
+                strokeWidth={2}
               />
-              <Area type="monotone" dataKey="candidats" stroke="#3b82f6" fillOpacity={1} fill="url(#colorCandidats)" strokeWidth={2} />
-              <Area type="monotone" dataKey="embauches" stroke="#10b981" fillOpacity={1} fill="url(#colorEmbauches)" strokeWidth={2} />
-              <Area type="monotone" dataKey="opportunites" stroke="#8b5cf6" fill="transparent" strokeWidth={2} strokeDasharray="5 5" />
+              <Area
+                type="monotone"
+                dataKey="jobs"
+                name="Jobs"
+                stroke={GRAFANA_COLORS.green}
+                fill="url(#colorJobs)"
+                strokeWidth={2}
+              />
+              <Line
+                type="monotone"
+                dataKey="messages"
+                name="Messages"
+                stroke={GRAFANA_COLORS.orange}
+                strokeWidth={2}
+                dot={false}
+                strokeDasharray="5 5"
+              />
             </AreaChart>
           </ResponsiveContainer>
-        </motion.div>
+        </Panel>
 
-        {/* Pipeline Chart */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-slate-200/60 dark:border-slate-700"
-        >
-          <h2 className="text-lg font-semibold text-slate-800 dark:text-white mb-4">Pipeline de recrutement</h2>
-          <ResponsiveContainer width="100%" height={240}>
-            <PieChart>
-              <Pie
-                data={pipelineData}
-                cx="50%"
-                cy="50%"
-                innerRadius={60}
-                outerRadius={90}
-                paddingAngle={2}
-                dataKey="value"
-              >
-                {pipelineData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
+        {/* Pipeline Distribution */}
+        <Panel title="Pipeline Candidats" icon={PieChartIcon}>
+          {pipelineData.length > 0 ? (
+            <>
+              <ResponsiveContainer width="100%" height={200}>
+                <PieChart>
+                  <Pie
+                    data={pipelineData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={50}
+                    outerRadius={80}
+                    paddingAngle={2}
+                    dataKey="value"
+                  >
+                    {pipelineData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                    ))}
+                  </Pie>
+                  <Tooltip content={<CustomTooltip />} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="grid grid-cols-2 gap-2 mt-4">
+                {pipelineData.slice(0, 6).map((item) => (
+                  <div key={item.name} className="flex items-center gap-2 text-xs">
+                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: item.fill }} />
+                    <span className="text-[#8E9196] truncate">{item.name}</span>
+                    <span className="font-medium text-white ml-auto">{item.value}</span>
+                  </div>
                 ))}
-              </Pie>
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: '#1e293b',
-                  border: 'none',
-                  borderRadius: '8px',
-                  color: '#fff'
-                }}
-              />
-            </PieChart>
-          </ResponsiveContainer>
-          <div className="grid grid-cols-2 gap-2 mt-2">
-            {pipelineData.map((item) => (
-              <div key={item.name} className="flex items-center gap-2 text-xs">
-                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
-                <span className="text-slate-600 dark:text-slate-400">{item.name}</span>
-                <span className="font-medium text-slate-800 dark:text-white ml-auto">{item.value}</span>
               </div>
-            ))}
-          </div>
-        </motion.div>
+            </>
+          ) : (
+            <div className="h-[280px] flex items-center justify-center text-[#8E9196]">
+              Aucune donnee
+            </div>
+          )}
+        </Panel>
       </div>
 
-      {/* Team Performance */}
-      <div className="grid lg:grid-cols-2 gap-6">
-        {/* Sourceurs Leaderboard */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-slate-200/60 dark:border-slate-700"
-        >
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-gradient-to-r from-purple-500 to-indigo-500">
-                <Search className="w-5 h-5 text-white" />
-              </div>
-              <div>
-                <h2 className="text-lg font-semibold text-slate-800 dark:text-white">Performance Sourceurs</h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Classement par candidats placés</p>
-              </div>
+      {/* Charts Row 2 */}
+      <div className="grid lg:grid-cols-3 gap-4 mb-6">
+        {/* Skills Distribution */}
+        <Panel title="Top Competences" icon={Zap}>
+          {skillsData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={skillsData} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" stroke="#2D3035" horizontal={false} />
+                <XAxis type="number" tick={{ fill: '#8E9196', fontSize: 11 }} stroke="#2D3035" />
+                <YAxis
+                  dataKey="skill"
+                  type="category"
+                  tick={{ fill: '#8E9196', fontSize: 11 }}
+                  stroke="#2D3035"
+                  width={80}
+                />
+                <Tooltip content={<CustomTooltip />} />
+                <Bar dataKey="count" name="Candidats" fill={GRAFANA_COLORS.purple} radius={[0, 4, 4, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-[250px] flex items-center justify-center text-[#8E9196]">
+              Aucune donnee
             </div>
-            <Link href="/admin/sourceur" className="text-sm text-ebmc-turquoise hover:underline flex items-center gap-1">
-              Voir tout <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
-          <div className="space-y-4">
-            {sourceurs.map((member, index) => (
-              <div key={member.id} className="flex items-center gap-4 p-3 rounded-lg bg-slate-50 dark:bg-slate-700/50">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold ${
-                  index === 0 ? 'bg-gradient-to-r from-yellow-400 to-amber-500' :
-                  index === 1 ? 'bg-gradient-to-r from-slate-300 to-slate-400' :
-                  index === 2 ? 'bg-gradient-to-r from-amber-600 to-amber-700' :
-                  'bg-slate-500'
-                }`}>
-                  {index + 1}
-                </div>
-                <div className="flex-1">
-                  <p className="font-medium text-slate-800 dark:text-white">{member.name}</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    {member.stats.candidatesSourced} sourcés • {member.stats.conversionRate}% conversion
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-lg font-bold text-green-600 dark:text-green-400">{member.stats.candidatesPlaced}</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">placés</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </motion.div>
+          )}
+        </Panel>
 
-        {/* Commerciaux Leaderboard */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-slate-200/60 dark:border-slate-700"
-        >
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-gradient-to-r from-blue-500 to-cyan-500">
-                <Building2 className="w-5 h-5 text-white" />
-              </div>
-              <div>
-                <h2 className="text-lg font-semibold text-slate-800 dark:text-white">Performance Commerciaux</h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Classement par CA généré</p>
-              </div>
+        {/* Jobs by Category */}
+        <Panel title="Offres par Categorie" icon={Briefcase}>
+          {categoryData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={categoryData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#2D3035" />
+                <XAxis dataKey="category" tick={{ fill: '#8E9196', fontSize: 11 }} stroke="#2D3035" />
+                <YAxis tick={{ fill: '#8E9196', fontSize: 11 }} stroke="#2D3035" />
+                <Tooltip content={<CustomTooltip />} />
+                <Bar dataKey="count" name="Offres" fill={GRAFANA_COLORS.orange} radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-[250px] flex items-center justify-center text-[#8E9196]">
+              Aucune donnee
             </div>
-            <Link href="/admin/commercial" className="text-sm text-ebmc-turquoise hover:underline flex items-center gap-1">
-              Voir tout <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
-          <div className="space-y-4">
-            {commerciaux.map((member, index) => (
-              <div key={member.id} className="flex items-center gap-4 p-3 rounded-lg bg-slate-50 dark:bg-slate-700/50">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold ${
-                  index === 0 ? 'bg-gradient-to-r from-yellow-400 to-amber-500' :
-                  index === 1 ? 'bg-gradient-to-r from-slate-300 to-slate-400' :
-                  index === 2 ? 'bg-gradient-to-r from-amber-600 to-amber-700' :
-                  'bg-slate-500'
-                }`}>
-                  {index + 1}
-                </div>
-                <div className="flex-1">
-                  <p className="font-medium text-slate-800 dark:text-white">{member.name}</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    {member.stats.dealsWon}/{member.stats.opportunities} deals • TJM moy: {member.stats.avgDealSize?.toLocaleString()}€
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-lg font-bold text-blue-600 dark:text-blue-400">{(member.stats.revenue! / 1000).toFixed(0)}k€</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">CA</p>
-                </div>
+          )}
+        </Panel>
+
+        {/* Users by Role */}
+        <Panel title="Utilisateurs par Role" icon={Users}>
+          {roleData.length > 0 ? (
+            <>
+              <ResponsiveContainer width="100%" height={180}>
+                <PieChart>
+                  <Pie
+                    data={roleData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={40}
+                    outerRadius={70}
+                    paddingAngle={3}
+                    dataKey="value"
+                  >
+                    {roleData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                    ))}
+                  </Pie>
+                  <Tooltip content={<CustomTooltip />} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="space-y-2 mt-2">
+                {roleData.map((item) => (
+                  <div key={item.name} className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full" style={{ backgroundColor: item.fill }} />
+                      <span className="text-[#8E9196] capitalize">{item.name}</span>
+                    </div>
+                    <span className="font-medium text-white">{item.value}</span>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        </motion.div>
+            </>
+          ) : (
+            <div className="h-[250px] flex items-center justify-center text-[#8E9196]">
+              Aucune donnee
+            </div>
+          )}
+        </Panel>
       </div>
 
-      {/* Modules Stats */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.6 }}
-        className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-slate-200/60 dark:border-slate-700"
-      >
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-gradient-to-r from-orange-500 to-red-500">
-              <Briefcase className="w-5 h-5 text-white" />
+      {/* System Health Row */}
+      <div className="grid lg:grid-cols-4 gap-4 mb-6">
+        {/* Database Stats */}
+        <Panel title="Base de Donnees MongoDB" icon={Database} className="lg:col-span-2">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-[#1F2229] rounded-lg p-4 text-center">
+              <Layers className="w-6 h-6 mx-auto mb-2 text-[#5794F2]" />
+              <p className="text-2xl font-bold">{stats?.database.collections || 0}</p>
+              <p className="text-xs text-[#8E9196]">Collections</p>
             </div>
-            <div>
-              <h2 className="text-lg font-semibold text-slate-800 dark:text-white">Compétences SAP les plus demandées</h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400">Répartition par module</p>
+            <div className="bg-[#1F2229] rounded-lg p-4 text-center">
+              <GitBranch className="w-6 h-6 mx-auto mb-2 text-[#73BF69]" />
+              <p className="text-2xl font-bold">{stats?.database.indexes || 0}</p>
+              <p className="text-xs text-[#8E9196]">Index</p>
+            </div>
+            <div className="bg-[#1F2229] rounded-lg p-4 text-center">
+              <HardDrive className="w-6 h-6 mx-auto mb-2 text-[#FF9830]" />
+              <p className="text-2xl font-bold">{formatBytes(stats?.database.dataSize || 0)}</p>
+              <p className="text-xs text-[#8E9196]">Taille donnees</p>
+            </div>
+            <div className="bg-[#1F2229] rounded-lg p-4 text-center">
+              <Server className="w-6 h-6 mx-auto mb-2 text-[#B877D9]" />
+              <p className="text-2xl font-bold">{formatBytes(stats?.database.storageSize || 0)}</p>
+              <p className="text-xs text-[#8E9196]">Stockage</p>
             </div>
           </div>
+        </Panel>
+
+        {/* Recent Syncs */}
+        <Panel title="Synchronisations Recentes" icon={RefreshCw} noPadding className="lg:col-span-2">
+          {stats?.syncs && stats.syncs.length > 0 ? (
+            <div className="divide-y divide-[#2D3035]">
+              {stats.syncs.map((sync, index) => (
+                <div key={index} className="flex items-center justify-between px-4 py-3 hover:bg-[#1F2229]">
+                  <div className="flex items-center gap-3">
+                    {sync.status === 'success' ? (
+                      <CheckCircle className="w-4 h-4 text-[#73BF69]" />
+                    ) : (
+                      <AlertCircle className="w-4 h-4 text-[#F2495C]" />
+                    )}
+                    <div>
+                      <p className="text-sm text-white">
+                        {new Date(sync.date).toLocaleDateString('fr-FR', {
+                          day: '2-digit',
+                          month: 'short',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </p>
+                      <p className="text-xs text-[#8E9196]">{sync.records} enregistrements</p>
+                    </div>
+                  </div>
+                  {sync.errors > 0 && (
+                    <span className="px-2 py-1 bg-[#F2495C]/20 text-[#F2495C] text-xs rounded">
+                      {sync.errors} erreurs
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="h-[150px] flex items-center justify-center text-[#8E9196]">
+              Aucune synchronisation
+            </div>
+          )}
+        </Panel>
+      </div>
+
+      {/* Quick Links */}
+      <Panel title="Acces Rapide" icon={Zap}>
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+          {[
+            { href: '/admin/recrutement', icon: Users, label: 'Recrutement', color: GRAFANA_COLORS.purple },
+            { href: '/admin/candidats', icon: UserPlus, label: 'Candidats', color: GRAFANA_COLORS.blue },
+            { href: '/admin/jobs', icon: Briefcase, label: 'Offres', color: GRAFANA_COLORS.orange },
+            { href: '/admin/consultants', icon: UserCheck, label: 'Consultants', color: GRAFANA_COLORS.green },
+            { href: '/admin/boondmanager-v2', icon: Building2, label: 'BoondManager', color: GRAFANA_COLORS.cyan },
+            { href: '/admin/database', icon: Database, label: 'Database', color: GRAFANA_COLORS.pink },
+            { href: '/admin/users', icon: Users, label: 'Utilisateurs', color: GRAFANA_COLORS.yellow },
+            { href: '/admin/messages', icon: Mail, label: 'Messages', color: GRAFANA_COLORS.red },
+            { href: '/admin/webhooks', icon: Webhook, label: 'Webhooks', color: GRAFANA_COLORS.purple },
+            { href: '/admin/api-tokens', icon: Key, label: 'API Tokens', color: GRAFANA_COLORS.teal },
+            { href: '/admin/settings', icon: Settings, label: 'Settings', color: '#6B7280' },
+            { href: '/admin/docs', icon: FileText, label: 'Documentation', color: GRAFANA_COLORS.blue },
+          ].map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className="flex items-center gap-3 p-3 rounded-lg bg-[#1F2229] border border-[#2D3035] hover:border-[#3D4045] hover:bg-[#252830] transition-all group"
+            >
+              <div
+                className="w-8 h-8 rounded-lg flex items-center justify-center"
+                style={{ backgroundColor: `${link.color}20` }}
+              >
+                <link.icon className="w-4 h-4" style={{ color: link.color }} />
+              </div>
+              <span className="text-sm text-[#8E9196] group-hover:text-white transition-colors">{link.label}</span>
+            </Link>
+          ))}
         </div>
-        <ResponsiveContainer width="100%" height={200}>
-          <BarChart data={moduleStats} layout="vertical">
-            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" horizontal={false} />
-            <XAxis type="number" tick={{ fontSize: 12 }} stroke="#94a3b8" />
-            <YAxis dataKey="module" type="category" tick={{ fontSize: 12 }} stroke="#94a3b8" width={80} />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: '#1e293b',
-                border: 'none',
-                borderRadius: '8px',
-                color: '#fff'
-              }}
-            />
-            <Bar dataKey="candidates" fill="#3b82f6" radius={[0, 4, 4, 0]} name="Candidats" />
-            <Bar dataKey="placements" fill="#10b981" radius={[0, 4, 4, 0]} name="Placements" />
-          </BarChart>
-        </ResponsiveContainer>
-      </motion.div>
+      </Panel>
 
-      {/* Quick Actions */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.7 }}
-        className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4"
-      >
-        {[
-          { href: '/admin/recrutement', icon: Users, label: 'Kanban Recrutement', desc: 'Gérer le pipeline', gradient: 'from-purple-500 to-indigo-500' },
-          { href: '/admin/sourceur', icon: Search, label: 'Espace Sourceur', desc: 'Rechercher des talents', gradient: 'from-blue-500 to-cyan-500' },
-          { href: '/admin/commercial', icon: Building2, label: 'Espace Commercial', desc: 'Gérer les opportunités', gradient: 'from-green-500 to-emerald-500' },
-          { href: '/admin/ressources', icon: Users, label: 'Ressources', desc: 'Voir les profils', gradient: 'from-amber-500 to-orange-500' },
-        ].map((action) => (
-          <Link
-            key={action.href}
-            href={action.href}
-            className="group flex items-center gap-4 p-4 rounded-xl border border-slate-200/60 dark:border-slate-700 bg-white/50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-800 hover:shadow-lg transition-all duration-300"
-          >
-            <div className={`w-12 h-12 rounded-xl bg-gradient-to-r ${action.gradient} flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg`}>
-              <action.icon className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <p className="font-semibold text-slate-800 dark:text-white group-hover:text-ebmc-turquoise transition-colors">
-                {action.label}
-              </p>
-              <p className="text-sm text-slate-500 dark:text-slate-400">{action.desc}</p>
-            </div>
-          </Link>
-        ))}
-      </motion.div>
+      {/* Footer */}
+      <div className="mt-6 text-center text-xs text-[#6B7280]">
+        <p>EBMC GROUP Dashboard v2.0 - Donnees actualisees depuis MongoDB</p>
+        <p className="mt-1">
+          Derniere mise a jour: {stats?.timestamp ? new Date(stats.timestamp).toLocaleString('fr-FR') : '-'}
+        </p>
+      </div>
     </div>
   )
 }
