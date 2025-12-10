@@ -20,7 +20,8 @@ import {
   MapPin,
   CheckCircle,
   XCircle,
-  Archive
+  Archive,
+  Wrench
 } from 'lucide-react'
 import Link from 'next/link'
 import { CANDIDATE_STATES } from '@/lib/boondmanager-client'
@@ -129,6 +130,8 @@ export default function RecrutementPage() {
   const [selectedCandidate, setSelectedCandidate] = useState<SiteCandidate | null>(null)
   const [updating, setUpdating] = useState(false)
   const [showArchived, setShowArchived] = useState(false)
+  const [fixingStates, setFixingStates] = useState(false)
+  const [fixResult, setFixResult] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
 
   const fetchCandidates = useCallback(async () => {
     setLoading(true)
@@ -165,6 +168,43 @@ export default function RecrutementPage() {
   useEffect(() => {
     fetchCandidates()
   }, [fetchCandidates])
+
+  // Fix states based on stateLabel
+  const fixCandidateStates = async () => {
+    setFixingStates(true)
+    setFixResult(null)
+
+    try {
+      const response = await fetch('/api/site/candidates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ dryRun: false }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erreur lors de la correction')
+      }
+
+      setFixResult({
+        message: data.message,
+        type: 'success',
+      })
+
+      // Refresh the kanban after fixing states
+      await fetchCandidates()
+    } catch (err) {
+      console.error('Error fixing states:', err)
+      setFixResult({
+        message: err instanceof Error ? err.message : 'Erreur inconnue',
+        type: 'error',
+      })
+    } finally {
+      setFixingStates(false)
+    }
+  }
 
   // Handle drag end - update candidate state
   const handleDragEnd = async (result: DropResult) => {
@@ -358,6 +398,15 @@ export default function RecrutementPage() {
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             Actualiser
           </button>
+          <button
+            onClick={fixCandidateStates}
+            disabled={fixingStates}
+            title="Corriger les états en fonction du stateLabel"
+            className="flex items-center gap-2 px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition disabled:opacity-50"
+          >
+            <Wrench className={`w-4 h-4 ${fixingStates ? 'animate-spin' : ''}`} />
+            {fixingStates ? 'Correction...' : 'Corriger états'}
+          </button>
           <Link
             href="/admin/boondmanager-v2"
             className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg hover:shadow-lg transition"
@@ -367,6 +416,32 @@ export default function RecrutementPage() {
           </Link>
         </div>
       </div>
+
+      {/* Fix Result Message */}
+      {fixResult && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className={`mb-4 p-3 rounded-lg flex items-center gap-2 ${
+            fixResult.type === 'success'
+              ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+              : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
+          }`}
+        >
+          {fixResult.type === 'success' ? (
+            <CheckCircle className="w-5 h-5" />
+          ) : (
+            <AlertCircle className="w-5 h-5" />
+          )}
+          <span>{fixResult.message}</span>
+          <button
+            onClick={() => setFixResult(null)}
+            className="ml-auto text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+          >
+            &times;
+          </button>
+        </motion.div>
+      )}
 
       {/* Stats Row */}
       <div className={`grid gap-4 mb-6 ${showArchived ? 'grid-cols-9' : 'grid-cols-8'}`}>
