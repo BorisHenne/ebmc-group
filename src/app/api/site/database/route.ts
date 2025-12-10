@@ -2,71 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { connectToDatabase } from '@/lib/mongodb'
 import { hasPermission } from '@/lib/roles'
+import { sanitizeDocuments, sanitizeDocument } from '@/lib/sanitize'
 
 // Collections that can be accessed
 const ALLOWED_COLLECTIONS = ['candidates', 'consultants', 'users', 'jobs', 'messages', 'contacts']
-
-/**
- * Deep sanitize any value to ensure it's React-renderable
- * Converts complex BoondManager objects like {typeOf, detail} to strings
- */
-function sanitizeValue(value: unknown): unknown {
-  if (value === null || value === undefined) {
-    return value
-  }
-
-  // Handle Date objects
-  if (value instanceof Date) {
-    return value.toISOString()
-  }
-
-  // Handle arrays
-  if (Array.isArray(value)) {
-    return value.map(sanitizeValue)
-  }
-
-  // Handle objects
-  if (typeof value === 'object' && value !== null) {
-    const obj = value as Record<string, unknown>
-
-    // Check for BoondManager complex objects - extract the meaningful value
-    if ('detail' in obj && typeof obj.detail === 'string') {
-      return obj.detail
-    }
-    if ('value' in obj && typeof obj.value === 'string') {
-      return obj.value
-    }
-    if ('label' in obj && typeof obj.label === 'string') {
-      return obj.label
-    }
-
-    // Check if it's a MongoDB ObjectId
-    if ('_bsontype' in obj && obj._bsontype === 'ObjectId') {
-      return obj.toString()
-    }
-
-    // Recursively sanitize object properties
-    const sanitized: Record<string, unknown> = {}
-    for (const [key, val] of Object.entries(obj)) {
-      sanitized[key] = sanitizeValue(val)
-    }
-    return sanitized
-  }
-
-  return value
-}
-
-/**
- * Sanitize a MongoDB document for safe React rendering
- */
-function sanitizeDocument(doc: Record<string, unknown>): Record<string, unknown> {
-  const sanitized = sanitizeValue(doc) as Record<string, unknown>
-  // Ensure _id is a string
-  if (sanitized._id) {
-    sanitized._id = String(sanitized._id)
-  }
-  return sanitized
-}
 
 // GET - Fetch collection data
 export async function GET(request: NextRequest) {
@@ -149,7 +88,7 @@ export async function GET(request: NextRequest) {
       .toArray()
 
     // Sanitize all documents to prevent React rendering errors
-    const data = rawData.map(doc => sanitizeDocument(doc as Record<string, unknown>))
+    const data = sanitizeDocuments(rawData as Record<string, unknown>[])
 
     // Get total count
     const total = await db.collection(collection).countDocuments(query)
@@ -218,7 +157,7 @@ export async function POST(request: NextRequest) {
     }
 
     const rawData = await cursor.toArray()
-    const data = rawData.map(doc => sanitizeDocument(doc as Record<string, unknown>))
+    const data = sanitizeDocuments(rawData as Record<string, unknown>[])
 
     if (format === 'csv') {
       // Convert to CSV

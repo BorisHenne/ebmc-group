@@ -1,65 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { connectToDatabase } from '@/lib/mongodb'
-import {
-  getCandidateStates,
-  getCandidateStateLabelSync,
-} from '@/lib/boondmanager-dictionary'
-
-/**
- * Safely extract a string value from potentially complex BoondManager field
- * Handles objects like {typeOf: 1, detail: "value"}
- */
-function safeString(value: unknown): string | undefined {
-  if (value === null || value === undefined) {
-    return undefined
-  }
-  if (typeof value === 'string') {
-    return value
-  }
-  if (typeof value === 'number') {
-    return String(value)
-  }
-  if (typeof value === 'object' && value !== null) {
-    const obj = value as Record<string, unknown>
-    if ('detail' in obj && typeof obj.detail === 'string') {
-      return obj.detail
-    }
-    if ('value' in obj && typeof obj.value === 'string') {
-      return obj.value
-    }
-    if ('label' in obj && typeof obj.label === 'string') {
-      return obj.label
-    }
-    if ('name' in obj && typeof obj.name === 'string') {
-      return obj.name
-    }
-  }
-  return undefined
-}
-
-/**
- * Sanitize candidate data to ensure all fields are React-renderable
- */
-function sanitizeCandidate(candidate: Record<string, unknown>): Record<string, unknown> {
-  return {
-    ...candidate,
-    firstName: safeString(candidate.firstName) || '',
-    lastName: safeString(candidate.lastName) || '',
-    email: safeString(candidate.email),
-    phone: safeString(candidate.phone),
-    title: safeString(candidate.title),
-    location: safeString(candidate.location),
-    source: safeString(candidate.source),
-    notes: safeString(candidate.notes),
-    experience: safeString(candidate.experience),
-    stateLabel: safeString(candidate.stateLabel) || 'Inconnu',
-    // Ensure skills is always an array of strings
-    skills: Array.isArray(candidate.skills)
-      ? candidate.skills.map(s => safeString(s)).filter(Boolean)
-      : [],
-  }
-}
+import { getCandidateStates } from '@/lib/boondmanager-dictionary'
+import { sanitizeDocument } from '@/lib/sanitize'
 
 // GET - Fetch all site candidates (imported from BoondManager)
 export async function GET(request: NextRequest) {
@@ -104,11 +47,11 @@ export async function GET(request: NextRequest) {
 
     // Sanitize and add state labels
     const candidatesWithLabels = candidates.map(c => {
-      const sanitized = sanitizeCandidate(c as Record<string, unknown>)
+      const sanitized = sanitizeDocument(c as Record<string, unknown>)
       return {
         ...sanitized,
-        id: c._id.toString(),
-        stateLabel: safeString(sanitized.stateLabel) || candidateStates[c.state] || 'Inconnu',
+        id: String(c._id),
+        stateLabel: sanitized.stateLabel || candidateStates[c.state as number] || 'Inconnu',
       }
     })
 
