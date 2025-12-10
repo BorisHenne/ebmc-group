@@ -12,13 +12,18 @@ import { useTheme } from '@/components/ThemeProvider'
 
 type AuthMode = 'standard' | 'boondmanager'
 
-// Demo users for testing - these are USER ROLES, not candidate statuses
-// A consultant/freelance is a recruited candidate, they access the freelance portal
+// Demo users for testing - matching src/lib/roles.ts and src/app/api/seed/route.ts
+// Bureau roles (internal staff) and Terrain roles (consultants/candidates)
 const demoUsers = [
-  { email: 'admin@ebmc-group.com', password: 'admin123', role: 'Admin', color: 'from-red-500 to-rose-500' },
-  { email: 'sourceur@ebmc-group.com', password: 'sourceur123', role: 'Sourceur', color: 'from-purple-500 to-indigo-500' },
-  { email: 'commercial@ebmc-group.com', password: 'commercial123', role: 'Commercial', color: 'from-blue-500 to-cyan-500' },
-  { email: 'freelance@ebmc-group.com', password: 'freelance123', role: 'Freelance', color: 'from-green-500 to-emerald-500' },
+  // Bureau roles
+  { email: 'admin@ebmc-group.com', password: 'admin123', role: 'Admin', color: 'from-red-500 to-rose-500', category: 'Bureau' },
+  { email: 'commercial@ebmc-group.com', password: 'commercial123', role: 'Commercial', color: 'from-blue-500 to-indigo-500', category: 'Bureau' },
+  { email: 'sourceur@ebmc-group.com', password: 'sourceur123', role: 'Sourceur', color: 'from-purple-500 to-pink-500', category: 'Bureau' },
+  { email: 'rh@ebmc-group.com', password: 'rh123456', role: 'RH', color: 'from-amber-500 to-orange-500', category: 'Bureau' },
+  // Terrain roles
+  { email: 'consultant@ebmc-group.com', password: 'consultant123', role: 'Consultant CDI', color: 'from-teal-500 to-cyan-500', category: 'Terrain' },
+  { email: 'freelance@ebmc-group.com', password: 'freelance123', role: 'Freelance', color: 'from-green-500 to-emerald-500', category: 'Terrain' },
+  { email: 'candidat@ebmc-group.com', password: 'candidat123', role: 'Candidat', color: 'from-slate-500 to-gray-500', category: 'Terrain' },
 ]
 
 export default function LoginPage() {
@@ -351,24 +356,53 @@ export default function LoginPage() {
                   <Users className="w-4 h-4 text-slate-400" />
                   <span className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Comptes de test</span>
                 </div>
-                <div className="grid grid-cols-2 gap-2">
-                  {demoUsers.map((user) => (
-                    <button
-                      key={user.email}
-                      onClick={() => fillDemoCredentials(user.email, user.password)}
-                      className="group p-2.5 rounded-lg bg-slate-50 dark:bg-slate-700/50 hover:bg-white dark:hover:bg-slate-600/50 border border-slate-100 dark:border-slate-600 hover:border-slate-200 dark:hover:border-slate-500 transition-all text-left"
-                    >
-                      <div className="flex items-center gap-2">
-                        <div className={`w-6 h-6 rounded-full bg-gradient-to-r ${user.color} flex items-center justify-center`}>
-                          <span className="text-white text-xs font-bold">{user.role.charAt(0)}</span>
+                {/* Bureau roles */}
+                <div className="mb-3">
+                  <p className="text-[10px] font-semibold text-blue-500 dark:text-blue-400 uppercase tracking-wider mb-2 flex items-center gap-1">
+                    <Building2 className="w-3 h-3" /> Bureau
+                  </p>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {demoUsers.filter(u => u.category === 'Bureau').map((user) => (
+                      <button
+                        key={user.email}
+                        onClick={() => fillDemoCredentials(user.email, user.password)}
+                        className="group p-2 rounded-lg bg-slate-50 dark:bg-slate-700/50 hover:bg-white dark:hover:bg-slate-600/50 border border-slate-100 dark:border-slate-600 hover:border-slate-200 dark:hover:border-slate-500 transition-all text-left"
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className={`w-5 h-5 rounded-full bg-gradient-to-r ${user.color} flex items-center justify-center`}>
+                            <span className="text-white text-[10px] font-bold">{user.role.charAt(0)}</span>
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-[11px] font-medium text-slate-700 dark:text-slate-200 truncate">{user.role}</p>
+                          </div>
                         </div>
-                        <div className="min-w-0">
-                          <p className="text-xs font-medium text-slate-700 dark:text-slate-200 truncate">{user.role}</p>
-                          <p className="text-[10px] text-slate-400 truncate">{user.email.split('@')[0]}</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {/* Terrain roles */}
+                <div>
+                  <p className="text-[10px] font-semibold text-green-500 dark:text-green-400 uppercase tracking-wider mb-2 flex items-center gap-1">
+                    <Users className="w-3 h-3" /> Terrain
+                  </p>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {demoUsers.filter(u => u.category === 'Terrain').map((user) => (
+                      <button
+                        key={user.email}
+                        onClick={() => fillDemoCredentials(user.email, user.password)}
+                        className="group p-2 rounded-lg bg-slate-50 dark:bg-slate-700/50 hover:bg-white dark:hover:bg-slate-600/50 border border-slate-100 dark:border-slate-600 hover:border-slate-200 dark:hover:border-slate-500 transition-all text-left"
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <div className={`w-5 h-5 rounded-full bg-gradient-to-r ${user.color} flex items-center justify-center`}>
+                            <span className="text-white text-[10px] font-bold">{user.role.charAt(0)}</span>
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-[10px] font-medium text-slate-700 dark:text-slate-200 truncate">{user.role}</p>
+                          </div>
                         </div>
-                      </div>
-                    </button>
-                  ))}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}
