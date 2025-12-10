@@ -4,16 +4,14 @@ import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import {
-  UserCheck,
+  Users,
   Plus,
-  Edit,
   Trash2,
   Loader2,
   X,
   MapPin,
   Save,
   Search,
-  XCircle,
   Briefcase,
   AlertCircle,
   Euro,
@@ -21,306 +19,216 @@ import {
   Globe2,
   Award,
   Home,
-  Users,
   User,
   Mail,
   Phone,
   FileText,
   Shield,
   ChevronRight,
-  UserPlus,
-  Link2,
-  Unlink,
-  Key
+  Building2,
+  BadgeCheck,
+  Clock,
+  Filter
 } from 'lucide-react'
+import { ROLES, ROLE_COLORS, ROLE_LABELS, isTerrainRole, TerrainRole } from '@/lib/roles'
 import {
   Candidate,
-  CandidateStatus,
-  SAP_MODULES,
-  SAP_SUB_MODULES,
-  JOB_FAMILIES,
-  LANGUAGES,
-  STATUS_LABELS,
-  STATUS_COLORS,
   generateDemoCandidates,
   getFullName,
-  getInitials
+  getInitials,
+  CONTRACT_TYPE_LABELS,
+  CONTRACT_TYPE_COLORS,
+  ContractType
 } from '@/types/candidate'
 
-interface UserAccount {
+interface User {
   _id: string
   email: string
   name: string
-  role: string
+  role: TerrainRole
+  active: boolean
+  createdAt: string
+  updatedAt?: string
+  isDemo?: boolean
 }
 
-// Mobility options
-const MOBILITY_OPTIONS = ['IDF', 'France', 'Luxembourg', 'Locale', 'Nationale', 'Internationale'] as const
-
-// Seniority levels
-const SENIORITY_LEVELS = ['Junior', 'Confirmé', 'Senior', 'Expert'] as const
-
-// Modal tabs
-type ModalTab = 'identity' | 'skills' | 'experience' | 'availability' | 'financial' | 'account' | 'notes'
-
-const MODAL_TABS: { id: ModalTab; label: string; icon: React.ReactNode }[] = [
-  { id: 'identity', label: 'Identité', icon: <User className="w-4 h-4" /> },
-  { id: 'skills', label: 'Compétences', icon: <Briefcase className="w-4 h-4" /> },
-  { id: 'experience', label: 'Expérience', icon: <Award className="w-4 h-4" /> },
-  { id: 'availability', label: 'Disponibilité', icon: <Calendar className="w-4 h-4" /> },
-  { id: 'financial', label: 'Rémunération', icon: <Euro className="w-4 h-4" /> },
-  { id: 'account', label: 'Compte', icon: <Key className="w-4 h-4" /> },
-  { id: 'notes', label: 'Notes', icon: <FileText className="w-4 h-4" /> },
-]
-
-const emptyCandidate: Partial<Candidate> = {
-  firstName: '',
-  lastName: '',
-  email: '',
-  phone: '',
-  title: '',
-  nationality: '',
-  modules: [],
-  subModules: [],
-  jobFamily: undefined,
-  experience: { years: 0, seniority: 'Confirmé' },
-  certifications: [],
-  availability: { isAvailable: true, availableIn: 'Immédiat' },
-  location: { city: '', country: 'France' },
-  mobility: [],
-  remoteWork: false,
-  dailyRate: { min: 0, max: 0, currency: 'EUR' },
-  languages: ['Français'],
-  securityClearance: '',
-  status: 'embauche', // Consultants are hired candidates
-  notes: '',
-  commercialId: '',
-  userId: undefined
+// Extended resource type combining user and linked candidate data
+interface Resource extends User {
+  linkedCandidate?: Candidate
 }
 
-export default function ConsultantsPage() {
-  const [consultants, setConsultants] = useState<Candidate[]>([])
-  const [allCandidates, setAllCandidates] = useState<Candidate[]>([])
+type FilterRole = 'all' | 'consultant_cdi' | 'freelance'
+
+export default function RessourcesPage() {
+  const [resources, setResources] = useState<Resource[]>([])
+  const [candidates, setCandidates] = useState<Candidate[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
-  const [editingConsultant, setEditingConsultant] = useState<Partial<Candidate> | null>(null)
+  const [editingResource, setEditingResource] = useState<Partial<Resource> | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
-  const [commerciaux, setCommerciaux] = useState<UserAccount[]>([])
-  const [allUsers, setAllUsers] = useState<UserAccount[]>([])
-  const [activeTab, setActiveTab] = useState<ModalTab>('identity')
-  const [creatingUser, setCreatingUser] = useState(false)
-  const [newUserPassword, setNewUserPassword] = useState('')
 
-  // Search and filters
+  // Filters
   const [searchTerm, setSearchTerm] = useState('')
-  const [filterModule, setFilterModule] = useState<string>('all')
-  const [filterAvailability, setFilterAvailability] = useState<string>('all')
+  const [filterRole, setFilterRole] = useState<FilterRole>('all')
+  const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all')
 
   useEffect(() => {
-    initializeData()
-    fetchUsers()
+    fetchData()
   }, [])
 
-  const initializeData = () => {
-    // Generate demo candidates using shared function
-    const candidates = generateDemoCandidates(30)
-    setAllCandidates(candidates)
-
-    // Filter only hired candidates (consultants)
-    const hired = candidates.filter(c => c.status === 'embauche')
-    setConsultants(hired)
-    setLoading(false)
-  }
-
-  const fetchUsers = async () => {
+  const fetchData = async () => {
+    setLoading(true)
     try {
-      const res = await fetch('/api/admin/users', { credentials: 'include' })
-      if (res.ok) {
-        const data = await res.json()
-        const users = data.users || []
-        setAllUsers(users)
-        const commercialUsers = users.filter(
-          (u: UserAccount) => u.role === 'commercial' || u.role === 'admin'
+      // Fetch users
+      const usersRes = await fetch('/api/admin/users', { credentials: 'include' })
+      let users: User[] = []
+      if (usersRes.ok) {
+        const data = await usersRes.json()
+        users = (data.users || []).filter((u: User) =>
+          u.role === 'consultant_cdi' || u.role === 'freelance'
         )
-        setCommerciaux(commercialUsers)
       }
+
+      // Generate demo candidates to link with users
+      const demoCandidates = generateDemoCandidates(30, 42)
+      const hiredCandidates = demoCandidates.filter(c => c.status === 'embauche')
+      setCandidates(hiredCandidates)
+
+      // Combine users with any linked candidate data
+      const resourcesWithLinks: Resource[] = users.map(user => {
+        // Try to find a linked candidate by userId or email match
+        const linkedCandidate = hiredCandidates.find(c =>
+          c.userId === user._id || c.email === user.email
+        )
+        return { ...user, linkedCandidate }
+      })
+
+      setResources(resourcesWithLinks)
     } catch (error) {
-      console.error('Error fetching users:', error)
+      console.error('Error fetching data:', error)
+    } finally {
+      setLoading(false)
     }
   }
 
-  const openCreateModal = () => {
-    setEditingConsultant({ ...emptyCandidate, id: `consultant-${Date.now()}` })
-    setActiveTab('identity')
+  const openEditModal = (resource: Resource) => {
+    setEditingResource({ ...resource })
     setError('')
     setShowModal(true)
   }
 
-  const openEditModal = (consultant: Candidate) => {
-    setEditingConsultant({ ...consultant })
-    setActiveTab('identity')
+  const openCreateModal = () => {
+    setEditingResource({
+      name: '',
+      email: '',
+      role: 'consultant_cdi',
+      active: true
+    })
     setError('')
     setShowModal(true)
   }
 
   const closeModal = () => {
     setShowModal(false)
-    setEditingConsultant(null)
+    setEditingResource(null)
     setError('')
   }
 
   const handleSave = async () => {
-    if (!editingConsultant) return
-    setSaving(true)
-    setError('')
-
-    // Simulate save (in real app, call API)
-    setTimeout(() => {
-      if (editingConsultant.id && consultants.find(c => c.id === editingConsultant.id)) {
-        // Update existing
-        setConsultants(prev => prev.map(c =>
-          c.id === editingConsultant.id ? { ...c, ...editingConsultant } as Candidate : c
-        ))
-      } else {
-        // Add new
-        const newConsultant: Candidate = {
-          ...emptyCandidate,
-          ...editingConsultant,
-          id: editingConsultant.id || `consultant-${Date.now()}`,
-          createdAt: new Date().toISOString(),
-          status: 'embauche'
-        } as Candidate
-        setConsultants(prev => [newConsultant, ...prev])
-      }
-      closeModal()
-      setSaving(false)
-    }, 500)
-  }
-
-  const handleDelete = async (consultant: Candidate) => {
-    if (!confirm(`Êtes-vous sûr de vouloir supprimer ${getFullName(consultant)} ?`)) return
-    setConsultants(prev => prev.filter(c => c.id !== consultant.id))
-  }
-
-  const updateField = (field: string, value: unknown) => {
-    setEditingConsultant(prev => prev ? { ...prev, [field]: value } : null)
-  }
-
-  const updateNestedField = (parent: string, field: string, value: unknown) => {
-    setEditingConsultant(prev => {
-      if (!prev) return null
-      const currentValue = prev[parent as keyof typeof prev]
-      const parentObj = (typeof currentValue === 'object' && currentValue !== null && !Array.isArray(currentValue))
-        ? (currentValue as unknown as Record<string, unknown>)
-        : {}
-      return { ...prev, [parent]: { ...parentObj, [field]: value } }
-    })
-  }
-
-  const toggleArrayItem = (field: keyof Candidate, value: string) => {
-    setEditingConsultant(prev => {
-      if (!prev) return null
-      const arr = (prev[field] as string[]) || []
-      if (arr.includes(value)) {
-        return { ...prev, [field]: arr.filter(v => v !== value) }
-      } else {
-        return { ...prev, [field]: [...arr, value] }
-      }
-    })
-  }
-
-  // Filter consultants
-  const filteredConsultants = consultants.filter(consultant => {
-    const searchLower = searchTerm.toLowerCase()
-    const fullName = getFullName(consultant).toLowerCase()
-    const matchesSearch = !searchTerm ||
-      fullName.includes(searchLower) ||
-      consultant.title?.toLowerCase().includes(searchLower) ||
-      consultant.location?.city?.toLowerCase().includes(searchLower) ||
-      consultant.modules?.some(m => m.toLowerCase().includes(searchLower)) ||
-      consultant.certifications?.some(c => c.toLowerCase().includes(searchLower))
-
-    const matchesModule = filterModule === 'all' || consultant.modules?.includes(filterModule as typeof SAP_MODULES[number])
-
-    const matchesAvailability = filterAvailability === 'all' ||
-      (filterAvailability === 'available' && consultant.availability?.isAvailable) ||
-      (filterAvailability === 'mission' && !consultant.availability?.isAvailable)
-
-    return matchesSearch && matchesModule && matchesAvailability
-  })
-
-  const getSeniorityColor = (seniority?: string) => {
-    switch (seniority) {
-      case 'Junior': return 'from-green-500 to-emerald-500'
-      case 'Confirmé': return 'from-blue-500 to-cyan-500'
-      case 'Senior': return 'from-purple-500 to-violet-500'
-      case 'Expert': return 'from-amber-500 to-orange-500'
-      default: return 'from-slate-500 to-slate-600'
-    }
-  }
-
-  // Count candidates in recruitment pipeline
-  const recruitmentCount = allCandidates.filter(c => c.status !== 'embauche').length
-
-  // Get linked user for a consultant
-  const getLinkedUser = (consultant: Candidate) => {
-    if (!consultant.userId) return null
-    return allUsers.find(u => u._id === consultant.userId) || null
-  }
-
-  // Get available users (not already linked to another consultant)
-  const getAvailableUsers = () => {
-    const linkedUserIds = consultants.filter(c => c.userId && c.id !== editingConsultant?.id).map(c => c.userId)
-    return allUsers.filter(u => !linkedUserIds.includes(u._id))
-  }
-
-  // Create user account for consultant
-  const handleCreateUserAccount = async () => {
-    if (!editingConsultant?.email || !newUserPassword) {
-      setError('Email et mot de passe requis pour créer un compte')
+    if (!editingResource) return
+    if (!editingResource.name || !editingResource.email) {
+      setError('Nom et email requis')
       return
     }
 
-    setCreatingUser(true)
+    setSaving(true)
     setError('')
 
     try {
-      const res = await fetch('/api/admin/users', {
-        method: 'POST',
+      const isNew = !editingResource._id
+      const url = isNew ? '/api/admin/users' : `/api/admin/users/${editingResource._id}`
+      const method = isNew ? 'POST' : 'PUT'
+
+      const body: Record<string, unknown> = {
+        name: editingResource.name,
+        email: editingResource.email,
+        role: editingResource.role,
+        active: editingResource.active
+      }
+
+      // For new users, require a password
+      if (isNew) {
+        body.password = 'temp123' // Default password, user should change it
+      }
+
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({
-          email: editingConsultant.email,
-          name: `${editingConsultant.firstName} ${editingConsultant.lastName}`,
-          password: newUserPassword,
-          role: 'consultant'
-        })
+        body: JSON.stringify(body)
       })
 
-      const data = await res.json()
-
       if (!res.ok) {
-        setError(data.error || 'Erreur lors de la création du compte')
-        setCreatingUser(false)
+        const data = await res.json()
+        setError(data.error || 'Erreur lors de la sauvegarde')
         return
       }
 
-      // Link the new user to the consultant
-      updateField('userId', data.user._id)
-      setNewUserPassword('')
-      await fetchUsers()
+      await fetchData()
+      closeModal()
     } catch (error) {
-      console.error('Error creating user:', error)
-      setError('Erreur de connexion au serveur')
+      console.error('Error saving:', error)
+      setError('Erreur de connexion')
     } finally {
-      setCreatingUser(false)
+      setSaving(false)
     }
   }
 
-  // Unlink user from consultant
-  const handleUnlinkUser = () => {
-    updateField('userId', undefined)
+  const handleDelete = async (resource: Resource) => {
+    if (!confirm(`Êtes-vous sûr de vouloir supprimer ${resource.name} ?`)) return
+
+    try {
+      const res = await fetch(`/api/admin/users/${resource._id}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      })
+
+      if (res.ok) {
+        await fetchData()
+      }
+    } catch (error) {
+      console.error('Error deleting:', error)
+    }
+  }
+
+  // Filter resources
+  const filteredResources = resources.filter(resource => {
+    const searchLower = searchTerm.toLowerCase()
+    const matchesSearch = !searchTerm ||
+      resource.name.toLowerCase().includes(searchLower) ||
+      resource.email.toLowerCase().includes(searchLower) ||
+      resource.linkedCandidate?.title?.toLowerCase().includes(searchLower)
+
+    const matchesRole = filterRole === 'all' || resource.role === filterRole
+    const matchesStatus = filterStatus === 'all' ||
+      (filterStatus === 'active' && resource.active) ||
+      (filterStatus === 'inactive' && !resource.active)
+
+    return matchesSearch && matchesRole && matchesStatus
+  })
+
+  // Stats
+  const cdiCount = resources.filter(r => r.role === 'consultant_cdi').length
+  const freelanceCount = resources.filter(r => r.role === 'freelance').length
+  const activeCount = resources.filter(r => r.active).length
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin text-ebmc-turquoise" />
+      </div>
+    )
   }
 
   return (
@@ -329,203 +237,243 @@ export default function ConsultantsPage() {
       <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-8">
         <div>
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl">
-              <UserCheck className="w-6 h-6 text-white" />
+            <div className="p-2 bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl">
+              <Users className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">Consultants</h1>
-              <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">{consultants.length} consultant{consultants.length > 1 ? 's' : ''} embauchés</p>
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">Ressources</h1>
+              <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
+                {resources.length} ressource{resources.length > 1 ? 's' : ''} terrain
+              </p>
             </div>
           </div>
         </div>
         <div className="flex items-center gap-3">
-          {/* Link to recruitment */}
           <Link
             href="/admin/recrutement"
             className="flex items-center gap-2 px-4 py-2.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-xl hover:bg-purple-200 dark:hover:bg-purple-900/50 transition font-medium"
           >
             <Users className="w-5 h-5" />
             Recrutement
-            <span className="px-2 py-0.5 bg-purple-500 text-white text-xs rounded-full">{recruitmentCount}</span>
             <ChevronRight className="w-4 h-4" />
           </Link>
           <button
             onClick={openCreateModal}
-            className="flex items-center justify-center gap-2 bg-gradient-to-r from-ebmc-turquoise to-cyan-500 text-white px-5 py-2.5 rounded-xl hover:shadow-lg hover:shadow-ebmc-turquoise/25 transition-all font-medium"
+            className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl hover:from-green-600 hover:to-emerald-600 transition shadow-lg shadow-green-500/20 font-medium"
           >
             <Plus className="w-5 h-5" />
-            Nouveau consultant
+            Nouvelle ressource
           </button>
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="glass-card p-4 mb-6">
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border-l-4 border-green-500"
+        >
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/30">
+              <Users className="w-5 h-5 text-green-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{resources.length}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Total</p>
+            </div>
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border-l-4 border-blue-500"
+        >
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
+              <BadgeCheck className="w-5 h-5 text-blue-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{cdiCount}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">CDI</p>
+            </div>
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border-l-4 border-purple-500"
+        >
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/30">
+              <Briefcase className="w-5 h-5 text-purple-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{freelanceCount}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Freelance</p>
+            </div>
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border-l-4 border-emerald-500"
+        >
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
+              <Clock className="w-5 h-5 text-emerald-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{activeCount}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Actifs</p>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+
+      {/* Search and Filters */}
+      <div className="bg-white dark:bg-slate-800 rounded-xl p-4 mb-6 shadow-sm">
         <div className="flex flex-col md:flex-row gap-4">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500" />
+          {/* Search */}
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
               type="text"
-              placeholder="Rechercher par nom, titre, modules..."
+              placeholder="Rechercher par nom, email, poste..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-800 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
+              className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-slate-700 border-0 rounded-xl focus:ring-2 focus:ring-green-500/20"
             />
-            {searchTerm && (
-              <button
-                onClick={() => setSearchTerm('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-              >
-                <XCircle className="w-5 h-5" />
-              </button>
-            )}
           </div>
+
+          {/* Role Filter */}
           <select
-            value={filterModule}
-            onChange={(e) => setFilterModule(e.target.value)}
-            className="px-4 py-2.5 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-800 text-gray-900 dark:text-white"
+            value={filterRole}
+            onChange={(e) => setFilterRole(e.target.value as FilterRole)}
+            className="px-4 py-2.5 bg-gray-50 dark:bg-slate-700 border-0 rounded-xl focus:ring-2 focus:ring-green-500/20"
           >
-            <option value="all">Tous modules</option>
-            {SAP_MODULES.map(mod => (
-              <option key={mod} value={mod}>{mod}</option>
-            ))}
+            <option value="all">Tous les types</option>
+            <option value="consultant_cdi">Consultant CDI</option>
+            <option value="freelance">Freelance</option>
           </select>
+
+          {/* Status Filter */}
           <select
-            value={filterAvailability}
-            onChange={(e) => setFilterAvailability(e.target.value)}
-            className="px-4 py-2.5 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-800 text-gray-900 dark:text-white"
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value as 'all' | 'active' | 'inactive')}
+            className="px-4 py-2.5 bg-gray-50 dark:bg-slate-700 border-0 rounded-xl focus:ring-2 focus:ring-green-500/20"
           >
-            <option value="all">Tous statuts</option>
-            <option value="available">Disponibles</option>
-            <option value="mission">En mission</option>
+            <option value="all">Tous les statuts</option>
+            <option value="active">Actif</option>
+            <option value="inactive">Inactif</option>
           </select>
         </div>
       </div>
 
-      {/* Consultants Table */}
-      <div className="glass-card overflow-hidden">
-        {loading ? (
-          <div className="flex justify-center py-12">
-            <Loader2 className="w-8 h-8 animate-spin text-ebmc-turquoise" />
-          </div>
-        ) : filteredConsultants.length === 0 ? (
+      {/* Resources Table */}
+      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm overflow-hidden">
+        {filteredResources.length === 0 ? (
           <div className="text-center py-12">
-            <UserCheck className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
-            <p className="text-gray-500 dark:text-gray-400">
-              {searchTerm || filterModule !== 'all' || filterAvailability !== 'all'
-                ? 'Aucun consultant ne correspond aux critères'
-                : 'Aucun consultant trouvé'}
-            </p>
+            <Users className="w-12 h-12 mx-auto text-gray-300 dark:text-slate-600 mb-4" />
+            <p className="text-gray-500 dark:text-gray-400">Aucune ressource trouvée</p>
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                className="mt-2 text-green-600 hover:underline text-sm"
+              >
+                Effacer la recherche
+              </button>
+            )}
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50/80 dark:bg-slate-800/80 border-b border-gray-100 dark:border-slate-700">
+              <thead className="bg-gray-50 dark:bg-slate-700/50">
                 <tr>
-                  <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Consultant</th>
-                  <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Localisation</th>
-                  <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Modules SAP</th>
-                  <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">TJM</th>
-                  <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Compte</th>
+                  <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Ressource</th>
+                  <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Contact</th>
+                  <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Type</th>
+                  <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Poste</th>
                   <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Statut</th>
                   <th className="text-right px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
-                {filteredConsultants.map((consultant, index) => (
+                {filteredResources.map((resource, index) => (
                   <motion.tr
-                    key={consultant.id}
+                    key={resource._id}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.03 }}
-                    onClick={() => openEditModal(consultant)}
+                    onClick={() => openEditModal(resource)}
                     className="hover:bg-gray-50/50 dark:hover:bg-slate-700/50 transition cursor-pointer"
                   >
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-full bg-gradient-to-r ${getSeniorityColor(consultant.experience?.seniority)} flex items-center justify-center`}>
+                        <div className={`w-10 h-10 rounded-full bg-gradient-to-r ${
+                          resource.role === 'consultant_cdi'
+                            ? 'from-blue-500 to-cyan-500'
+                            : 'from-purple-500 to-pink-500'
+                        } flex items-center justify-center`}>
                           <span className="text-white font-bold text-sm">
-                            {getInitials(consultant)}
+                            {resource.name?.charAt(0).toUpperCase() || '?'}
                           </span>
                         </div>
                         <div>
-                          <span className="font-medium text-gray-900 dark:text-white block">{getFullName(consultant)}</span>
-                          <span className="text-sm text-gray-500 dark:text-gray-400">{consultant.title}</span>
-                          {consultant.experience?.seniority && (
-                            <span className="ml-2 text-xs text-gray-400">• {consultant.experience.seniority} ({consultant.experience.years} ans)</span>
+                          <span className="font-medium text-gray-900 dark:text-white block">{resource.name}</span>
+                          {resource.isDemo && (
+                            <span className="text-xs text-amber-600 dark:text-amber-400">Démo</span>
                           )}
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
-                        <MapPin className="w-4 h-4 text-gray-400 dark:text-gray-500" />
-                        {consultant.location?.city || '-'}, {consultant.location?.country || '-'}
+                        <Mail className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                        {resource.email}
                       </div>
-                      {consultant.remoteWork && (
-                        <span className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1 mt-1">
-                          <Home className="w-3 h-3" /> Télétravail OK
-                        </span>
-                      )}
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex flex-wrap gap-1 max-w-xs">
-                        {consultant.modules?.slice(0, 3).map((mod, i) => (
-                          <span key={i} className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs rounded">
-                            {mod}
-                          </span>
-                        ))}
-                        {(consultant.modules?.length || 0) > 3 && (
-                          <span className="px-2 py-0.5 text-xs text-gray-400 dark:text-gray-500">+{consultant.modules!.length - 3}</span>
+                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ${
+                        resource.role === 'consultant_cdi'
+                          ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                          : 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'
+                      }`}>
+                        {resource.role === 'consultant_cdi' ? (
+                          <><BadgeCheck className="w-3 h-3" /> CDI</>
+                        ) : (
+                          <><Briefcase className="w-3 h-3" /> Freelance</>
                         )}
-                      </div>
+                      </span>
                     </td>
                     <td className="px-6 py-4">
-                      {consultant.dailyRate?.min || consultant.dailyRate?.max ? (
-                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                          {consultant.dailyRate.min}€ - {consultant.dailyRate.max}€
+                      {resource.linkedCandidate?.title ? (
+                        <span className="text-gray-700 dark:text-gray-300">
+                          {resource.linkedCandidate.title}
                         </span>
                       ) : (
-                        <span className="text-gray-400">-</span>
+                        <span className="text-gray-400 dark:text-gray-500 italic">Non renseigné</span>
                       )}
-                    </td>
-                    <td className="px-6 py-4">
-                      {(() => {
-                        const linkedUser = getLinkedUser(consultant)
-                        if (linkedUser) {
-                          return (
-                            <div className="flex items-center gap-2">
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-medium rounded-full">
-                                <Link2 className="w-3 h-3" />
-                                {linkedUser.name || linkedUser.email}
-                              </span>
-                            </div>
-                          )
-                        }
-                        return (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gray-100 dark:bg-slate-700 text-gray-500 dark:text-gray-400 text-xs rounded-full">
-                            <Unlink className="w-3 h-3" />
-                            Non lié
-                          </span>
-                        )
-                      })()}
                     </td>
                     <td className="px-6 py-4">
                       <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                        consultant.availability?.isAvailable
+                        resource.active
                           ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
-                          : 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400'
+                          : 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-400'
                       }`}>
-                        {consultant.availability?.isAvailable ? 'Disponible' : 'En mission'}
+                        {resource.active ? 'Actif' : 'Inactif'}
                       </span>
-                      {consultant.availability?.isAvailable && consultant.availability?.availableIn && (
-                        <p className="text-xs text-gray-400 mt-1">{consultant.availability.availableIn}</p>
-                      )}
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex justify-end gap-2">
                         <button
-                          onClick={(e) => { e.stopPropagation(); handleDelete(consultant); }}
+                          onClick={(e) => { e.stopPropagation(); handleDelete(resource); }}
                           className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition"
                           title="Supprimer"
                         >
@@ -541,712 +489,145 @@ export default function ConsultantsPage() {
         )}
       </div>
 
-      {/* Create/Edit Modal with Tabs */}
+      {/* Edit/Create Modal */}
       <AnimatePresence>
-        {showModal && editingConsultant && (
+        {showModal && editingResource && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col"
+              className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden"
             >
               {/* Modal Header */}
-              <div className="flex justify-between items-center p-6 border-b border-gray-100 dark:border-slate-700">
+              <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-slate-700">
                 <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-xl bg-gradient-to-r ${editingConsultant.id && consultants.find(c => c.id === editingConsultant.id) ? 'from-blue-500 to-indigo-500' : 'from-ebmc-turquoise to-cyan-500'}`}>
-                    {editingConsultant.id && consultants.find(c => c.id === editingConsultant.id) ? <Edit className="w-5 h-5 text-white" /> : <Plus className="w-5 h-5 text-white" />}
+                  <div className={`p-2 rounded-xl bg-gradient-to-r ${
+                    editingResource.role === 'consultant_cdi'
+                      ? 'from-blue-500 to-cyan-500'
+                      : 'from-purple-500 to-pink-500'
+                  }`}>
+                    {editingResource._id ? <User className="w-5 h-5 text-white" /> : <Plus className="w-5 h-5 text-white" />}
                   </div>
                   <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                    {editingConsultant.id && consultants.find(c => c.id === editingConsultant.id) ? 'Modifier le consultant' : 'Nouveau consultant'}
+                    {editingResource._id ? 'Modifier la ressource' : 'Nouvelle ressource'}
                   </h2>
                 </div>
                 <button
                   onClick={closeModal}
                   className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition"
                 >
-                  <X className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+                  <X className="w-5 h-5 text-gray-500" />
                 </button>
               </div>
 
-              {/* Tabs */}
-              <div className="flex border-b border-gray-100 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-800/50 overflow-x-auto">
-                {MODAL_TABS.map(tab => (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 transition whitespace-nowrap ${
-                      activeTab === tab.id
-                        ? 'border-ebmc-turquoise text-ebmc-turquoise bg-white dark:bg-slate-700'
-                        : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-                    }`}
-                  >
-                    {tab.icon}
-                    {tab.label}
-                  </button>
-                ))}
-              </div>
-
               {/* Modal Body */}
-              <div className="p-6 overflow-y-auto flex-1">
-                {/* Error Alert */}
+              <div className="p-6 space-y-5">
                 {error && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="flex items-center gap-3 p-4 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 rounded-xl text-red-600 dark:text-red-400 mb-6"
-                  >
+                  <div className="p-3 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 rounded-xl flex items-center gap-2">
                     <AlertCircle className="w-5 h-5 flex-shrink-0" />
-                    <span className="text-sm">{error}</span>
-                  </motion.div>
-                )}
-
-                {/* Tab: Identity */}
-                {activeTab === 'identity' && (
-                  <div className="space-y-5">
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Prénom</label>
-                        <input
-                          type="text"
-                          value={editingConsultant.firstName || ''}
-                          onChange={(e) => updateField('firstName', e.target.value)}
-                          className="w-full px-4 py-3 border border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
-                          placeholder="Jean"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Nom</label>
-                        <input
-                          type="text"
-                          value={editingConsultant.lastName || ''}
-                          onChange={(e) => updateField('lastName', e.target.value)}
-                          className="w-full px-4 py-3 border border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
-                          placeholder="Dupont"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          <Mail className="w-4 h-4 inline mr-1" />Email
-                        </label>
-                        <input
-                          type="email"
-                          value={editingConsultant.email || ''}
-                          onChange={(e) => updateField('email', e.target.value)}
-                          className="w-full px-4 py-3 border border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
-                          placeholder="jean.dupont@email.com"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          <Phone className="w-4 h-4 inline mr-1" />Téléphone
-                        </label>
-                        <input
-                          type="tel"
-                          value={editingConsultant.phone || ''}
-                          onChange={(e) => updateField('phone', e.target.value)}
-                          className="w-full px-4 py-3 border border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
-                          placeholder="+33 6 12 34 56 78"
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Titre du poste</label>
-                      <input
-                        type="text"
-                        value={editingConsultant.title || ''}
-                        onChange={(e) => updateField('title', e.target.value)}
-                        className="w-full px-4 py-3 border border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
-                        placeholder="Consultant SAP FI CO Senior"
-                      />
-                    </div>
-
-                    <div className="grid md:grid-cols-3 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          <MapPin className="w-4 h-4 inline mr-1" />Ville
-                        </label>
-                        <input
-                          type="text"
-                          value={editingConsultant.location?.city || ''}
-                          onChange={(e) => updateNestedField('location', 'city', e.target.value)}
-                          className="w-full px-4 py-3 border border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
-                          placeholder="Paris"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Pays</label>
-                        <input
-                          type="text"
-                          value={editingConsultant.location?.country || ''}
-                          onChange={(e) => updateNestedField('location', 'country', e.target.value)}
-                          className="w-full px-4 py-3 border border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
-                          placeholder="France"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Nationalité</label>
-                        <input
-                          type="text"
-                          value={editingConsultant.nationality || ''}
-                          onChange={(e) => updateField('nationality', e.target.value)}
-                          className="w-full px-4 py-3 border border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
-                          placeholder="Française"
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Commercial assigné</label>
-                      <select
-                        value={editingConsultant.commercialId || ''}
-                        onChange={(e) => updateField('commercialId', e.target.value)}
-                        className="w-full px-4 py-3 border border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
-                      >
-                        <option value="">Non assigné</option>
-                        {commerciaux.map(user => (
-                          <option key={user._id} value={user._id}>
-                            {user.name || user.email}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+                    {error}
                   </div>
                 )}
 
-                {/* Tab: Skills */}
-                {activeTab === 'skills' && (
-                  <div className="space-y-6">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Famille métier</label>
-                      <div className="flex flex-wrap gap-2">
-                        {JOB_FAMILIES.map(jf => (
-                          <button
-                            key={jf.id}
-                            type="button"
-                            onClick={() => updateField('jobFamily', editingConsultant.jobFamily === jf.id ? undefined : jf.id)}
-                            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition ${
-                              editingConsultant.jobFamily === jf.id
-                                ? 'bg-purple-500 text-white'
-                                : 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-600'
-                            }`}
-                          >
-                            {jf.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
+                {/* Name */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Nom complet *
+                  </label>
+                  <input
+                    type="text"
+                    value={editingResource.name || ''}
+                    onChange={(e) => setEditingResource(prev => prev ? { ...prev, name: e.target.value } : null)}
+                    className="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-700 border-0 rounded-xl focus:ring-2 focus:ring-green-500/20"
+                    placeholder="Prénom Nom"
+                  />
+                </div>
 
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Modules SAP
-                      </label>
-                      <div className="flex flex-wrap gap-2">
-                        {SAP_MODULES.map(mod => (
-                          <button
-                            key={mod}
-                            type="button"
-                            onClick={() => toggleArrayItem('modules', mod)}
-                            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition ${
-                              editingConsultant.modules?.includes(mod)
-                                ? 'bg-blue-500 text-white'
-                                : 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-600'
-                            }`}
-                          >
-                            {mod}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
+                {/* Email */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Email *
+                  </label>
+                  <input
+                    type="email"
+                    value={editingResource.email || ''}
+                    onChange={(e) => setEditingResource(prev => prev ? { ...prev, email: e.target.value } : null)}
+                    className="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-700 border-0 rounded-xl focus:ring-2 focus:ring-green-500/20"
+                    placeholder="email@exemple.com"
+                  />
+                </div>
 
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Sous-modules SAP
-                      </label>
-                      <div className="flex flex-wrap gap-2">
-                        {SAP_SUB_MODULES.map(sub => (
-                          <button
-                            key={sub}
-                            type="button"
-                            onClick={() => toggleArrayItem('subModules', sub)}
-                            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition ${
-                              editingConsultant.subModules?.includes(sub)
-                                ? 'bg-cyan-500 text-white'
-                                : 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-600'
-                            }`}
-                          >
-                            {sub}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Langues</label>
-                      <div className="flex flex-wrap gap-2">
-                        {LANGUAGES.map(lang => (
-                          <button
-                            key={lang}
-                            type="button"
-                            onClick={() => toggleArrayItem('languages', lang)}
-                            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition ${
-                              editingConsultant.languages?.includes(lang)
-                                ? 'bg-indigo-500 text-white'
-                                : 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-600'
-                            }`}
-                          >
-                            {lang}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
+                {/* Role */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Type de contrat
+                  </label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setEditingResource(prev => prev ? { ...prev, role: 'consultant_cdi' } : null)}
+                      className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 transition ${
+                        editingResource.role === 'consultant_cdi'
+                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300'
+                          : 'border-gray-200 dark:border-slate-600 hover:border-blue-300'
+                      }`}
+                    >
+                      <BadgeCheck className="w-5 h-5" />
+                      CDI
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditingResource(prev => prev ? { ...prev, role: 'freelance' } : null)}
+                      className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 transition ${
+                        editingResource.role === 'freelance'
+                          ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300'
+                          : 'border-gray-200 dark:border-slate-600 hover:border-purple-300'
+                      }`}
+                    >
+                      <Briefcase className="w-5 h-5" />
+                      Freelance
+                    </button>
                   </div>
-                )}
+                </div>
 
-                {/* Tab: Experience */}
-                {activeTab === 'experience' && (
-                  <div className="space-y-6">
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          Années d&apos;expérience
-                        </label>
-                        <input
-                          type="number"
-                          min="0"
-                          value={editingConsultant.experience?.years || 0}
-                          onChange={(e) => updateNestedField('experience', 'years', parseInt(e.target.value) || 0)}
-                          className="w-full px-4 py-3 border border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Séniorité</label>
-                        <select
-                          value={editingConsultant.experience?.seniority || 'Confirmé'}
-                          onChange={(e) => updateNestedField('experience', 'seniority', e.target.value)}
-                          className="w-full px-4 py-3 border border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
-                        >
-                          {SENIORITY_LEVELS.map(level => (
-                            <option key={level} value={level}>{level}</option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
+                {/* Active Status */}
+                <div className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    id="active"
+                    checked={editingResource.active !== false}
+                    onChange={(e) => setEditingResource(prev => prev ? { ...prev, active: e.target.checked } : null)}
+                    className="w-5 h-5 rounded border-gray-300 text-green-600 focus:ring-green-500"
+                  />
+                  <label htmlFor="active" className="text-sm text-gray-700 dark:text-gray-300">
+                    Ressource active
+                  </label>
+                </div>
 
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        <Award className="w-4 h-4 inline mr-1" />Certifications
-                      </label>
-                      <div className="space-y-2">
-                        {(editingConsultant.certifications || []).map((cert, i) => (
-                          <div key={i} className="flex gap-2">
-                            <input
-                              type="text"
-                              value={cert}
-                              onChange={(e) => {
-                                const certs = [...(editingConsultant.certifications || [])]
-                                certs[i] = e.target.value
-                                updateField('certifications', certs)
-                              }}
-                              className="flex-1 px-4 py-3 border border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
-                              placeholder="SAP S/4HANA Finance"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => updateField('certifications', (editingConsultant.certifications || []).filter((_, idx) => idx !== i))}
-                              className="px-3 py-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition"
-                            >
-                              <X className="w-5 h-5" />
-                            </button>
-                          </div>
-                        ))}
-                        <button
-                          type="button"
-                          onClick={() => updateField('certifications', [...(editingConsultant.certifications || []), ''])}
-                          className="text-ebmc-turquoise text-sm font-medium hover:underline"
-                        >
-                          + Ajouter une certification
-                        </button>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        <Shield className="w-4 h-4 inline mr-1" />Habilitation sécurité
-                      </label>
-                      <input
-                        type="text"
-                        value={editingConsultant.securityClearance || ''}
-                        onChange={(e) => updateField('securityClearance', e.target.value)}
-                        className="w-full px-4 py-3 border border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
-                        placeholder="Habilitation défense, Secret..."
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {/* Tab: Availability */}
-                {activeTab === 'availability' && (
-                  <div className="space-y-6">
-                    <div className="p-4 bg-gray-50 dark:bg-slate-700/50 rounded-xl space-y-4">
-                      <div className="grid md:grid-cols-3 gap-4">
-                        <div>
-                          <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Statut</label>
-                          <select
-                            value={editingConsultant.availability?.isAvailable ? 'true' : 'false'}
-                            onChange={(e) => updateNestedField('availability', 'isAvailable', e.target.value === 'true')}
-                            className="w-full px-4 py-3 border border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
-                          >
-                            <option value="true">Disponible</option>
-                            <option value="false">En mission</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Date de disponibilité</label>
-                          <input
-                            type="date"
-                            value={editingConsultant.availability?.availableFrom || ''}
-                            onChange={(e) => updateNestedField('availability', 'availableFrom', e.target.value)}
-                            className="w-full px-4 py-3 border border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Disponible sous</label>
-                          <select
-                            value={editingConsultant.availability?.availableIn || 'Immédiat'}
-                            onChange={(e) => updateNestedField('availability', 'availableIn', e.target.value)}
-                            className="w-full px-4 py-3 border border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
-                          >
-                            <option value="Immédiat">Immédiat</option>
-                            <option value="1 mois">1 mois</option>
-                            <option value="2 mois">2 mois</option>
-                            <option value="3 mois">3 mois</option>
-                            <option value="A définir">À définir</option>
-                          </select>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        <Globe2 className="w-4 h-4 inline mr-1" />Mobilité
-                      </label>
-                      <div className="flex flex-wrap gap-2">
-                        {MOBILITY_OPTIONS.map(mob => (
-                          <button
-                            key={mob}
-                            type="button"
-                            onClick={() => toggleArrayItem('mobility', mob)}
-                            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition ${
-                              editingConsultant.mobility?.includes(mob as typeof MOBILITY_OPTIONS[number])
-                                ? 'bg-green-500 text-white'
-                                : 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-600'
-                            }`}
-                          >
-                            {mob}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3 p-4 bg-gray-50 dark:bg-slate-700/50 rounded-xl">
-                      <input
-                        type="checkbox"
-                        id="remoteWork"
-                        checked={editingConsultant.remoteWork || false}
-                        onChange={(e) => updateField('remoteWork', e.target.checked)}
-                        className="w-5 h-5 text-ebmc-turquoise rounded border-gray-300 focus:ring-ebmc-turquoise"
-                      />
-                      <label htmlFor="remoteWork" className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                        <Home className="w-4 h-4" />
-                        Télétravail possible
-                      </label>
-                    </div>
-                  </div>
-                )}
-
-                {/* Tab: Financial */}
-                {activeTab === 'financial' && (
-                  <div className="space-y-6">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        <Euro className="w-4 h-4 inline mr-1" />Taux journalier (TJM)
-                      </label>
-                      <div className="grid md:grid-cols-4 gap-4">
-                        <div>
-                          <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Min</label>
-                          <input
-                            type="number"
-                            min="0"
-                            value={editingConsultant.dailyRate?.min || ''}
-                            onChange={(e) => updateNestedField('dailyRate', 'min', parseInt(e.target.value) || 0)}
-                            className="w-full px-4 py-3 border border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
-                            placeholder="600"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Max</label>
-                          <input
-                            type="number"
-                            min="0"
-                            value={editingConsultant.dailyRate?.max || ''}
-                            onChange={(e) => updateNestedField('dailyRate', 'max', parseInt(e.target.value) || 0)}
-                            className="w-full px-4 py-3 border border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
-                            placeholder="900"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Cible</label>
-                          <input
-                            type="number"
-                            min="0"
-                            value={editingConsultant.dailyRate?.target || ''}
-                            onChange={(e) => updateNestedField('dailyRate', 'target', parseInt(e.target.value) || 0)}
-                            className="w-full px-4 py-3 border border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
-                            placeholder="750"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Devise</label>
-                          <select
-                            value={editingConsultant.dailyRate?.currency || 'EUR'}
-                            onChange={(e) => updateNestedField('dailyRate', 'currency', e.target.value)}
-                            className="w-full px-4 py-3 border border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
-                          >
-                            <option value="EUR">EUR (€)</option>
-                            <option value="CHF">CHF</option>
-                            <option value="GBP">GBP (£)</option>
-                            <option value="USD">USD ($)</option>
-                          </select>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Tab: Account */}
-                {activeTab === 'account' && (
-                  <div className="space-y-6">
-                    {editingConsultant.userId ? (
-                      // User is linked
-                      <div className="space-y-4">
-                        <div className="p-5 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl">
-                          <div className="flex items-center gap-3 mb-4">
-                            <div className="p-2 bg-green-500 rounded-xl">
-                              <Link2 className="w-5 h-5 text-white" />
-                            </div>
-                            <div>
-                              <h3 className="font-semibold text-green-800 dark:text-green-300">Compte utilisateur lié</h3>
-                              <p className="text-sm text-green-600 dark:text-green-400">Ce consultant a un accès au portail</p>
-                            </div>
-                          </div>
-
-                          {(() => {
-                            const linkedUser = allUsers.find(u => u._id === editingConsultant.userId)
-                            if (linkedUser) {
-                              return (
-                                <div className="bg-white dark:bg-slate-800 rounded-lg p-4 space-y-3">
-                                  <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-full bg-gradient-to-r from-green-500 to-emerald-500 flex items-center justify-center">
-                                      <span className="text-white font-bold text-sm">
-                                        {linkedUser.name?.charAt(0).toUpperCase() || linkedUser.email?.charAt(0).toUpperCase()}
-                                      </span>
-                                    </div>
-                                    <div>
-                                      <p className="font-medium text-gray-900 dark:text-white">{linkedUser.name}</p>
-                                      <p className="text-sm text-gray-500 dark:text-gray-400">{linkedUser.email}</p>
-                                    </div>
-                                  </div>
-                                  <div className="flex items-center gap-2 text-sm">
-                                    <span className="text-gray-500 dark:text-gray-400">Rôle:</span>
-                                    <span className="px-2 py-0.5 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 rounded text-xs font-medium">
-                                      {linkedUser.role}
-                                    </span>
-                                  </div>
-                                </div>
-                              )
-                            }
-                            return null
-                          })()}
-
-                          <button
-                            type="button"
-                            onClick={handleUnlinkUser}
-                            className="mt-4 flex items-center gap-2 px-4 py-2 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50 transition text-sm font-medium"
-                          >
-                            <Unlink className="w-4 h-4" />
-                            Délier le compte
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      // No user linked - show options to link or create
-                      <div className="space-y-6">
-                        {/* Link existing user */}
-                        <div className="p-5 bg-gray-50 dark:bg-slate-700/50 rounded-xl">
-                          <div className="flex items-center gap-3 mb-4">
-                            <div className="p-2 bg-blue-500 rounded-xl">
-                              <Link2 className="w-5 h-5 text-white" />
-                            </div>
-                            <div>
-                              <h3 className="font-semibold text-gray-900 dark:text-white">Lier un compte existant</h3>
-                              <p className="text-sm text-gray-500 dark:text-gray-400">Associer à un compte utilisateur déjà créé</p>
-                            </div>
-                          </div>
-
-                          <select
-                            value={editingConsultant.userId || ''}
-                            onChange={(e) => updateField('userId', e.target.value || undefined)}
-                            className="w-full px-4 py-3 border border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
-                          >
-                            <option value="">Sélectionner un utilisateur...</option>
-                            {getAvailableUsers().map(user => (
-                              <option key={user._id} value={user._id}>
-                                {user.name || user.email} ({user.role})
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-
-                        <div className="relative">
-                          <div className="absolute inset-0 flex items-center">
-                            <div className="w-full border-t border-gray-200 dark:border-slate-600"></div>
-                          </div>
-                          <div className="relative flex justify-center text-sm">
-                            <span className="px-3 bg-white dark:bg-slate-800 text-gray-500 dark:text-gray-400">ou</span>
-                          </div>
-                        </div>
-
-                        {/* Create new user */}
-                        <div className="p-5 bg-gray-50 dark:bg-slate-700/50 rounded-xl">
-                          <div className="flex items-center gap-3 mb-4">
-                            <div className="p-2 bg-purple-500 rounded-xl">
-                              <UserPlus className="w-5 h-5 text-white" />
-                            </div>
-                            <div>
-                              <h3 className="font-semibold text-gray-900 dark:text-white">Créer un nouveau compte</h3>
-                              <p className="text-sm text-gray-500 dark:text-gray-400">
-                                Utilise l&apos;email: {editingConsultant.email || '(non défini)'}
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="space-y-4">
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                Mot de passe pour le compte
-                              </label>
-                              <input
-                                type="password"
-                                value={newUserPassword}
-                                onChange={(e) => setNewUserPassword(e.target.value)}
-                                className="w-full px-4 py-3 border border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
-                                placeholder="••••••••"
-                              />
-                            </div>
-
-                            <button
-                              type="button"
-                              onClick={handleCreateUserAccount}
-                              disabled={creatingUser || !editingConsultant.email || !newUserPassword}
-                              className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-purple-500 to-violet-500 text-white rounded-xl hover:shadow-lg hover:shadow-purple-500/25 transition disabled:opacity-50 font-medium"
-                            >
-                              {creatingUser ? (
-                                <>
-                                  <Loader2 className="w-4 h-4 animate-spin" />
-                                  Création...
-                                </>
-                              ) : (
-                                <>
-                                  <UserPlus className="w-4 h-4" />
-                                  Créer le compte
-                                </>
-                              )}
-                            </button>
-                          </div>
-                        </div>
-
-                        {!editingConsultant.email && (
-                          <div className="flex items-center gap-3 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl text-amber-700 dark:text-amber-400">
-                            <AlertCircle className="w-5 h-5 flex-shrink-0" />
-                            <span className="text-sm">Veuillez d&apos;abord définir l&apos;email du consultant dans l&apos;onglet Identité</span>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Tab: Notes */}
-                {activeTab === 'notes' && (
-                  <div className="space-y-6">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        <FileText className="w-4 h-4 inline mr-1" />Notes internes
-                      </label>
-                      <textarea
-                        rows={6}
-                        value={editingConsultant.notes || ''}
-                        onChange={(e) => updateField('notes', e.target.value)}
-                        className="w-full px-4 py-3 border border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white resize-none"
-                        placeholder="Ajouter des notes sur le consultant..."
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Source</label>
-                      <input
-                        type="text"
-                        value={editingConsultant.source || ''}
-                        onChange={(e) => updateField('source', e.target.value)}
-                        className="w-full px-4 py-3 border border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
-                        placeholder="LinkedIn, Cooptation, etc."
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">URL du CV</label>
-                      <input
-                        type="url"
-                        value={editingConsultant.cvUrl || ''}
-                        onChange={(e) => updateField('cvUrl', e.target.value)}
-                        className="w-full px-4 py-3 border border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-ebmc-turquoise/20 focus:border-ebmc-turquoise outline-none transition bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
-                        placeholder="https://..."
-                      />
-                    </div>
+                {/* Info for new users */}
+                {!editingResource._id && (
+                  <div className="p-3 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 rounded-xl text-sm">
+                    <p>Un mot de passe temporaire sera généré. L&apos;utilisateur devra le changer à la première connexion.</p>
                   </div>
                 )}
               </div>
 
               {/* Modal Footer */}
-              <div className="flex gap-3 p-6 border-t border-gray-100 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-800/50">
+              <div className="flex justify-end gap-3 p-6 border-t border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/50">
                 <button
-                  type="button"
                   onClick={closeModal}
-                  className="flex-1 px-4 py-3 border border-gray-200 dark:border-slate-700 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-700 transition font-medium"
+                  className="px-4 py-2.5 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-xl transition"
                 >
                   Annuler
                 </button>
                 <button
                   onClick={handleSave}
                   disabled={saving}
-                  className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-ebmc-turquoise to-cyan-500 text-white px-4 py-3 rounded-xl hover:shadow-lg hover:shadow-ebmc-turquoise/25 transition disabled:opacity-50 font-medium"
+                  className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl hover:from-green-600 hover:to-emerald-600 transition disabled:opacity-50"
                 >
-                  {saving ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      Enregistrement...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="w-5 h-5" />
-                      Enregistrer
-                    </>
-                  )}
+                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                  {editingResource._id ? 'Enregistrer' : 'Créer'}
                 </button>
               </div>
             </motion.div>
