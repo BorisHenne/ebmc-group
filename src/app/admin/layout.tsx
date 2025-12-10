@@ -31,7 +31,8 @@ import {
   Cloud,
   Layers,
   LucideIcon,
-  UserPlus
+  UserPlus,
+  Tags
 } from 'lucide-react'
 import { LightBackground } from '@/components/ui/TechBackground'
 import { hasPermission, RolePermissions, ROLE_LABELS, ROLE_COLORS, RoleType } from '@/lib/roles'
@@ -96,6 +97,7 @@ const menuSections: MenuSection[] = [
     items: [
       { href: '/admin/users', icon: Users, label: 'Utilisateurs', color: 'from-orange-500 to-amber-500', permission: 'users' },
       { href: '/admin/roles', icon: Shield, label: 'Roles', color: 'from-red-500 to-rose-500', permission: 'roles' },
+      { href: '/admin/candidate-states', icon: Tags, label: 'États Candidats', color: 'from-amber-500 to-orange-500', permission: 'candidateStates' },
       { href: '/admin/database', icon: Database, label: 'MongoDB', color: 'from-green-600 to-emerald-500', permission: 'database' },
       { href: '/admin/webhooks', icon: Webhook, label: 'Webhooks', color: 'from-violet-500 to-purple-500', permission: 'webhooks' },
       { href: '/admin/api-tokens', icon: Key, label: 'Tokens API', color: 'from-yellow-500 to-orange-500', permission: 'apiTokens' },
