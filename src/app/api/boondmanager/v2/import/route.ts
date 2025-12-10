@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
-import { createBoondClient, BoondEnvironment, BoondManagerClient, BoondResource, BoondCandidate, BoondOpportunity } from '@/lib/boondmanager-client'
+import {
+  createBoondClient,
+  BoondEnvironment,
+  BoondManagerClient,
+  BoondResource,
+  BoondCandidate,
+  BoondOpportunity,
+  BoondPermissionError,
+} from '@/lib/boondmanager-client'
 import { boondImportService } from '@/lib/boondmanager-import'
 import { hasPermission } from '@/lib/roles'
 
@@ -9,62 +17,118 @@ function getEnvironment(request: NextRequest): BoondEnvironment {
   return env === 'sandbox' ? 'sandbox' : 'production'
 }
 
-// Helper to fetch all pages of data from BoondManager
+// Permission error tracking
+interface PermissionError {
+  entity: string
+  endpoint: string
+  message: string
+}
+
+interface FetchResult<T> {
+  data: T[]
+  permissionError?: PermissionError
+}
+
+// Helper to fetch all pages of data from BoondManager with 403 handling
 const PAGE_SIZE = 500
 
-async function fetchAllResources(client: BoondManagerClient): Promise<BoondResource[]> {
-  const allData: BoondResource[] = []
-  let page = 1
-  let hasMore = true
+async function fetchAllResources(client: BoondManagerClient): Promise<FetchResult<BoondResource>> {
+  try {
+    const allData: BoondResource[] = []
+    let page = 1
+    let hasMore = true
 
-  while (hasMore) {
-    const response = await client.getResources({ page, maxResults: PAGE_SIZE })
-    const data = response.data || []
-    allData.push(...data)
+    while (hasMore) {
+      const response = await client.getResources({ page, maxResults: PAGE_SIZE })
+      const data = response.data || []
+      allData.push(...data)
 
-    // Check if there are more pages
-    const total = response.meta?.totals?.rows || 0
-    hasMore = allData.length < total && data.length === PAGE_SIZE
-    page++
+      const total = response.meta?.totals?.rows || 0
+      hasMore = allData.length < total && data.length === PAGE_SIZE
+      page++
+    }
+
+    return { data: allData }
+  } catch (error) {
+    if (error instanceof BoondPermissionError) {
+      console.warn(`[SKIP] resources: ${error.message}`)
+      return {
+        data: [],
+        permissionError: {
+          entity: 'resources',
+          endpoint: error.endpoint,
+          message: error.message,
+        },
+      }
+    }
+    throw error
   }
-
-  return allData
 }
 
-async function fetchAllCandidates(client: BoondManagerClient): Promise<BoondCandidate[]> {
-  const allData: BoondCandidate[] = []
-  let page = 1
-  let hasMore = true
+async function fetchAllCandidates(client: BoondManagerClient): Promise<FetchResult<BoondCandidate>> {
+  try {
+    const allData: BoondCandidate[] = []
+    let page = 1
+    let hasMore = true
 
-  while (hasMore) {
-    const response = await client.getCandidates({ page, maxResults: PAGE_SIZE })
-    const data = response.data || []
-    allData.push(...data)
+    while (hasMore) {
+      const response = await client.getCandidates({ page, maxResults: PAGE_SIZE })
+      const data = response.data || []
+      allData.push(...data)
 
-    const total = response.meta?.totals?.rows || 0
-    hasMore = allData.length < total && data.length === PAGE_SIZE
-    page++
+      const total = response.meta?.totals?.rows || 0
+      hasMore = allData.length < total && data.length === PAGE_SIZE
+      page++
+    }
+
+    return { data: allData }
+  } catch (error) {
+    if (error instanceof BoondPermissionError) {
+      console.warn(`[SKIP] candidates: ${error.message}`)
+      return {
+        data: [],
+        permissionError: {
+          entity: 'candidates',
+          endpoint: error.endpoint,
+          message: error.message,
+        },
+      }
+    }
+    throw error
   }
-
-  return allData
 }
 
-async function fetchAllOpportunities(client: BoondManagerClient): Promise<BoondOpportunity[]> {
-  const allData: BoondOpportunity[] = []
-  let page = 1
-  let hasMore = true
+async function fetchAllOpportunities(client: BoondManagerClient): Promise<FetchResult<BoondOpportunity>> {
+  try {
+    const allData: BoondOpportunity[] = []
+    let page = 1
+    let hasMore = true
 
-  while (hasMore) {
-    const response = await client.getOpportunities({ page, maxResults: PAGE_SIZE })
-    const data = response.data || []
-    allData.push(...data)
+    while (hasMore) {
+      const response = await client.getOpportunities({ page, maxResults: PAGE_SIZE })
+      const data = response.data || []
+      allData.push(...data)
 
-    const total = response.meta?.totals?.rows || 0
-    hasMore = allData.length < total && data.length === PAGE_SIZE
-    page++
+      const total = response.meta?.totals?.rows || 0
+      hasMore = allData.length < total && data.length === PAGE_SIZE
+      page++
+    }
+
+    return { data: allData }
+  } catch (error) {
+    if (error instanceof BoondPermissionError) {
+      console.warn(`[SKIP] opportunities: ${error.message}`)
+      return {
+        data: [],
+        permissionError: {
+          entity: 'opportunities',
+          endpoint: error.endpoint,
+          message: error.message,
+        },
+      }
+    }
+    throw error
   }
-
-  return allData
 }
 
 // GET - Preview import (what would be imported)
@@ -80,7 +144,7 @@ export async function GET(request: NextRequest) {
   // Check permission - only admin can import
   if (!hasPermission(session.role, 'boondManagerAdmin')) {
     return NextResponse.json({
-      error: 'Permission refusee - Seuls les administrateurs peuvent importer des donnees'
+      error: 'Permission refusée - Seuls les administrateurs peuvent importer des données'
     }, { status: 403 })
   }
 
@@ -89,12 +153,33 @@ export async function GET(request: NextRequest) {
   try {
     const client = createBoondClient(environment)
 
-    // Fetch ALL data from BoondManager with pagination
-    const [resources, candidates, opportunities] = await Promise.all([
+    // Fetch ALL data from BoondManager with pagination (with 403 handling)
+    const [resourcesResult, candidatesResult, opportunitiesResult] = await Promise.all([
       fetchAllResources(client),
       fetchAllCandidates(client),
       fetchAllOpportunities(client),
     ])
+
+    // Collect permission errors
+    const permissionErrors: PermissionError[] = []
+    const skippedEntities: string[] = []
+
+    if (resourcesResult.permissionError) {
+      permissionErrors.push(resourcesResult.permissionError)
+      skippedEntities.push('resources')
+    }
+    if (candidatesResult.permissionError) {
+      permissionErrors.push(candidatesResult.permissionError)
+      skippedEntities.push('candidates')
+    }
+    if (opportunitiesResult.permissionError) {
+      permissionErrors.push(opportunitiesResult.permissionError)
+      skippedEntities.push('opportunities')
+    }
+
+    const resources = resourcesResult.data
+    const candidates = candidatesResult.data
+    const opportunities = opportunitiesResult.data
 
     // Preview what would be imported
     const preview = await boondImportService.previewImport(
@@ -103,7 +188,8 @@ export async function GET(request: NextRequest) {
       opportunities
     )
 
-    return NextResponse.json({
+    // Build response with permission errors log
+    const response: Record<string, unknown> = {
       success: true,
       environment,
       preview,
@@ -112,8 +198,19 @@ export async function GET(request: NextRequest) {
         candidates: candidates.length,
         opportunities: opportunities.length,
       },
-      message: 'Apercu de l\'import. Utilisez POST pour executer l\'import.',
-    })
+      message: 'Aperçu de l\'import. Utilisez POST pour exécuter l\'import.',
+    }
+
+    // Add permission errors log if any
+    if (permissionErrors.length > 0) {
+      response.permissionLog = {
+        skippedEntities,
+        errors: permissionErrors,
+        message: `${skippedEntities.length} entité(s) ignorée(s) - Demandez les droits d'accès à BoondManager`,
+      }
+    }
+
+    return NextResponse.json(response)
 
   } catch (error) {
     console.error('BoondManager import preview error:', error)
@@ -138,7 +235,7 @@ export async function POST(request: NextRequest) {
   // Check permission - only admin can import
   if (!hasPermission(session.role, 'boondManagerAdmin')) {
     return NextResponse.json({
-      error: 'Permission refusee - Seuls les administrateurs peuvent importer des donnees'
+      error: 'Permission refusée - Seuls les administrateurs peuvent importer des données'
     }, { status: 403 })
   }
 
@@ -158,20 +255,41 @@ export async function POST(request: NextRequest) {
 
     const client = createBoondClient(environment)
 
-    // Fetch ALL data from BoondManager with pagination (based on options)
-    const [resources, candidates, opportunities] = await Promise.all([
+    // Fetch ALL data from BoondManager with pagination (with 403 handling)
+    const [resourcesResult, candidatesResult, opportunitiesResult] = await Promise.all([
       importResources
         ? fetchAllResources(client)
-        : Promise.resolve([]),
+        : Promise.resolve({ data: [] as BoondResource[] }),
       importCandidates
         ? fetchAllCandidates(client)
-        : Promise.resolve([]),
+        : Promise.resolve({ data: [] as BoondCandidate[] }),
       importOpportunities
         ? fetchAllOpportunities(client)
-        : Promise.resolve([]),
+        : Promise.resolve({ data: [] as BoondOpportunity[] }),
     ])
 
-    // Execute import
+    // Collect permission errors
+    const permissionErrors: PermissionError[] = []
+    const skippedEntities: string[] = []
+
+    if (resourcesResult.permissionError) {
+      permissionErrors.push(resourcesResult.permissionError)
+      skippedEntities.push('resources')
+    }
+    if (candidatesResult.permissionError) {
+      permissionErrors.push(candidatesResult.permissionError)
+      skippedEntities.push('candidates')
+    }
+    if (opportunitiesResult.permissionError) {
+      permissionErrors.push(opportunitiesResult.permissionError)
+      skippedEntities.push('opportunities')
+    }
+
+    const resources = resourcesResult.data
+    const candidates = candidatesResult.data
+    const opportunities = opportunitiesResult.data
+
+    // Execute import with available data
     const result = await boondImportService.importAll(
       resources,
       candidates,
@@ -179,12 +297,25 @@ export async function POST(request: NextRequest) {
       { createUsersFromResources }
     )
 
-    return NextResponse.json({
+    // Build response with permission errors log
+    const response: Record<string, unknown> = {
       success: true,
       environment,
       result,
       message: `Import terminé: ${result.totalCreated} créés, ${result.totalUpdated} mis à jour, ${result.totalSkipped} ignorés`,
-    })
+    }
+
+    // Add permission errors log if any
+    if (permissionErrors.length > 0) {
+      response.permissionLog = {
+        skippedEntities,
+        errors: permissionErrors,
+        message: `${skippedEntities.length} entité(s) ignorée(s) car droits manquants sur BoondManager`,
+      }
+      response.message = `${response.message}. ATTENTION: ${skippedEntities.join(', ')} ignoré(s) - droits manquants`
+    }
+
+    return NextResponse.json(response)
 
   } catch (error) {
     console.error('BoondManager import error:', error)

@@ -12,11 +12,19 @@ import {
   BoondProject,
   BoondAction,
   BOOND_FEATURES,
+  BoondPermissionError,
 } from './boondmanager-client'
 // Note: State labels are now fetched dynamically from BoondManager dictionary API
 // Use getAllStates() from boondmanager-dictionary.ts for state label lookups
 
 // ==================== TYPES ====================
+
+export interface PermissionError {
+  entity: string
+  endpoint: string
+  message: string
+  timestamp: Date
+}
 
 export interface SyncProgress {
   entity: string
@@ -78,6 +86,10 @@ export interface ExportData {
     contacts: number
     projects: number
   }
+  /** Permission errors encountered during fetch - entities skipped due to 403 */
+  permissionErrors?: PermissionError[]
+  /** Entities that were skipped due to permission errors */
+  skippedEntities?: string[]
 }
 
 // ==================== DATA CLEANING UTILITIES ====================
@@ -305,23 +317,61 @@ export class BoondSyncService {
     this.sandboxClient = createBoondClient('sandbox')
   }
 
-  // Fetch all data from an environment
+  // Fetch all data from an environment with graceful 403 handling
   async fetchAllData(environment: 'production' | 'sandbox'): Promise<ExportData> {
     const client = environment === 'production' ? this.prodClient : this.sandboxClient
+    const permissionErrors: PermissionError[] = []
+    const skippedEntities: string[] = []
 
-    // Build fetch promises (contacts disabled until API permissions granted)
-    const fetchPromises: Promise<unknown[]>[] = [
-      this.fetchAllPages(async (page) => client.getCandidates({ page, maxResults: 100 })),
-      this.fetchAllPages(async (page) => client.getResources({ page, maxResults: 100 })),
-      this.fetchAllPages(async (page) => client.getOpportunities({ page, maxResults: 100 })),
-      this.fetchAllPages(async (page) => client.getCompanies({ page, maxResults: 100 })),
+    // Helper to safely fetch with 403 handling
+    const safeFetch = async <T>(
+      entityName: string,
+      fetcher: (page: number) => Promise<{ data: T[]; meta?: { totals?: { rows: number } } }>
+    ): Promise<T[]> => {
+      try {
+        return await this.fetchAllPages(fetcher)
+      } catch (error) {
+        if (error instanceof BoondPermissionError) {
+          console.warn(`[SKIP] ${entityName}: ${error.message}`)
+          permissionErrors.push({
+            entity: entityName,
+            endpoint: error.endpoint,
+            message: error.message,
+            timestamp: new Date(),
+          })
+          skippedEntities.push(entityName)
+          return []
+        }
+        // Re-throw non-permission errors
+        throw error
+      }
+    }
+
+    // Fetch each entity type with graceful error handling
+    const [candidates, resources, opportunities, companies, contacts, projects] = await Promise.all([
+      safeFetch('candidates', (page) => client.getCandidates({ page, maxResults: 100 })),
+      safeFetch('resources', (page) => client.getResources({ page, maxResults: 100 })),
+      safeFetch('opportunities', (page) => client.getOpportunities({ page, maxResults: 100 })),
+      safeFetch('companies', (page) => client.getCompanies({ page, maxResults: 100 })),
       BOOND_FEATURES.CONTACTS_ENABLED
-        ? this.fetchAllPages(async (page) => client.getContacts({ page, maxResults: 100 }))
-        : Promise.resolve([]), // Skip contacts when disabled
-      this.fetchAllPages(async (page) => client.getProjects({ page, maxResults: 100 })),
-    ]
+        ? safeFetch('contacts', (page) => client.getContacts({ page, maxResults: 100 }))
+        : Promise.resolve([]),
+      safeFetch('projects', (page) => client.getProjects({ page, maxResults: 100 })),
+    ])
 
-    const [candidates, resources, opportunities, companies, contacts, projects] = await Promise.all(fetchPromises)
+    // Log permission errors summary
+    if (permissionErrors.length > 0) {
+      console.log('\n========== PERMISSION ERRORS LOG ==========')
+      console.log(`Date: ${new Date().toISOString()}`)
+      console.log(`Environment: ${environment}`)
+      console.log(`Skipped entities: ${skippedEntities.join(', ')}`)
+      console.log('Details:')
+      permissionErrors.forEach((err, i) => {
+        console.log(`  ${i + 1}. [${err.entity}] ${err.message}`)
+        console.log(`     Endpoint: ${err.endpoint}`)
+      })
+      console.log('============================================\n')
+    }
 
     return {
       exportedAt: new Date(),
@@ -341,7 +391,9 @@ export class BoondSyncService {
         companies: companies.length,
         contacts: contacts.length,
         projects: projects.length,
-      }
+      },
+      permissionErrors: permissionErrors.length > 0 ? permissionErrors : undefined,
+      skippedEntities: skippedEntities.length > 0 ? skippedEntities : undefined,
     }
   }
 
