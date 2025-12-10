@@ -11,7 +11,12 @@
     "lint:fix": "next lint --fix",
     "test": "vitest",
     "test:run": "vitest run",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "docker:up": "docker-compose down --remove-orphans && docker-compose up -d",
+    "docker:down": "docker-compose down --remove-orphans",
+    "docker:restart": "docker-compose down --remove-orphans && docker-compose up -d --build",
+    "docker:logs": "docker-compose logs -f",
+    "docker:mongo": "docker-compose down --remove-orphans && docker-compose up -d mongo"
   },
   "dependencies": {
     "@fullcalendar/core": "^6.1.19",
