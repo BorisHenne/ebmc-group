@@ -9,7 +9,7 @@ import {
   Shield, ShieldOff, Download, Upload, Sparkles, AlertTriangle, Info,
   Copy, CheckCircle, XCircle, FileJson, FileSpreadsheet, Trash, ArrowRight,
   BarChart3, Globe, MapPin, Book, ChevronDown, ChevronUp, FileText, ExternalLink,
-  DatabaseBackup
+  DatabaseBackup, Database
 } from 'lucide-react'
 
 // Types
@@ -123,7 +123,8 @@ const STATE_COLORS = {
 
 export default function BoondManagerV2Page() {
   // State
-  const [environment, setEnvironment] = useState<BoondEnvironment>('sandbox')
+  // Default to production for viewing/importing, sandbox for writing
+  const [environment, setEnvironment] = useState<BoondEnvironment>('production')
   const [activeTab, setActiveTab] = useState<TabType>('dashboard')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -325,7 +326,7 @@ export default function BoondManagerV2Page() {
     }
   }
 
-  // Preview import to site
+  // Preview import to site - ALWAYS from production
   const handlePreviewImport = async () => {
     setImporting(true)
     setError(null)
@@ -333,7 +334,8 @@ export default function BoondManagerV2Page() {
     setImportResult(null)
 
     try {
-      const res = await fetch(`/api/boondmanager/v2/import?env=${environment}`, { credentials: 'include' })
+      // Always import from production
+      const res = await fetch('/api/boondmanager/v2/import?env=production', { credentials: 'include' })
       const data = await res.json()
 
       if (data.success) {
@@ -348,20 +350,20 @@ export default function BoondManagerV2Page() {
     }
   }
 
-  // Execute import to site
+  // Execute import to site - ALWAYS from production
   const handleExecuteImport = async (entities: string[], options: { createAllCandidatesAsUsers?: boolean } = {}) => {
-    if (!confirm('Cette operation va importer les donnees de BoondManager vers les collections du site. Continuer ?')) return
+    if (!confirm('Cette operation va importer les donnees de BoondManager PRODUCTION vers les collections du site. Continuer ?')) return
 
     setImporting(true)
     setError(null)
 
     try {
-      const res = await fetch('/api/boondmanager/v2/import', {
+      // Always import from production
+      const res = await fetch('/api/boondmanager/v2/import?env=production', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
-          env: environment,
           entities,
           options
         })
@@ -651,69 +653,143 @@ export default function BoondManagerV2Page() {
     )
   }
 
-  // Render sync tab
+  // Render sync tab - Full workflow: Production → MongoDB → Sandbox
   const renderSyncTab = () => (
     <div className="space-y-6">
+      {/* Workflow Overview */}
       <div className="glass-card p-6">
         <div className="flex items-center gap-4 mb-6">
           <div className="p-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500">
             <RefreshCw className="w-8 h-8 text-white" />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-slate-800 dark:text-white">Synchronisation Production → Sandbox</h2>
-            <p className="text-slate-500 dark:text-slate-400">Copier toutes les donnees de production vers la sandbox pour nettoyage</p>
+            <h2 className="text-xl font-bold text-slate-800 dark:text-white">Workflow de Synchronisation</h2>
+            <p className="text-slate-500 dark:text-slate-400">Pipeline complet: Production → MongoDB → Sandbox</p>
           </div>
         </div>
 
-        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 mb-6">
-          <div className="flex items-start gap-3">
-            <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5" />
-            <div>
-              <p className="font-medium text-amber-800 dark:text-amber-200">Attention</p>
-              <p className="text-sm text-amber-700 dark:text-amber-300">
-                Cette operation va creer de nouveaux enregistrements dans la Sandbox. Les IDs seront differents de la Production.
-                Utilisez cette fonction pour avoir une copie de travail pour le nettoyage des donnees.
-              </p>
+        {/* Workflow Diagram */}
+        <div className="flex items-center justify-center gap-4 py-8 overflow-x-auto">
+          {/* Step 1: Production */}
+          <div className="text-center flex-shrink-0">
+            <div className="w-24 h-24 rounded-2xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center mx-auto mb-2 border-2 border-green-500">
+              <Shield className="w-12 h-12 text-green-600 dark:text-green-400" />
             </div>
+            <p className="font-semibold text-slate-800 dark:text-white">BoondManager</p>
+            <p className="text-sm text-green-600 font-medium">Production</p>
+            <p className="text-xs text-slate-500">Source (lecture)</p>
+          </div>
+
+          <div className="flex flex-col items-center flex-shrink-0">
+            <ArrowRight className="w-8 h-8 text-cyan-500" />
+            <span className="text-xs text-slate-500 mt-1">Import</span>
+          </div>
+
+          {/* Step 2: MongoDB */}
+          <div className="text-center flex-shrink-0">
+            <div className="w-24 h-24 rounded-2xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center mx-auto mb-2 border-2 border-emerald-500">
+              <Database className="w-12 h-12 text-emerald-600 dark:text-emerald-400" />
+            </div>
+            <p className="font-semibold text-slate-800 dark:text-white">MongoDB</p>
+            <p className="text-sm text-emerald-600 font-medium">Site EBMC</p>
+            <p className="text-xs text-slate-500">Transformation</p>
+          </div>
+
+          <div className="flex flex-col items-center flex-shrink-0">
+            <ArrowRight className="w-8 h-8 text-cyan-500" />
+            <span className="text-xs text-slate-500 mt-1">Export</span>
+          </div>
+
+          {/* Step 3: Sandbox */}
+          <div className="text-center flex-shrink-0">
+            <div className="w-24 h-24 rounded-2xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mx-auto mb-2 border-2 border-amber-500">
+              <ShieldOff className="w-12 h-12 text-amber-600 dark:text-amber-400" />
+            </div>
+            <p className="font-semibold text-slate-800 dark:text-white">BoondManager</p>
+            <p className="text-sm text-amber-600 font-medium">Sandbox</p>
+            <p className="text-xs text-slate-500">Destination (ecriture)</p>
           </div>
         </div>
 
-        <div className="flex items-center justify-center gap-8 py-8">
-          <div className="text-center">
-            <div className="w-20 h-20 rounded-2xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center mx-auto mb-2">
-              <Shield className="w-10 h-10 text-green-600 dark:text-green-400" />
-            </div>
-            <p className="font-medium text-slate-800 dark:text-white">Production</p>
-            <p className="text-sm text-slate-500">Source (lecture)</p>
-          </div>
-          <ArrowRight className="w-8 h-8 text-slate-400" />
-          <div className="text-center">
-            <div className="w-20 h-20 rounded-2xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mx-auto mb-2">
-              <ShieldOff className="w-10 h-10 text-amber-600 dark:text-amber-400" />
-            </div>
-            <p className="font-medium text-slate-800 dark:text-white">Sandbox</p>
-            <p className="text-sm text-slate-500">Destination (ecriture)</p>
-          </div>
-        </div>
+        {/* Action Buttons */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+          <button
+            onClick={() => {
+              setActiveTab('import')
+            }}
+            className="flex flex-col items-center gap-2 p-4 rounded-xl bg-green-50 dark:bg-green-900/20 border-2 border-green-200 dark:border-green-800 hover:border-green-400 transition"
+          >
+            <Download className="w-8 h-8 text-green-600" />
+            <span className="font-medium text-green-800 dark:text-green-200">1. Import Prod → MongoDB</span>
+            <span className="text-xs text-green-600">Aller a l&apos;import</span>
+          </button>
 
-        <div className="flex justify-center">
+          <button
+            onClick={() => {
+              setActiveTab('quality')
+            }}
+            className="flex flex-col items-center gap-2 p-4 rounded-xl bg-purple-50 dark:bg-purple-900/20 border-2 border-purple-200 dark:border-purple-800 hover:border-purple-400 transition"
+          >
+            <Sparkles className="w-8 h-8 text-purple-600" />
+            <span className="font-medium text-purple-800 dark:text-purple-200">2. Valider donnees</span>
+            <span className="text-xs text-purple-600">Qualite des donnees</span>
+          </button>
+
           <button
             onClick={handleSync}
             disabled={syncing}
-            className="flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-xl hover:shadow-lg transition disabled:opacity-50 text-lg font-medium"
+            className="flex flex-col items-center gap-2 p-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 border-2 border-amber-200 dark:border-amber-800 hover:border-amber-400 transition disabled:opacity-50"
+          >
+            {syncing ? (
+              <Loader2 className="w-8 h-8 text-amber-600 animate-spin" />
+            ) : (
+              <Upload className="w-8 h-8 text-amber-600" />
+            )}
+            <span className="font-medium text-amber-800 dark:text-amber-200">3. Export → Sandbox</span>
+            <span className="text-xs text-amber-600">{syncing ? 'En cours...' : 'Pousser vers Sandbox'}</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Quick Sync Button */}
+      <div className="glass-card p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="font-semibold text-slate-800 dark:text-white">Synchronisation complete automatique</h3>
+            <p className="text-sm text-slate-500">Executer les 3 etapes en une seule operation</p>
+          </div>
+          <button
+            onClick={handleSync}
+            disabled={syncing}
+            className="flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-xl hover:shadow-lg transition disabled:opacity-50"
           >
             {syncing ? (
               <>
-                <Loader2 className="w-6 h-6 animate-spin" />
-                Synchronisation en cours...
+                <Loader2 className="w-5 h-5 animate-spin" />
+                En cours...
               </>
             ) : (
               <>
-                <RefreshCw className="w-6 h-6" />
-                Lancer la synchronisation
+                <Zap className="w-5 h-5" />
+                Lancer le workflow complet
               </>
             )}
           </button>
+        </div>
+
+        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
+          <div className="flex items-start gap-3">
+            <Info className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5" />
+            <div className="text-sm text-blue-700 dark:text-blue-300">
+              <p className="font-medium mb-1">Workflow automatise</p>
+              <ol className="list-decimal list-inside space-y-1">
+                <li>Import des donnees depuis BoondManager Production</li>
+                <li>Stockage et formatage dans MongoDB (site EBMC)</li>
+                <li>Validation de la qualite des donnees</li>
+                <li>Push vers BoondManager Sandbox pour tests</li>
+              </ol>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1215,9 +1291,9 @@ export default function BoondManagerV2Page() {
             <DatabaseBackup className="w-8 h-8 text-white" />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-slate-800 dark:text-white">Import vers le Site</h2>
+            <h2 className="text-xl font-bold text-slate-800 dark:text-white">Import depuis Production</h2>
             <p className="text-slate-500 dark:text-slate-400">
-              Importer les donnees de BoondManager ({environment === 'production' ? 'Production' : 'Sandbox'}) vers les collections MongoDB du site
+              Importer les donnees de BoondManager <span className="font-medium text-green-600">Production</span> vers les collections MongoDB du site
             </p>
           </div>
         </div>
@@ -2143,40 +2219,140 @@ export default function BoondManagerV2Page() {
                   )}
                 </div>
 
-                {/* PDF Viewer */}
-                {selectedDocument && (
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                        Apercu du document
-                      </h3>
-                      <div className="flex items-center gap-2">
-                        <a
-                          href={`/api/boondmanager/v2/documents/${selectedDocument}?env=${environment}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition"
-                        >
-                          <ExternalLink className="w-3.5 h-3.5" />
-                          Ouvrir
-                        </a>
-                        <button
-                          onClick={() => setSelectedDocument(null)}
-                          className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition"
-                        >
-                          <X className="w-4 h-4 text-slate-600 dark:text-slate-300" />
-                        </button>
+                {/* Document Viewer - supports PDF, DOCX, and other formats */}
+                {selectedDocument && (() => {
+                  const doc = documents.find(d => d.id === selectedDocument)
+                  const mimeType = doc?.attributes?.mimeType || ''
+                  const fileName = doc?.attributes?.name || 'document'
+                  const docUrl = `/api/boondmanager/v2/documents/${selectedDocument}?env=${environment}`
+
+                  // Determine file type
+                  const isPdf = mimeType.includes('pdf') || fileName.endsWith('.pdf')
+                  const isDocx = mimeType.includes('word') || mimeType.includes('docx') || fileName.endsWith('.docx') || fileName.endsWith('.doc')
+                  const isExcel = mimeType.includes('excel') || mimeType.includes('spreadsheet') || fileName.endsWith('.xlsx') || fileName.endsWith('.xls')
+                  const isImage = mimeType.startsWith('image/')
+                  const isText = mimeType.startsWith('text/') || fileName.endsWith('.txt')
+
+                  return (
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                            Apercu du document
+                          </h3>
+                          <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${
+                            isPdf ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' :
+                            isDocx ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' :
+                            isExcel ? 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400' :
+                            isImage ? 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400' :
+                            'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400'
+                          }`}>
+                            {isPdf ? 'PDF' : isDocx ? 'Word' : isExcel ? 'Excel' : isImage ? 'Image' : 'Fichier'}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <a
+                            href={docUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition"
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                            Telecharger
+                          </a>
+                          <a
+                            href={docUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" />
+                            Ouvrir
+                          </a>
+                          <button
+                            onClick={() => setSelectedDocument(null)}
+                            className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition"
+                          >
+                            <X className="w-4 h-4 text-slate-600 dark:text-slate-300" />
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="bg-slate-100 dark:bg-slate-800 rounded-xl overflow-hidden" style={{ height: '600px' }}>
+                        {/* PDF - Native browser preview */}
+                        {isPdf && (
+                          <iframe
+                            src={docUrl}
+                            className="w-full h-full"
+                            title="PDF preview"
+                          />
+                        )}
+
+                        {/* Word/Excel - Google Docs Viewer */}
+                        {(isDocx || isExcel) && (
+                          <div className="w-full h-full flex flex-col">
+                            <div className="flex-shrink-0 p-3 bg-blue-50 dark:bg-blue-900/30 border-b border-blue-100 dark:border-blue-800">
+                              <p className="text-xs text-blue-700 dark:text-blue-300 flex items-center gap-2">
+                                <Info className="w-4 h-4" />
+                                Apercu via Google Docs Viewer. <a href={docUrl} target="_blank" rel="noopener noreferrer" className="underline hover:no-underline">Telecharger</a> pour l&apos;original.
+                              </p>
+                            </div>
+                            <iframe
+                              src={`https://docs.google.com/gview?url=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin + docUrl : docUrl)}&embedded=true`}
+                              className="w-full flex-1"
+                              title="Document preview"
+                            />
+                          </div>
+                        )}
+
+                        {/* Images - Direct display */}
+                        {isImage && (
+                          <div className="w-full h-full flex items-center justify-center p-4 bg-slate-900/5 dark:bg-slate-900/50">
+                            <img
+                              src={docUrl}
+                              alt={fileName}
+                              className="max-w-full max-h-full object-contain rounded-lg shadow-lg"
+                            />
+                          </div>
+                        )}
+
+                        {/* Text files - Fetch and display */}
+                        {isText && (
+                          <div className="w-full h-full overflow-auto p-4 font-mono text-sm text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900">
+                            <iframe
+                              src={docUrl}
+                              className="w-full h-full"
+                              title="Text preview"
+                            />
+                          </div>
+                        )}
+
+                        {/* Other files - Download prompt */}
+                        {!isPdf && !isDocx && !isExcel && !isImage && !isText && (
+                          <div className="w-full h-full flex flex-col items-center justify-center text-slate-500 dark:text-slate-400 gap-4">
+                            <FileText className="w-16 h-16 opacity-50" />
+                            <div className="text-center">
+                              <p className="font-medium text-slate-700 dark:text-slate-200">{fileName}</p>
+                              <p className="text-sm mt-1">Apercu non disponible pour ce type de fichier</p>
+                              <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
+                                Type: {mimeType || 'inconnu'}
+                              </p>
+                            </div>
+                            <a
+                              href={docUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-2 px-4 py-2 bg-ebmc-turquoise text-white rounded-lg hover:bg-ebmc-turquoise/90 transition"
+                            >
+                              <Download className="w-4 h-4" />
+                              Telecharger le fichier
+                            </a>
+                          </div>
+                        )}
                       </div>
                     </div>
-                    <div className="bg-slate-100 dark:bg-slate-800 rounded-xl overflow-hidden" style={{ height: '600px' }}>
-                      <iframe
-                        src={`/api/boondmanager/v2/documents/${selectedDocument}?env=${environment}`}
-                        className="w-full h-full"
-                        title="Document preview"
-                      />
-                    </div>
-                  </div>
-                )}
+                  )
+                })()}
               </div>
 
               {modalMode !== 'view' && (

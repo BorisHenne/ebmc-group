@@ -13,9 +13,14 @@ import {
   BoondResource,
   BoondCandidate,
   BoondOpportunity,
-  CANDIDATE_STATES,
 } from './boondmanager-client'
 import { RoleType } from './roles'
+import {
+  getCandidateStateLabelSync,
+  getAllStates,
+  AllStates,
+  FALLBACK_CANDIDATE_STATES,
+} from './boondmanager-dictionary'
 
 // ==================== TYPES ====================
 
@@ -223,7 +228,7 @@ export function mapCandidateToSiteCandidate(candidate: BoondCandidate): Partial<
     phone: attrs.phone1,
     title: attrs.title as string | undefined,
     state,
-    stateLabel: CANDIDATE_STATES[state] || 'Inconnu',
+    stateLabel: getCandidateStateLabelSync(state),
     location: attrs.town || attrs.country,
     skills,
     experience: attrs.experienceYears ? `${attrs.experienceYears} ans` : undefined,

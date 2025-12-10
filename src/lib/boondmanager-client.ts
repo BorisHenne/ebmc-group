@@ -430,21 +430,24 @@ export interface BoondDocument {
 }
 
 // ==================== STATE MAPPINGS ====================
+// Note: State labels are now fetched dynamically from BoondManager API.
+// These are fallback values used when the API is unavailable.
+// For dynamic state lookups, use functions from '@/lib/boondmanager-dictionary'
 
 export const CANDIDATE_STATES: Record<number, string> = {
   0: 'Nouveau',
   1: 'A qualifier',
-  2: 'Qualifie',
+  2: 'Qualifié',
   3: 'En cours',
   4: 'Entretien',
   5: 'Proposition',
-  6: 'Embauche',
-  7: 'Refuse',
-  8: 'Archive',
+  6: 'Embauché',
+  7: 'Refusé',
+  8: 'Archivé',
 }
 
 export const RESOURCE_STATES: Record<number, string> = {
-  0: 'Non defini',
+  0: 'Non défini',
   1: 'Disponible',
   2: 'En mission',
   3: 'Intercontrat',
@@ -454,16 +457,16 @@ export const RESOURCE_STATES: Record<number, string> = {
 
 export const OPPORTUNITY_STATES: Record<number, string> = {
   0: 'En cours',
-  1: 'Gagnee',
+  1: 'Gagnée',
   2: 'Perdue',
-  3: 'Abandonnee',
+  3: 'Abandonnée',
 }
 
 export const PROJECT_STATES: Record<number, string> = {
-  0: 'En preparation',
+  0: 'En préparation',
   1: 'En cours',
-  2: 'Termine',
-  3: 'Annule',
+  2: 'Terminé',
+  3: 'Annulé',
 }
 
 export const COMPANY_STATES: Record<number, string> = {
@@ -471,7 +474,7 @@ export const COMPANY_STATES: Record<number, string> = {
   1: 'Client',
   2: 'Ancien client',
   3: 'Fournisseur',
-  4: 'Archive',
+  4: 'Archivé',
 }
 
 export const ACTION_TYPES: Record<number, string> = {
@@ -479,19 +482,19 @@ export const ACTION_TYPES: Record<number, string> = {
   2: 'Entretien client',
   3: 'Entretien interne',
   4: 'Proposition',
-  5: 'Demarrage',
+  5: 'Démarrage',
   6: 'Appel',
   7: 'Email',
-  8: 'Reunion',
+  8: 'Réunion',
   9: 'Autre',
 }
 
 export const POSITIONING_STATES: Record<number, string> = {
   0: 'En attente',
-  1: 'Propose',
-  2: 'Valide',
-  3: 'Refuse',
-  4: 'Annule',
+  1: 'Proposé',
+  2: 'Validé',
+  3: 'Refusé',
+  4: 'Annulé',
 }
 
 // ==================== CREDENTIALS CONFIG ====================
