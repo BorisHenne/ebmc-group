@@ -329,6 +329,7 @@ const defaultConsultants = [
 
 // Seed endpoint - initialize database with default data
 // Add ?force=true to reset all users even if they exist
+// Add ?clean=true to wipe all collections and reset with just test users
 export async function POST(request: Request) {
   try {
     // Check for admin authorization
@@ -339,11 +340,33 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
     }
 
-    // Check for force parameter
+    // Check for parameters
     const url = new URL(request.url)
     const forceUsers = url.searchParams.get('force') === 'true'
+    const cleanDatabase = url.searchParams.get('clean') === 'true'
 
     const db = await connectToDatabase()
+
+    // Clean mode - wipe all collections except keep demo users
+    if (cleanDatabase) {
+      // Collections to clean
+      const collectionsToClean = ['jobs', 'consultants', 'candidates', 'messages']
+      const cleanResults: Record<string, number> = {}
+
+      for (const collName of collectionsToClean) {
+        const result = await db.collection(collName).deleteMany({})
+        cleanResults[collName] = result.deletedCount
+      }
+
+      // Delete all users except demo users (will recreate them below)
+      const demoEmails = defaultUsers.map(u => u.email)
+      const usersResult = await db.collection('users').deleteMany({
+        email: { $nin: demoEmails }
+      })
+      cleanResults['users_non_demo'] = usersResult.deletedCount
+
+      console.log('[SEED] Clean mode - deleted:', cleanResults)
+    }
 
     // Check if data already exists
     const existingJobs = await db.collection('jobs').countDocuments()
@@ -388,8 +411,8 @@ export async function POST(request: Request) {
         })
         results.users.inserted++
         results.users.demo.push(`${user.email} (${user.role}) - CREATED`)
-      } else if (forceUsers) {
-        // User exists but force is enabled - update password and role
+      } else if (forceUsers || cleanDatabase) {
+        // User exists but force/clean is enabled - update password and role
         await usersCollection.updateOne(
           { email: user.email },
           {
@@ -406,11 +429,18 @@ export async function POST(request: Request) {
       }
     }
 
+    // Build response message
+    let message = 'Database seeded successfully'
+    if (cleanDatabase) {
+      message = 'Database cleaned and reset with demo users only'
+    } else if (forceUsers) {
+      message = 'Database seeded with force - all demo users reset'
+    }
+
     return NextResponse.json({
       success: true,
-      message: forceUsers
-        ? 'Database seeded with force - all demo users reset'
-        : 'Database seeded successfully',
+      message,
+      cleanMode: cleanDatabase,
       forceMode: forceUsers,
       results,
       demoCredentials: defaultUsers.map(u => ({
@@ -459,7 +489,11 @@ export async function GET() {
         role: u.role,
         description: roleDescriptions[u.role] || 'Accès de base',
       })),
-      hint: 'POST with ?force=true to reset all demo users',
+      hints: {
+        force: 'POST with ?force=true to reset all demo users',
+        clean: 'POST with ?clean=true to wipe database and keep only demo users',
+        both: 'POST with ?clean=true&force=true for full reset',
+      },
     })
   } catch (error) {
     console.error('Error checking seed status:', error)

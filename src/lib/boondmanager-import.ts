@@ -54,6 +54,7 @@ export interface SiteConsultant {
   experienceEn: string
   category: string
   available: boolean
+  published: boolean  // false = brouillon (pas visible sur le frontoffice)
   skills: string[]
   certifications: string[]
   email?: string
@@ -92,6 +93,7 @@ export interface SiteJob {
   requirements: string[]
   requirementsEn: string[]
   active: boolean
+  published: boolean  // false = brouillon (pas visible sur le frontoffice)
   createdAt: Date
   updatedAt: Date
 }
@@ -166,6 +168,7 @@ export function mapResourceToConsultant(resource: BoondResource): Partial<SiteCo
     experienceEn: experience,
     category,
     available,
+    published: false, // Brouillon par défaut - à publier manuellement
     skills,
     certifications,
     email: attrs.email,
@@ -298,6 +301,7 @@ export function mapOpportunityToJob(opportunity: BoondOpportunity): Partial<Site
     requirements: requirements.length > 0 ? requirements : ['Voir description'],
     requirementsEn: requirements.length > 0 ? requirements : ['See description'],
     active,
+    published: false, // Brouillon par défaut - à publier manuellement
     updatedAt: new Date(),
   }
 }
