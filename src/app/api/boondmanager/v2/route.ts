@@ -4,12 +4,18 @@ import {
   createBoondClient,
   BoondEnvironment,
   BoondPermissionError,
+  BOOND_CREDENTIALS,
 } from '@/lib/boondmanager-client'
 import { getAllStates } from '@/lib/boondmanager-dictionary'
+
+// Force dynamic rendering - no caching
+export const dynamic = 'force-dynamic'
 
 // Helper to get environment from request
 function getEnvironment(request: NextRequest): BoondEnvironment {
   const env = request.nextUrl.searchParams.get('env') || 'sandbox'
+  console.log(`[API] Request for environment: ${env}`)
+  console.log(`[API] Using credentials with clientToken: ${BOOND_CREDENTIALS[env as BoondEnvironment]?.clientToken}`)
   return env === 'production' ? 'production' : 'sandbox'
 }
 
