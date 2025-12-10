@@ -516,6 +516,7 @@ export const BOOND_CREDENTIALS = {
   },
 }
 
+// BoondManager utilise la même URL, les tokens différencient prod/sandbox
 export const BOOND_BASE_URL = 'https://ui.boondmanager.com/api'
 
 // ==================== CLIENT CLASS ====================
@@ -531,6 +532,7 @@ export class BoondManagerClient {
     this.credentials = BOOND_CREDENTIALS[environment]
     this.baseUrl = BOOND_BASE_URL
     this.authHeader = `Basic ${Buffer.from(`${this.credentials.username}:${this.credentials.password}`).toString('base64')}`
+    console.log(`[BoondManager] Client initialized for ${environment} - Token: ${this.credentials.clientToken}`)
   }
 
   // Check if write operations are allowed
@@ -564,16 +566,27 @@ export class BoondManagerClient {
   private async fetch<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`
 
+    // DEBUG: Log which environment and tokens are being used
+    console.log(`[BoondManager] Fetching ${endpoint}`)
+    console.log(`[BoondManager] Environment: ${this.environment}`)
+    console.log(`[BoondManager] ClientToken: ${this.credentials.clientToken}`)
+    console.log(`[BoondManager] ClientKey: ${this.credentials.clientKey.substring(0, 8)}...`)
+
     const response = await fetch(url, {
       ...options,
       headers: {
         'Authorization': this.authHeader,
         'Content-Type': 'application/json',
         'Accept': 'application/json',
+        // BoondManager API headers - token identifies the client/environment
         'X-Boondmanager-Token': this.credentials.clientToken,
         'X-Boondmanager-Client-Key': this.credentials.clientKey,
+        // Add user token for proper authentication
+        'X-Boondmanager-User-Token': this.credentials.userToken,
         ...options.headers,
       },
+      // Disable Next.js cache for API calls
+      cache: 'no-store',
     })
 
     if (!response.ok) {
