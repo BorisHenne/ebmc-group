@@ -513,8 +513,12 @@ export class BoondImportService {
       errors: [],
     }
 
+    console.log(`[Import] Starting import of ${resources.length} resources to consultants...`)
+
     const db = await connectToDatabase()
+    console.log('[Import] Connected to MongoDB')
     const collection = db.collection('consultants')
+    console.log('[Import] Got consultants collection')
 
     for (const resource of resources) {
       try {
@@ -543,6 +547,7 @@ export class BoondImportService {
       }
     }
 
+    console.log(`[Import] Consultants import complete: ${result.created} created, ${result.updated} updated, ${result.errors.length} errors`)
     return result
   }
 
@@ -559,6 +564,8 @@ export class BoondImportService {
       skipped: 0,
       errors: [],
     }
+
+    console.log(`[Import] Starting import of ${resources.length} resources to users...`)
 
     const db = await connectToDatabase()
     const collection = db.collection('users')
@@ -602,6 +609,7 @@ export class BoondImportService {
       }
     }
 
+    console.log(`[Import] Users import complete: ${result.created} created, ${result.updated} updated, ${result.skipped} skipped, ${result.errors.length} errors`)
     return result
   }
 
@@ -623,6 +631,8 @@ export class BoondImportService {
       skipped: 0,
       errors: [],
     }
+
+    console.log(`[Import] Starting import of ${candidates.length} candidates...`)
 
     const db = await connectToDatabase()
     const collection = db.collection('candidates')
@@ -656,6 +666,7 @@ export class BoondImportService {
       }
     }
 
+    console.log(`[Import] Candidates import complete: ${result.created} created, ${result.updated} updated, ${result.errors.length} errors`)
     return result
   }
 
@@ -671,6 +682,8 @@ export class BoondImportService {
       skipped: 0,
       errors: [],
     }
+
+    console.log(`[Import] Starting import of ${opportunities.length} opportunities to jobs...`)
 
     const db = await connectToDatabase()
     const collection = db.collection('jobs')
@@ -702,6 +715,7 @@ export class BoondImportService {
       }
     }
 
+    console.log(`[Import] Jobs import complete: ${result.created} created, ${result.updated} updated, ${result.errors.length} errors`)
     return result
   }
 
