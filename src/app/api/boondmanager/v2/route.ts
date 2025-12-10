@@ -3,6 +3,7 @@ import { getSession } from '@/lib/auth'
 import {
   createBoondClient,
   BoondEnvironment,
+  BoondPermissionError,
   CANDIDATE_STATES,
   RESOURCE_STATES,
   OPPORTUNITY_STATES,
@@ -31,12 +32,20 @@ export async function GET(request: NextRequest) {
 
     if (type === 'stats') {
       const stats = await client.getDashboardStats()
-      const currentUser = await client.getCurrentUser()
+
+      // Try to get current user, but don't fail if it errors
+      let currentUser = null
+      try {
+        const userResponse = await client.getCurrentUser()
+        currentUser = userResponse.data
+      } catch (userError) {
+        console.warn('Could not fetch current user:', userError)
+      }
 
       return NextResponse.json({
         success: true,
         environment,
-        currentUser: currentUser.data,
+        currentUser,
         data: {
           ...stats,
           stateLabels: {
@@ -63,6 +72,20 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error('BoondManager API error:', error)
+
+    // Handle permission errors specially
+    if (error instanceof BoondPermissionError) {
+      return NextResponse.json({
+        success: false,
+        error: error.message,
+        permissionError: true,
+        endpoint: error.endpoint,
+        feature: error.feature,
+        environment,
+        hint: 'Demandez les droits d\'acces a BoondManager pour cet endpoint'
+      }, { status: 403 })
+    }
+
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Erreur inconnue',

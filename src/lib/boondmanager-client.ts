@@ -1311,18 +1311,36 @@ export class BoondManagerClient {
   // ==================== DASHBOARD & STATS ====================
 
   async getDashboardStats(): Promise<{
-    candidates: { total: number; byState: Record<number, number> }
-    resources: { total: number; byState: Record<number, number> }
-    opportunities: { total: number; byState: Record<number, number> }
-    companies: { total: number; byState: Record<number, number> }
-    projects: { total: number; byState: Record<number, number> }
+    candidates: { total: number; byState: Record<number, number>; error?: string }
+    resources: { total: number; byState: Record<number, number>; error?: string }
+    opportunities: { total: number; byState: Record<number, number>; error?: string }
+    companies: { total: number; byState: Record<number, number>; error?: string }
+    projects: { total: number; byState: Record<number, number>; error?: string }
+    disabledEndpoints?: string[]
   }> {
+    // Helper to safely fetch with 403 handling
+    const safeFetch = async <T>(
+      fetcher: () => Promise<BoondApiResponse<T[]>>,
+      name: string
+    ): Promise<{ data: T[]; error?: string }> => {
+      try {
+        const result = await fetcher()
+        return { data: Array.isArray(result.data) ? result.data : [] }
+      } catch (error) {
+        if (error instanceof BoondPermissionError) {
+          console.warn(`Permission denied for ${name}: ${error.message}`)
+          return { data: [], error: `403 - Acces refuse pour ${name}` }
+        }
+        throw error // Re-throw non-permission errors
+      }
+    }
+
     const [candidates, resources, opportunities, companies, projects] = await Promise.all([
-      this.getCandidates({ maxResults: 1000 }),
-      this.getResources({ maxResults: 1000 }),
-      this.getOpportunities({ maxResults: 1000 }),
-      this.getCompanies({ maxResults: 1000 }),
-      this.getProjects({ maxResults: 1000 }),
+      safeFetch(() => this.getCandidates({ maxResults: 1000 }), 'candidates'),
+      safeFetch(() => this.getResources({ maxResults: 1000 }), 'resources'),
+      safeFetch(() => this.getOpportunities({ maxResults: 1000 }), 'opportunities'),
+      safeFetch(() => this.getCompanies({ maxResults: 1000 }), 'companies'),
+      safeFetch(() => this.getProjects({ maxResults: 1000 }), 'projects'),
     ])
 
     const countByState = <T extends { attributes: { state?: number } }>(items: T[]): Record<number, number> => {
@@ -1334,33 +1352,41 @@ export class BoondManagerClient {
       }, {} as Record<number, number>)
     }
 
-    const candidatesList = Array.isArray(candidates.data) ? candidates.data : []
-    const resourcesList = Array.isArray(resources.data) ? resources.data : []
-    const opportunitiesList = Array.isArray(opportunities.data) ? opportunities.data : []
-    const companiesList = Array.isArray(companies.data) ? companies.data : []
-    const projectsList = Array.isArray(projects.data) ? projects.data : []
+    // Collect disabled endpoints for reporting
+    const disabledEndpoints: string[] = []
+    if (candidates.error) disabledEndpoints.push('candidates')
+    if (resources.error) disabledEndpoints.push('resources')
+    if (opportunities.error) disabledEndpoints.push('opportunities')
+    if (companies.error) disabledEndpoints.push('companies')
+    if (projects.error) disabledEndpoints.push('projects')
 
     return {
       candidates: {
-        total: candidatesList.length,
-        byState: countByState(candidatesList),
+        total: candidates.data.length,
+        byState: countByState(candidates.data),
+        ...(candidates.error && { error: candidates.error }),
       },
       resources: {
-        total: resourcesList.length,
-        byState: countByState(resourcesList),
+        total: resources.data.length,
+        byState: countByState(resources.data),
+        ...(resources.error && { error: resources.error }),
       },
       opportunities: {
-        total: opportunitiesList.length,
-        byState: countByState(opportunitiesList),
+        total: opportunities.data.length,
+        byState: countByState(opportunities.data),
+        ...(opportunities.error && { error: opportunities.error }),
       },
       companies: {
-        total: companiesList.length,
-        byState: countByState(companiesList),
+        total: companies.data.length,
+        byState: countByState(companies.data),
+        ...(companies.error && { error: companies.error }),
       },
       projects: {
-        total: projectsList.length,
-        byState: countByState(projectsList),
+        total: projects.data.length,
+        byState: countByState(projects.data),
+        ...(projects.error && { error: projects.error }),
       },
+      ...(disabledEndpoints.length > 0 && { disabledEndpoints }),
     }
   }
 }
