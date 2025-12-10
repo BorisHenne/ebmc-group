@@ -2,6 +2,11 @@ import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { connectToDatabase } from '@/lib/mongodb'
 
+interface AggregationResult {
+  _id: string | null
+  count: number
+}
+
 export async function GET() {
   const session = await getSession()
   if (!session) {
@@ -38,27 +43,27 @@ export async function GET() {
     const activeJobsCount = await db.collection('jobs').countDocuments({ active: true })
 
     // Get users by role
-    const usersByRole = await db.collection('users').aggregate([
+    const usersByRole = await db.collection('users').aggregate<AggregationResult>([
       { $group: { _id: '$role', count: { $sum: 1 } } }
     ]).toArray()
 
     // Get candidates by status
-    const candidatesByStatus = await db.collection('candidates').aggregate([
+    const candidatesByStatus = await db.collection('candidates').aggregate<AggregationResult>([
       { $group: { _id: '$status', count: { $sum: 1 } } }
     ]).toArray()
 
     // Get consultants by state
-    const consultantsByState = await db.collection('consultants').aggregate([
+    const consultantsByState = await db.collection('consultants').aggregate<AggregationResult>([
       { $group: { _id: '$state', count: { $sum: 1 } } }
     ]).toArray()
 
     // Get consultants by contract type
-    const consultantsByContract = await db.collection('consultants').aggregate([
+    const consultantsByContract = await db.collection('consultants').aggregate<AggregationResult>([
       { $group: { _id: '$contractType', count: { $sum: 1 } } }
     ]).toArray()
 
     // Get jobs by category
-    const jobsByCategory = await db.collection('jobs').aggregate([
+    const jobsByCategory = await db.collection('jobs').aggregate<AggregationResult>([
       { $match: { active: true } },
       { $group: { _id: '$category', count: { $sum: 1 } } }
     ]).toArray()
@@ -79,7 +84,7 @@ export async function GET() {
     const monthlyStats = await getMonthlyStats(db)
 
     // Get skills distribution from candidates
-    const skillsDistribution = await db.collection('candidates').aggregate([
+    const skillsDistribution = await db.collection('candidates').aggregate<AggregationResult>([
       { $unwind: '$skills' },
       { $group: { _id: '$skills', count: { $sum: 1 } } },
       { $sort: { count: -1 } },
@@ -146,7 +151,7 @@ export async function GET() {
   }
 }
 
-function formatDistribution(data: Array<{ _id: string | null; count: number }>) {
+function formatDistribution(data: AggregationResult[]) {
   return data.reduce((acc, item) => {
     const key = item._id || 'unknown'
     acc[key] = item.count
