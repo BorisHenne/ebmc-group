@@ -1,20 +1,24 @@
 {
   "nav": {
-    "services": "Services",
-    "about": "About",
-    "consultants": "Our Consultants",
+    "home": "Home",
+    "sap": "SAP",
+    "ict": "ICT / IT",
+    "cybersecurity": "Cybersecurity",
+    "consultants": "Consultants",
     "careers": "Careers",
     "contact": "Contact",
-    "login": "Login",
-    "startProject": "Start a project"
+    "about": "About",
+    "login": "Login"
   },
   "hero": {
-    "badge": "Digital Transformation & Innovation",
-    "title": "Your partner in",
-    "words": ["SAP & ERP", "Cybersecurity", "Artificial Intelligence", "Cloud & DevOps"],
-    "description": "EBMC GROUP supports companies in their digital evolution with innovative and tailored solutions.",
-    "cta": "Discover our services",
-    "ctaSecondary": "Book a meeting",
+    "badge": "Since 2006",
+    "title": "Master technology.",
+    "titleHighlight": "Secure growth.",
+    "words": ["SAP & S/4HANA", "Cybersecurity", "Cloud & AI", "DevOps"],
+    "description": "Since 2006, EBMC GROUP has been supporting companies in their high-impact IT transformations. Born in SAP, strengthened by IT, enriched by cybersecurity and AI, our expertise covers the entire technology cycle.",
+    "commitment": "Our commitment: delivering reliable, modern and secure solutions, executed by certified consultants.",
+    "cta": "Discover our expertise",
+    "ctaSecondary": "Contact us",
     "scroll": "Scroll"
   },
   "stats": {
@@ -23,76 +27,234 @@
     "experts": "Certified experts",
     "satisfaction": "Satisfied clients"
   },
-  "services": {
-    "badge": "Our expertise",
-    "title": "Tailored",
-    "titleHighlight": "solutions",
-    "description": "We combine technical expertise and strategic vision to transform your challenges into opportunities.",
+  "poles": {
+    "badge": "Our centers of excellence",
+    "title": "Structured",
+    "titleHighlight": "expertise",
+    "description": "Three integrated centers to cover all your technology needs.",
     "learnMore": "Learn more",
     "sap": {
-      "title": "SAP & ERP",
-      "description": "Complete expertise on SAP S/4HANA solutions, implementation and optimization of your business processes."
+      "title": "SAP",
+      "description": "S/4HANA migrations, RISE, ECC, modules & integration"
     },
-    "security": {
+    "ict": {
+      "title": "ICT / IT",
+      "description": "Cloud, development, data, AI, DevOps"
+    },
+    "cybersecurity": {
       "title": "Cybersecurity",
-      "description": "Protection of your systems and data with advanced security solutions and GDPR compliance."
-    },
-    "ai": {
-      "title": "Artificial Intelligence",
-      "description": "Integration of AI solutions to automate and optimize your business operations."
-    },
-    "dev": {
-      "title": "Development",
-      "description": "Creation of custom applications with modern technologies (React, Node.js, Cloud)."
+      "description": "Compliance, audit, architecture, detection & response"
     }
   },
-  "about": {
-    "badge": "Why choose us",
-    "title": "Excellence at the service of your",
-    "titleHighlight": "transformation",
-    "description": "For over 15 years, we have been supporting companies of all sizes in their digital transformation. Our team of certified experts guarantees tailor-made solutions and personalized support.",
+  "difference": {
+    "badge": "Our difference",
+    "title": "Why choose",
+    "titleHighlight": "EBMC GROUP",
+    "description": "A human-scale IT services company with large group efficiency.",
     "features": [
-      "Recognized expertise in SAP and cloud technologies",
-      "Team of certified and passionate experts",
-      "Personalized support from A to Z",
-      "Innovative and sustainable solutions"
+      "Structured technological expertise",
+      "Certified & supported consultants",
+      "Rigorous delivery, clear governance",
+      "European responsiveness: Luxembourg, France, Belgium, Spain"
     ],
-    "security": "Guaranteed security",
-    "support": "Available support",
-    "global": "International presence"
+    "tagline": "EBMC GROUP: a human-scale team, large-scale efficiency."
   },
-  "contact": {
-    "badge": "Contact",
-    "title": "Let's start your",
-    "titleHighlight": "project",
-    "description": "Let's discuss your needs and find together the ideal solution for your company.",
-    "email": "Email",
-    "phone": "Phone",
-    "address": "Address",
-    "form": {
-      "name": "Your name",
-      "email": "Your email",
-      "subject": "Subject",
-      "message": "Your message",
-      "submit": "Send message",
-      "sending": "Sending...",
-      "success": "Message sent successfully!",
-      "error": "Error sending. Please try again."
-    }
+  "sap": {
+    "badge": "SAP Expertise",
+    "title": "SAP: modernize, secure,",
+    "titleHighlight": "optimize",
+    "subtitle": "your operations",
+    "description": "Since 2006, EBMC GROUP has been supporting organizations in their SAP projects, from legacy ECC environments to the most recent S/4HANA architectures.",
+    "domains": {
+      "title": "Our areas of intervention",
+      "items": [
+        "ECC → S/4HANA migrations: Brownfield, Greenfield, SDT",
+        "RISE with SAP: cloud transition & continuous optimization",
+        "S/4HANA Public / Private Cloud",
+        "Functional modules: FI/CO, MM/SD, EWM, PP, QM, HCM, SuccessFactors, CX",
+        "Technologies: ABAP Cloud, UI5, SAP BTP",
+        "Data & Integration: Datasphere, Analytics Cloud, Integration Suite",
+        "Methodologies: SAP Activate, business agility, post go-live hypercare"
+      ]
+    },
+    "benefits": {
+      "title": "Your benefits",
+      "items": [
+        "Reduced risks",
+        "Controlled delivery",
+        "Architecture aligned with your business challenges"
+      ]
+    },
+    "tagline": "SAP is our DNA. Your performance, our priority."
+  },
+  "ict": {
+    "badge": "ICT / IT Expertise",
+    "title": "ICT: Cloud, Development,",
+    "titleHighlight": "Data & AI",
+    "description": "Our ICT division supports the modernization, automation and scalability of your information systems.",
+    "infrastructure": {
+      "title": "Infrastructure & Cloud",
+      "items": [
+        "Cloud-native architectures: AWS, Azure, GCP",
+        "Containerization & microservices",
+        "BCP/DRP, monitoring, security",
+        "Application modernization & cloud migration"
+      ]
+    },
+    "development": {
+      "title": "Application Development",
+      "items": [
+        "Backend: Java, .NET, Node.js, Python",
+        "Frontend: React, Angular, Vue.js",
+        "Mobile: Flutter, React Native",
+        "API Management, integrations, microservices"
+      ]
+    },
+    "data": {
+      "title": "Data & Artificial Intelligence",
+      "items": [
+        "ETL/ELT pipelines, data lakes, BI",
+        "Machine learning, generative AI, NLP",
+        "Power BI, SAP Analytics Cloud, Tableau"
+      ]
+    },
+    "devops": {
+      "title": "DevOps & Automation",
+      "items": [
+        "CI/CD, Infrastructure as Code",
+        "Observability: Grafana, Prometheus",
+        "Deployment automation"
+      ]
+    },
+    "tagline": "High-performance, scalable and secure solutions to drive your growth."
+  },
+  "cybersecurity": {
+    "badge": "Cybersecurity Expertise",
+    "title": "Cybersecurity: protect,",
+    "titleHighlight": "prevent, comply",
+    "description": "Our cybersecurity division secures all your SAP, IT and Cloud projects, from design to operation.",
+    "audit": {
+      "title": "Audit & Pentest",
+      "items": [
+        "Infrastructure, cloud, application, web",
+        "Stress testing & risk mapping"
+      ]
+    },
+    "compliance": {
+      "title": "Compliance & Regulations",
+      "items": [
+        "NIS2, DORA, ISO 27001",
+        "GDPR, Cyber Resilience Act",
+        "Governance & documentation"
+      ]
+    },
+    "detection": {
+      "title": "Detection & Response",
+      "items": [
+        "Managed SOC, EDR, SIEM",
+        "Threat Intelligence, investigation, remediation"
+      ]
+    },
+    "architecture": {
+      "title": "Secure Architecture",
+      "items": [
+        "Zero Trust, IAM, MFA",
+        "Micro-segmentation & hardening"
+      ]
+    },
+    "awareness": {
+      "title": "Awareness & Crisis Management",
+      "items": [
+        "Executive / IT management exercises",
+        "Phishing campaigns",
+        "Internal training"
+      ]
+    },
+    "tagline": "Our mission: sustainably strengthen your organization's digital resilience."
+  },
+  "consultants": {
+    "badge": "Our Consultants",
+    "title": "Expert, certified",
+    "titleHighlight": "and committed",
+    "description": "EBMC GROUP brings together a community of consultants specialized in SAP, IT/ICT, Cybersecurity and AI. Their mission: delivering reliable, high-performance and secure solutions, adapted to your organization's strategic challenges.",
+    "model": {
+      "title": "Our model",
+      "items": [
+        "Experienced consultants",
+        "Continuous training & certifications",
+        "Structured technical management",
+        "Rigorous and measurable execution"
+      ]
+    },
+    "expertise": {
+      "sap": {
+        "title": "SAP",
+        "items": ["ECC & S/4HANA", "RISE with SAP", "FI/CO, MM/SD, EWM, PP, QM, HCM, SuccessFactors", "ABAP Cloud, UI5, BTP", "Datasphere, Integration Suite, Analytics Cloud"]
+      },
+      "ict": {
+        "title": "ICT / IT",
+        "items": ["AWS, Azure, GCP", "Java, .NET, Node.js, Python", "React, Angular, Vue.js", "Microservices, API, mobile development", "DevOps, automation, monitoring", "Data & AI: ETL, ML, generative AI"]
+      },
+      "cybersecurity": {
+        "title": "Cybersecurity",
+        "items": ["Audit & pentest", "Compliance: NIS2, DORA, GDPR, ISO 27001", "SOC, EDR, SIEM", "Secure architecture & Zero Trust"]
+      }
+    },
+    "whyWork": {
+      "title": "Why work with our consultants?",
+      "items": [
+        "Certified skills",
+        "Result-oriented delivery",
+        "Transparent governance",
+        "European responsiveness"
+      ]
+    },
+    "cta": "We quickly find the right consultant for your needs.",
+    "available": "Available",
+    "unavailable": "On mission",
+    "skills": "Skills",
+    "experience": "Experience",
+    "certifications": "Certifications",
+    "contact": "Contact",
+    "filters": {
+      "all": "All",
+      "sap": "SAP",
+      "security": "Cybersecurity",
+      "dev": "Development",
+      "data": "Data & AI"
+    },
+    "noConsultants": "No consultant available at the moment."
   },
   "careers": {
     "badge": "Join us",
-    "title": "Build your",
-    "titleHighlight": "future",
-    "description": "Join a passionate team and participate in innovative projects that transform businesses.",
+    "title": "Join a European IT services company",
+    "titleHighlight": "specialized",
+    "subtitle": "in SAP, IT and Cybersecurity",
+    "description": "EBMC GROUP recruits consultants passionate about technology and driven by excellence.",
+    "offer": {
+      "title": "What we offer",
+      "items": [
+        "Structured onboarding program",
+        "Senior mentoring for 12-18 months",
+        "Training & certifications: SAP, AWS, Azure, AI, cybersecurity",
+        "International projects on cutting-edge technologies",
+        "Partial remote work & attractive conditions"
+      ]
+    },
+    "evolution": {
+      "title": "Your career path",
+      "description": "We value continuous progression: consultant, expert, architect, lead... EBMC GROUP supports ambitious career paths."
+    },
+    "cta": "Send your CV",
+    "email": "careers@ebmcgroup.eu",
     "whyJoin": "Why join us?",
     "benefits": [
-      "Innovative projects with the latest technologies",
-      "Continuous training and certifications",
-      "Flexible work environment",
-      "Caring and collaborative team",
-      "Personalized career development",
-      "Attractive compensation"
+      "Structured onboarding program",
+      "Senior mentoring for 12-18 months",
+      "Continuous training & certifications",
+      "International projects",
+      "Partial remote work",
+      "Attractive conditions"
     ],
     "openPositions": "Open positions",
     "viewOffers": "View offers",
@@ -119,25 +281,54 @@
     "noJobs": "No offers available at the moment.",
     "backToList": "Back to offers"
   },
-  "consultants": {
-    "badge": "Our Experts",
-    "title": "Discover our",
-    "titleHighlight": "consultants",
-    "description": "A team of certified experts, available to support your digital transformation projects.",
-    "available": "Available",
-    "unavailable": "On mission",
-    "skills": "Skills",
-    "experience": "Experience",
-    "certifications": "Certifications",
-    "contact": "Contact",
-    "filters": {
-      "all": "All",
-      "sap": "SAP",
-      "security": "Cybersecurity",
-      "dev": "Development",
-      "data": "Data & AI"
+  "contact": {
+    "badge": "Contact",
+    "title": "Contact",
+    "titleHighlight": "EBMC GROUP",
+    "description": "We respond within 24 hours.",
+    "headquarters": {
+      "title": "Luxembourg Headquarters",
+      "location": "Bascharage, Luxembourg"
     },
-    "noConsultants": "No consultant available at the moment."
+    "innovation": {
+      "title": "Innovation & Development Office",
+      "location": "Barcelona, Spain"
+    },
+    "email": "Email",
+    "phone": "Phone",
+    "address": "Address",
+    "form": {
+      "name": "Your name",
+      "email": "Your email",
+      "subject": "Subject",
+      "message": "Your message",
+      "submit": "Send message",
+      "sending": "Sending...",
+      "success": "Message sent successfully!",
+      "error": "Error sending. Please try again."
+    }
+  },
+  "about": {
+    "badge": "About",
+    "title": "EBMC GROUP: European",
+    "titleHighlight": "technology ESN",
+    "description": "Since 2006, we have been supporting companies in their SAP and IT transformations. Today we cover three integrated divisions:",
+    "poles": ["SAP", "ICT / IT", "Cybersecurity & AI"],
+    "vision": {
+      "title": "Our vision",
+      "description": "An IT services company capable of delivering speed, expertise and reliability, while remaining human, transparent and demanding."
+    },
+    "commitments": {
+      "title": "Our commitments",
+      "items": [
+        "Technical excellence",
+        "Clear and measurable governance",
+        "Deadlines met, quality controlled",
+        "Trained & supported consultants",
+        "Integrated security and compliance"
+      ]
+    },
+    "tagline": "EBMC GROUP, long-term partner for CIOs, CTOs and business leaders."
   },
   "footer": {
     "rights": "All rights reserved."

@@ -151,10 +151,10 @@ export async function GET() {
   }
 }
 
-function formatDistribution(data: AggregationResult[]) {
+function formatDistribution(data: Array<{ _id?: string | null; count?: number }>) {
   return data.reduce((acc, item) => {
     const key = item._id || 'unknown'
-    acc[key] = item.count
+    acc[key] = item.count || 0
     return acc
   }, {} as Record<string, number>)
 }

@@ -7,9 +7,8 @@ import Image from 'next/image'
 import { useTranslations } from 'next-intl'
 import {
   Shield,
-  Brain,
   Server,
-  Code,
+  Cloud,
   ArrowRight,
   Mail,
   Phone,
@@ -21,7 +20,8 @@ import {
   Globe,
   ChevronDown,
   Send,
-  Users
+  Users,
+  Building2
 } from 'lucide-react'
 import {
   TextGradient,
@@ -32,15 +32,14 @@ import { TechBackground, TechSection } from '@/components/ui/TechBackground'
 import { Navigation } from '@/components/layout/Navigation'
 import { useTheme } from '@/components/ThemeProvider'
 
-const services = [
-  { icon: Server, key: 'sap', gradient: 'from-ebmc-turquoise to-cyan-500' },
-  { icon: Shield, key: 'security', gradient: 'from-emerald-500 to-teal-500' },
-  { icon: Brain, key: 'ai', gradient: 'from-violet-500 to-purple-500' },
-  { icon: Code, key: 'dev', gradient: 'from-orange-500 to-amber-500' }
+const poles = [
+  { icon: Server, key: 'sap', gradient: 'from-ebmc-turquoise to-cyan-500', href: '/sap' },
+  { icon: Cloud, key: 'ict', gradient: 'from-violet-500 to-purple-500', href: '/ict' },
+  { icon: Shield, key: 'cybersecurity', gradient: 'from-emerald-500 to-teal-500', href: '/cybersecurity' }
 ]
 
 const stats = [
-  { value: 15, suffix: '+', key: 'years' },
+  { value: 19, suffix: '+', key: 'years' },
   { value: 200, suffix: '+', key: 'projects' },
   { value: 50, suffix: '+', key: 'experts' },
   { value: 98, suffix: '%', key: 'satisfaction' }
@@ -172,7 +171,7 @@ export default function Home() {
   const heroScale = useTransform(scrollYProgress, [0, 1], [1, 0.95])
 
   const heroWords = t.raw('hero.words') as string[]
-  const features = t.raw('about.features') as string[]
+  const differenceFeatures = t.raw('difference.features') as string[]
 
   return (
     <TechBackground variant="semi-light">
@@ -200,20 +199,38 @@ export default function Home() {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.4 }}
-              className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-bold mb-6 leading-tight text-slate-900 dark:text-white"
+              className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-bold mb-4 leading-tight text-slate-900 dark:text-white"
             >
               {t('hero.title')}
               <br />
-              <TypewriterEffect words={heroWords} />
+              <TextGradient animate={false}>{t('hero.titleHighlight')}</TextGradient>
             </motion.h1>
+
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.5 }}
+              className="mb-6"
+            >
+              <TypewriterEffect words={heroWords} />
+            </motion.div>
 
             <motion.p
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.6 }}
-              className="text-lg md:text-xl text-slate-500 dark:text-slate-400 max-w-3xl mx-auto mb-12"
+              className="text-lg md:text-xl text-slate-500 dark:text-slate-400 max-w-4xl mx-auto mb-4"
             >
               {t('hero.description')}
+            </motion.p>
+
+            <motion.p
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.7 }}
+              className="text-base md:text-lg text-ebmc-turquoise font-medium max-w-3xl mx-auto mb-12"
+            >
+              {t('hero.commitment')}
             </motion.p>
 
             <motion.div
@@ -222,7 +239,7 @@ export default function Home() {
               transition={{ duration: 0.8, delay: 0.8 }}
               className="flex flex-col sm:flex-row gap-4 justify-center"
             >
-              <a href="#services">
+              <a href="#poles">
                 <ShimmerButton>
                   {t('hero.cta')}
                   <ArrowRight className="w-4 h-4" />
@@ -283,8 +300,8 @@ export default function Home() {
           </div>
         </TechSection>
 
-        {/* Services Section */}
-        <TechSection id="services" className="py-24 md:py-32 px-4">
+        {/* Poles Section */}
+        <TechSection id="poles" className="py-24 md:py-32 px-4">
           <div className="max-w-7xl mx-auto">
             <motion.div
               initial={{ opacity: 0, y: 30 }}
@@ -295,18 +312,18 @@ export default function Home() {
             >
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-ebmc-turquoise/10 mb-6">
                 <Globe className="w-4 h-4 text-ebmc-turquoise" />
-                <span className="text-sm font-medium text-ebmc-turquoise">{t('services.badge')}</span>
+                <span className="text-sm font-medium text-ebmc-turquoise">{t('poles.badge')}</span>
               </div>
               <h2 className="text-3xl md:text-5xl font-bold mb-6 text-slate-900 dark:text-white">
-                {t('services.title')} <TextGradient animate={false}>{t('services.titleHighlight')}</TextGradient>
+                {t('poles.title')} <TextGradient animate={false}>{t('poles.titleHighlight')}</TextGradient>
               </h2>
               <p className="text-lg text-slate-500 dark:text-slate-400 max-w-2xl mx-auto">
-                {t('services.description')}
+                {t('poles.description')}
               </p>
             </motion.div>
 
-            <div className="grid md:grid-cols-2 gap-6">
-              {services.map((service, index) => (
+            <div className="grid md:grid-cols-3 gap-6">
+              {poles.map((pole, index) => (
                 <motion.div
                   key={index}
                   initial={{ opacity: 0, y: 30 }}
@@ -316,25 +333,25 @@ export default function Home() {
                   whileHover={{ y: -5 }}
                   className="glass-card p-8 group cursor-pointer"
                 >
-                  <div className={`inline-flex p-3 rounded-xl bg-gradient-to-r ${service.gradient} mb-6 group-hover:scale-110 transition-transform shadow-lg`}>
-                    <service.icon className="w-6 h-6 text-white" />
+                  <div className={`inline-flex p-3 rounded-xl bg-gradient-to-r ${pole.gradient} mb-6 group-hover:scale-110 transition-transform shadow-lg`}>
+                    <pole.icon className="w-6 h-6 text-white" />
                   </div>
-                  <h3 className="text-xl font-bold mb-3 text-slate-800 dark:text-white">{t(`services.${service.key}.title`)}</h3>
-                  <p className="text-slate-500 dark:text-slate-400 leading-relaxed mb-4">{t(`services.${service.key}.description`)}</p>
-                  <a
-                    href="#contact"
+                  <h3 className="text-xl font-bold mb-3 text-slate-800 dark:text-white">{t(`poles.${pole.key}.title`)}</h3>
+                  <p className="text-slate-500 dark:text-slate-400 leading-relaxed mb-4">{t(`poles.${pole.key}.description`)}</p>
+                  <Link
+                    href={pole.href}
                     className="inline-flex items-center gap-2 text-ebmc-turquoise hover:text-ebmc-turquoise-dark font-medium transition group-hover:gap-3"
                   >
-                    {t('services.learnMore')} <ArrowRight className="w-4 h-4" />
-                  </a>
+                    {t('poles.learnMore')} <ArrowRight className="w-4 h-4" />
+                  </Link>
                 </motion.div>
               ))}
             </div>
           </div>
         </TechSection>
 
-        {/* About Section */}
-        <TechSection id="a-propos" className="py-24 md:py-32 px-4">
+        {/* Difference Section */}
+        <TechSection id="difference" className="py-24 md:py-32 px-4">
           <div className="max-w-7xl mx-auto">
             <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
               <motion.div
@@ -345,16 +362,16 @@ export default function Home() {
               >
                 <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-ebmc-turquoise/10 mb-6">
                   <Zap className="w-4 h-4 text-ebmc-turquoise" />
-                  <span className="text-sm font-medium text-ebmc-turquoise">{t('about.badge')}</span>
+                  <span className="text-sm font-medium text-ebmc-turquoise">{t('difference.badge')}</span>
                 </div>
                 <h2 className="text-3xl md:text-5xl font-bold mb-6 text-slate-900 dark:text-white">
-                  {t('about.title')} <TextGradient animate={false}>{t('about.titleHighlight')}</TextGradient>
+                  {t('difference.title')} <TextGradient animate={false}>{t('difference.titleHighlight')}</TextGradient>
                 </h2>
                 <p className="text-lg text-slate-500 dark:text-slate-400 mb-8 leading-relaxed">
-                  {t('about.description')}
+                  {t('difference.description')}
                 </p>
                 <ul className="space-y-4">
-                  {features.map((item, index) => (
+                  {differenceFeatures.map((item, index) => (
                     <motion.li
                       key={index}
                       initial={{ opacity: 0, x: -20 }}
@@ -380,9 +397,9 @@ export default function Home() {
               >
                 <div className="glass-card p-8 space-y-6">
                   {[
-                    { icon: Shield, value: '100%', label: t('about.security'), gradient: 'from-ebmc-turquoise to-cyan-500' },
-                    { icon: Brain, value: '24/7', label: t('about.support'), gradient: 'from-violet-500 to-purple-500' },
-                    { icon: Globe, value: 'Global', label: t('about.global'), gradient: 'from-orange-500 to-amber-500' },
+                    { icon: Shield, value: '100%', label: t('stats.satisfaction'), gradient: 'from-ebmc-turquoise to-cyan-500' },
+                    { icon: Users, value: '50+', label: t('stats.experts'), gradient: 'from-violet-500 to-purple-500' },
+                    { icon: Globe, value: '4', label: 'Pays européens', gradient: 'from-orange-500 to-amber-500' },
                   ].map((item, index) => (
                     <div key={index}>
                       <div className="flex items-center gap-5">
@@ -398,6 +415,15 @@ export default function Home() {
                     </div>
                   ))}
                 </div>
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  whileInView={{ opacity: 1 }}
+                  transition={{ delay: 0.5 }}
+                  viewport={{ once: true }}
+                  className="text-center mt-6 text-lg font-medium text-ebmc-turquoise"
+                >
+                  {t('difference.tagline')}
+                </motion.p>
               </motion.div>
             </div>
           </div>
@@ -461,17 +487,55 @@ export default function Home() {
                 viewport={{ once: true }}
                 className="space-y-5"
               >
+                {/* Headquarters */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5 }}
+                  viewport={{ once: true }}
+                  className="glass-card p-5"
+                >
+                  <div className="flex items-center gap-4 mb-3">
+                    <div className="p-3 rounded-xl bg-gradient-to-r from-ebmc-turquoise to-cyan-500 shadow-lg">
+                      <Building2 className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <div className="font-semibold text-slate-800 dark:text-white">{t('contact.headquarters.title')}</div>
+                      <div className="text-slate-500 dark:text-slate-400">{t('contact.headquarters.location')}</div>
+                    </div>
+                  </div>
+                </motion.div>
+
+                {/* Innovation Office */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.1 }}
+                  viewport={{ once: true }}
+                  className="glass-card p-5"
+                >
+                  <div className="flex items-center gap-4 mb-3">
+                    <div className="p-3 rounded-xl bg-gradient-to-r from-violet-500 to-purple-500 shadow-lg">
+                      <Globe className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <div className="font-semibold text-slate-800 dark:text-white">{t('contact.innovation.title')}</div>
+                      <div className="text-slate-500 dark:text-slate-400">{t('contact.innovation.location')}</div>
+                    </div>
+                  </div>
+                </motion.div>
+
+                {/* Contact info */}
                 {[
                   { icon: Mail, key: 'email', value: 'contact@ebmcgroup.eu', href: 'mailto:contact@ebmcgroup.eu' },
-                  { icon: Phone, key: 'phone', value: '+352 26 50 61', href: 'tel:+352265061' },
-                  { icon: MapPin, key: 'address', value: '20 Op Zaemer, 4959 Käerjeng, Luxembourg', href: 'https://maps.google.com/?q=20+Op+Zaemer+4959+Käerjeng+Luxembourg' }
+                  { icon: Phone, key: 'phone', value: '+352 26 50 61', href: 'tel:+352265061' }
                 ].map((item, index) => (
                   <motion.a
                     key={index}
                     href={item.href}
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: index * 0.1 }}
+                    transition={{ duration: 0.5, delay: (index + 2) * 0.1 }}
                     viewport={{ once: true }}
                     whileHover={{ x: 8 }}
                     className="flex items-center gap-5 p-5 glass-card group cursor-pointer"
@@ -488,7 +552,7 @@ export default function Home() {
 
                 <div className="flex gap-3 pt-4">
                   <motion.a
-                    href="https://linkedin.com"
+                    href="https://linkedin.com/company/ebmc-group"
                     target="_blank"
                     rel="noopener noreferrer"
                     whileHover={{ scale: 1.1, y: -3 }}
@@ -526,13 +590,17 @@ export default function Home() {
                   className="h-7 w-auto"
                 />
               </Link>
-              <div className="flex items-center gap-6 text-sm text-slate-500 dark:text-slate-400">
-                <Link href="/careers" className="hover:text-ebmc-turquoise transition">Carrières</Link>
-                <a href="#contact" className="hover:text-ebmc-turquoise transition">Contact</a>
-                <Link href="/login" className="hover:text-ebmc-turquoise transition">Connexion</Link>
+              <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-slate-500 dark:text-slate-400">
+                <Link href="/sap" className="hover:text-ebmc-turquoise transition">SAP</Link>
+                <Link href="/ict" className="hover:text-ebmc-turquoise transition">ICT / IT</Link>
+                <Link href="/cybersecurity" className="hover:text-ebmc-turquoise transition">{t('nav.cybersecurity')}</Link>
+                <Link href="/consultants" className="hover:text-ebmc-turquoise transition">{t('nav.consultants')}</Link>
+                <Link href="/careers" className="hover:text-ebmc-turquoise transition">{t('nav.careers')}</Link>
+                <Link href="/about" className="hover:text-ebmc-turquoise transition">{t('nav.about')}</Link>
+                <Link href="/contact" className="hover:text-ebmc-turquoise transition">{t('nav.contact')}</Link>
               </div>
               <p className="text-sm text-slate-400 dark:text-slate-500">
-                © {new Date().getFullYear()} EBMC GROUP. Tous droits réservés.
+                © {new Date().getFullYear()} EBMC GROUP. {t('footer.rights')}
               </p>
             </div>
           </div>

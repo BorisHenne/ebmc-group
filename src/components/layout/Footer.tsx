@@ -26,15 +26,17 @@ export function Footer({ variant = 'auto' }: FooterProps) {
     return () => observer.disconnect()
   }, [])
 
-  // For auto variant, use current theme; otherwise use specified variant
   const effectiveVariant = variant === 'auto' ? (isDarkMode ? 'dark' : 'light') : variant
   const isLight = effectiveVariant === 'light'
 
   const navItems = [
-    { key: 'services', href: '/#services' },
+    { key: 'sap', href: '/sap', label: 'SAP' },
+    { key: 'ict', href: '/ict', label: 'ICT / IT' },
+    { key: 'cybersecurity', href: '/cybersecurity' },
     { key: 'consultants', href: '/consultants' },
     { key: 'careers', href: '/careers' },
-    { key: 'contact', href: '/#contact' }
+    { key: 'about', href: '/about' },
+    { key: 'contact', href: '/contact' }
   ]
 
   return (
@@ -68,7 +70,7 @@ export function Footer({ variant = 'auto' }: FooterProps) {
                     : 'text-white/60 hover:text-ebmc-turquoise'
                 }`}
               >
-                {t(`nav.${item.key}`)}
+                {item.label || t(`nav.${item.key}`)}
               </Link>
             ))}
           </nav>

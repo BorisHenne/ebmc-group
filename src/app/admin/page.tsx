@@ -211,7 +211,7 @@ function StatCard({
   label: string
   value: string | number
   subValue?: string
-  icon: React.ComponentType<{ className?: string }>
+  icon: React.ComponentType<{ className?: string; color?: string; style?: React.CSSProperties }>
   color: string
   trend?: { value: number; positive: boolean }
   link?: string
@@ -223,7 +223,7 @@ function StatCard({
           className="w-10 h-10 rounded-lg flex items-center justify-center"
           style={{ backgroundColor: `${color}20`, color }}
         >
-          <Icon className="w-5 h-5" />
+          <Icon className="w-5 h-5" color={color} />
         </div>
         {trend && (
           <div className={`flex items-center gap-1 text-xs ${trend.positive ? 'text-[#73BF69]' : 'text-[#F2495C]'}`}>
