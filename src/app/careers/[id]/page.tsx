@@ -1,7 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { useState, useEffect, use } from 'react'
+import { useState, useEffect, useCallback, use } from 'react'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import {
@@ -53,13 +53,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
   })
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
 
-  useEffect(() => {
-    const match = document.cookie.match(/locale=([^;]+)/)
-    if (match) setLocale(match[1])
-    fetchJob()
-  }, [id])
-
-  const fetchJob = async () => {
+  const fetchJob = useCallback(async () => {
     try {
       const res = await fetch(`/api/jobs/${id}`)
       if (res.ok) {
@@ -71,7 +65,13 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
     } finally {
       setLoading(false)
     }
-  }
+  }, [id])
+
+  useEffect(() => {
+    const match = document.cookie.match(/locale=([^;]+)/)
+    if (match) setLocale(match[1])
+    fetchJob()
+  }, [fetchJob])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
