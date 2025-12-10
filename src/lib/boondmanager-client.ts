@@ -10,9 +10,9 @@ export const BOOND_FEATURES = {
   // Core entities - Usually enabled by default
   CANDIDATES_ENABLED: true,
   RESOURCES_ENABLED: true,
-  COMPANIES_ENABLED: true,
+  COMPANIES_ENABLED: false, // 403 - Requires permission from BoondManager
   OPPORTUNITIES_ENABLED: true,
-  PROJECTS_ENABLED: true,
+  PROJECTS_ENABLED: false, // 403 - Requires permission from BoondManager
 
   // Contacts - Requires specific permission (currently 403)
   CONTACTS_ENABLED: false, // TODO: Enable when API access is granted
