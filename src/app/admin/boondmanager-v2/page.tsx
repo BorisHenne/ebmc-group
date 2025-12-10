@@ -9,12 +9,12 @@ import {
   Shield, ShieldOff, Download, Upload, Sparkles, AlertTriangle, Info,
   Copy, CheckCircle, XCircle, FileJson, FileSpreadsheet, Trash, ArrowRight,
   BarChart3, Globe, MapPin, Book, ChevronDown, ChevronUp, FileText, ExternalLink,
-  DatabaseBackup, Database
+  DatabaseBackup, Database, Bug, Play, Terminal
 } from 'lucide-react'
 
 // Types
 type BoondEnvironment = 'production' | 'sandbox'
-type TabType = 'dashboard' | 'dictionary' | 'sync' | 'quality' | 'export' | 'import' | 'candidates' | 'resources' | 'opportunities' | 'companies' | 'contacts' | 'projects'
+type TabType = 'dashboard' | 'dictionary' | 'sync' | 'quality' | 'export' | 'import' | 'candidates' | 'resources' | 'opportunities' | 'companies' | 'contacts' | 'projects' | 'debug'
 type StepStatus = 'pending' | 'in_progress' | 'completed' | 'error'
 
 interface ImportStep {
@@ -92,6 +92,29 @@ interface SyncResult {
   totalRecords: number
   successRecords: number
   failedRecords: number
+}
+
+interface DebugTestResult {
+  name: string
+  passed?: boolean
+  data: Record<string, unknown>
+}
+
+interface DebugResults {
+  timestamp: string
+  baseUrl: string
+  tests: DebugTestResult[]
+  summary: {
+    totalTests: number
+    passed: number
+    failed: number
+    inconclusive: number
+  }
+  diagnosis?: {
+    problem: string
+    possibleCauses: string[]
+    suggestion: string
+  }
 }
 
 // State labels
@@ -199,6 +222,10 @@ export default function BoondManagerV2Page() {
     totalErrors: number
   } | null>(null)
 
+  // Debug
+  const [debugging, setDebugging] = useState(false)
+  const [debugResults, setDebugResults] = useState<DebugResults | null>(null)
+
   // Tabs configuration
   const tabs: { id: TabType; label: string; icon: React.ElementType; color: string; section?: string }[] = [
     { id: 'dashboard', label: 'Dashboard', icon: Zap, color: 'from-amber-500 to-orange-500', section: 'overview' },
@@ -213,6 +240,7 @@ export default function BoondManagerV2Page() {
     { id: 'companies', label: 'Societes', icon: Building2, color: 'from-cyan-500 to-teal-500', section: 'data' },
     { id: 'contacts', label: 'Contacts', icon: UserCircle, color: 'from-rose-500 to-pink-500', section: 'data' },
     { id: 'projects', label: 'Projets', icon: FolderKanban, color: 'from-violet-500 to-purple-500', section: 'data' },
+    { id: 'debug', label: 'Debug Env', icon: Bug, color: 'from-red-500 to-rose-500', section: 'tools' },
   ]
 
   const canWrite = environment === 'sandbox'
@@ -241,7 +269,7 @@ export default function BoondManagerV2Page() {
         await fetchDictionary()
         setLoading(false)
         return
-      } else if (activeTab === 'sync' || activeTab === 'quality' || activeTab === 'export' || activeTab === 'import') {
+      } else if (activeTab === 'sync' || activeTab === 'quality' || activeTab === 'export' || activeTab === 'import' || activeTab === 'debug') {
         // These tabs don't auto-load data
         setLoading(false)
         return
@@ -1702,6 +1730,202 @@ export default function BoondManagerV2Page() {
     </div>
   )
 
+  // Run debug tests
+  const runDebugTests = async () => {
+    setDebugging(true)
+    setDebugResults(null)
+
+    try {
+      const res = await fetch(`/api/boondmanager/v2/debug?_t=${Date.now()}`, {
+        credentials: 'include',
+        cache: 'no-store'
+      })
+      const data = await res.json()
+      setDebugResults(data)
+    } catch (err) {
+      setDebugResults({
+        timestamp: new Date().toISOString(),
+        baseUrl: 'Error',
+        tests: [{
+          name: 'Connection Test',
+          passed: false,
+          data: { error: err instanceof Error ? err.message : 'Unknown error' }
+        }],
+        summary: { totalTests: 1, passed: 0, failed: 1, inconclusive: 0 }
+      })
+    } finally {
+      setDebugging(false)
+    }
+  }
+
+  // Render debug tab
+  const renderDebugTab = () => (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="glass-card p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
+              <Bug className="w-6 h-6 text-red-500" />
+              Debug Environnements Prod / Sandbox
+            </h2>
+            <p className="text-slate-600 dark:text-slate-400 mt-1">
+              Verifier que les environnements Production et Sandbox renvoient des donnees differentes
+            </p>
+          </div>
+          <button
+            onClick={runDebugTests}
+            disabled={debugging}
+            className="flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-red-500 to-rose-500 text-white font-semibold hover:shadow-lg transition disabled:opacity-50"
+          >
+            {debugging ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                Tests en cours...
+              </>
+            ) : (
+              <>
+                <Play className="w-5 h-5" />
+                Lancer les tests
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* Results */}
+      {debugResults && (
+        <div className="space-y-4">
+          {/* Summary */}
+          <div className="glass-card p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-slate-800 dark:text-white flex items-center gap-2">
+                <Terminal className="w-5 h-5 text-slate-500" />
+                Resultat des tests
+              </h3>
+              <span className="text-sm text-slate-500 dark:text-slate-400">
+                {new Date(debugResults.timestamp).toLocaleString('fr-FR')}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-4 gap-4 mb-6">
+              <div className="p-4 rounded-lg bg-slate-100 dark:bg-slate-800/60 text-center">
+                <div className="text-2xl font-bold text-slate-800 dark:text-white">{debugResults.summary.totalTests}</div>
+                <div className="text-sm text-slate-500 dark:text-slate-400">Total</div>
+              </div>
+              <div className="p-4 rounded-lg bg-green-100 dark:bg-green-900/30 text-center">
+                <div className="text-2xl font-bold text-green-600 dark:text-green-400">{debugResults.summary.passed}</div>
+                <div className="text-sm text-green-600 dark:text-green-400">Reussis</div>
+              </div>
+              <div className="p-4 rounded-lg bg-red-100 dark:bg-red-900/30 text-center">
+                <div className="text-2xl font-bold text-red-600 dark:text-red-400">{debugResults.summary.failed}</div>
+                <div className="text-sm text-red-600 dark:text-red-400">Echoues</div>
+              </div>
+              <div className="p-4 rounded-lg bg-amber-100 dark:bg-amber-900/30 text-center">
+                <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">{debugResults.summary.inconclusive}</div>
+                <div className="text-sm text-amber-600 dark:text-amber-400">Inconcluants</div>
+              </div>
+            </div>
+
+            <div className="text-sm text-slate-600 dark:text-slate-400">
+              <strong>Base URL:</strong> {debugResults.baseUrl}
+            </div>
+          </div>
+
+          {/* Diagnosis */}
+          {debugResults.diagnosis && (
+            <div className="glass-card p-6 border-2 border-red-500/50">
+              <h3 className="font-semibold text-red-600 dark:text-red-400 mb-3 flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5" />
+                Diagnostic: {debugResults.diagnosis.problem}
+              </h3>
+              <div className="space-y-3">
+                <div>
+                  <h4 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Causes possibles:</h4>
+                  <ul className="list-disc list-inside text-sm text-slate-600 dark:text-slate-400 space-y-1">
+                    {debugResults.diagnosis.possibleCauses.map((cause, i) => (
+                      <li key={i}>{cause}</li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
+                  <p className="text-sm text-amber-800 dark:text-amber-200">
+                    <strong>Suggestion:</strong> {debugResults.diagnosis.suggestion}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Individual tests */}
+          <div className="space-y-4">
+            {debugResults.tests.map((test, index) => (
+              <div key={index} className="glass-card p-6">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-semibold text-slate-800 dark:text-white flex items-center gap-2">
+                    {test.passed === true ? (
+                      <CheckCircle className="w-5 h-5 text-green-500" />
+                    ) : test.passed === false ? (
+                      <XCircle className="w-5 h-5 text-red-500" />
+                    ) : (
+                      <Info className="w-5 h-5 text-amber-500" />
+                    )}
+                    Test {index + 1}: {test.name}
+                  </h3>
+                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                    test.passed === true ? 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400' :
+                    test.passed === false ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' :
+                    'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400'
+                  }`}>
+                    {test.passed === true ? 'Reussi' : test.passed === false ? 'Echoue' : 'Info'}
+                  </span>
+                </div>
+
+                <div className="bg-slate-900 rounded-lg p-4 overflow-x-auto">
+                  <pre className="text-sm text-green-400 font-mono whitespace-pre-wrap">
+                    {JSON.stringify(test.data, null, 2)}
+                  </pre>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Information */}
+      {!debugResults && (
+        <div className="glass-card p-6">
+          <h3 className="font-semibold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
+            <Info className="w-5 h-5 text-blue-500" />
+            A propos des tests
+          </h3>
+          <ul className="space-y-2 text-sm text-slate-600 dark:text-slate-400">
+            <li className="flex items-start gap-2">
+              <Check className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+              <span><strong>Test 1:</strong> Verifie que les credentials Production et Sandbox sont differents</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <Check className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+              <span><strong>Test 2:</strong> Genere des JWT pour chaque environnement et verifie qu&apos;ils sont differents</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <Check className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+              <span><strong>Test 3:</strong> Fait des appels API reels aux deux environnements et compare les donnees</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <Check className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+              <span><strong>Test 4:</strong> Affiche la configuration des headers JWT</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
+              <span>Si Production et Sandbox retournent le meme nombre de lignes, il y a un probleme de configuration</span>
+            </li>
+          </ul>
+        </div>
+      )}
+    </div>
+  )
+
   // Render list item
   const renderListItem = (item: BaseEntity) => {
     const attrs = item.attributes
@@ -2382,7 +2606,7 @@ export default function BoondManagerV2Page() {
       )}
 
       {/* Content */}
-      {loading && !['dictionary', 'sync', 'quality', 'export'].includes(activeTab) ? (
+      {loading && !['dictionary', 'sync', 'quality', 'export', 'import', 'debug'].includes(activeTab) ? (
         <div className="flex justify-center py-12">
           <Loader2 className="w-8 h-8 animate-spin text-ebmc-turquoise" />
         </div>
@@ -2398,6 +2622,8 @@ export default function BoondManagerV2Page() {
         renderExportTab()
       ) : activeTab === 'import' ? (
         renderImportTab()
+      ) : activeTab === 'debug' ? (
+        renderDebugTab()
       ) : (
         <div className="grid gap-4">
           {items.map((item) => renderListItem(item))}

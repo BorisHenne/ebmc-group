@@ -117,6 +117,133 @@ export async function GET(request: NextRequest) {
   }
 }
 
+// PUT - Create document or collection
+export async function PUT(request: NextRequest) {
+  const session = await getSession()
+  if (!session) {
+    return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  }
+
+  if (!hasPermission(session.role, 'boondManagerAdmin')) {
+    return NextResponse.json({ error: 'Permission refusee' }, { status: 403 })
+  }
+
+  try {
+    const db = await connectToDatabase()
+    const body = await request.json()
+    const { action, collection, document } = body
+
+    if (!collection) {
+      return NextResponse.json({ error: 'Collection requise' }, { status: 400 })
+    }
+
+    if (action === 'createCollection') {
+      // Create collection with a temp document
+      await db.collection(collection).insertOne({ _tempInit: true, createdAt: new Date() })
+      return NextResponse.json({ success: true, message: `Collection ${collection} creee` })
+    }
+
+    if (action === 'insert' && document) {
+      const result = await db.collection(collection).insertOne({
+        ...document,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      return NextResponse.json({ success: true, insertedId: result.insertedId })
+    }
+
+    return NextResponse.json({ error: 'Action non reconnue' }, { status: 400 })
+  } catch (error) {
+    console.error('Database PUT error:', error)
+    return NextResponse.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Erreur inconnue',
+    }, { status: 500 })
+  }
+}
+
+// PATCH - Update document
+export async function PATCH(request: NextRequest) {
+  const session = await getSession()
+  if (!session) {
+    return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  }
+
+  if (!hasPermission(session.role, 'boondManagerAdmin')) {
+    return NextResponse.json({ error: 'Permission refusee' }, { status: 403 })
+  }
+
+  try {
+    const db = await connectToDatabase()
+    const body = await request.json()
+    const { collection, id, update } = body
+
+    if (!collection || !id || !update) {
+      return NextResponse.json({ error: 'Collection, id et update requis' }, { status: 400 })
+    }
+
+    const { ObjectId } = await import('mongodb')
+    const result = await db.collection(collection).updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { ...update, updatedAt: new Date() } }
+    )
+
+    return NextResponse.json({
+      success: true,
+      matchedCount: result.matchedCount,
+      modifiedCount: result.modifiedCount,
+    })
+  } catch (error) {
+    console.error('Database PATCH error:', error)
+    return NextResponse.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Erreur inconnue',
+    }, { status: 500 })
+  }
+}
+
+// DELETE - Delete document or drop collection
+export async function DELETE(request: NextRequest) {
+  const session = await getSession()
+  if (!session) {
+    return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  }
+
+  if (!hasPermission(session.role, 'boondManagerAdmin')) {
+    return NextResponse.json({ error: 'Permission refusee' }, { status: 403 })
+  }
+
+  try {
+    const db = await connectToDatabase()
+    const body = await request.json()
+    const { collection, id, drop } = body
+
+    if (!collection) {
+      return NextResponse.json({ error: 'Collection requise' }, { status: 400 })
+    }
+
+    if (drop) {
+      await db.collection(collection).drop()
+      return NextResponse.json({ success: true, message: `Collection ${collection} supprimee` })
+    }
+
+    if (!id) {
+      return NextResponse.json({ error: 'ID requis pour supprimer un document' }, { status: 400 })
+    }
+
+    const { ObjectId } = await import('mongodb')
+    const result = await db.collection(collection).deleteOne({ _id: new ObjectId(id) })
+
+    return NextResponse.json({ success: true, deletedCount: result.deletedCount })
+  } catch (error) {
+    console.error('Database DELETE error:', error)
+    return NextResponse.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Erreur inconnue',
+    }, { status: 500 })
+  }
+}
+
 // POST - Export data
 export async function POST(request: NextRequest) {
   const session = await getSession()
