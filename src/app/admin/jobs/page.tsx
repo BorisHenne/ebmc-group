@@ -121,13 +121,61 @@ export default function JobsPage() {
 
   const fetchJobs = async () => {
     try {
+      setError('')
       const res = await fetch('/api/admin/jobs', { credentials: 'include' })
       if (res.ok) {
         const data = await res.json()
-        setJobs(data.jobs || [])
+        // Sanitize jobs data on the client side as a safety measure
+        const sanitizedJobs = (data.jobs || []).map((job: Record<string, unknown>) => {
+          const sanitizeField = (value: unknown): string => {
+            if (value === null || value === undefined) return ''
+            if (typeof value === 'string') return value
+            if (typeof value === 'object' && value !== null) {
+              const obj = value as Record<string, unknown>
+              if ('detail' in obj && typeof obj.detail === 'string') return obj.detail
+              if ('value' in obj && typeof obj.value === 'string') return obj.value
+              if ('label' in obj && typeof obj.label === 'string') return obj.label
+              return JSON.stringify(value)
+            }
+            return String(value)
+          }
+
+          const sanitizeArray = (arr: unknown): string[] => {
+            if (!Array.isArray(arr)) return ['']
+            return arr.map(item => sanitizeField(item))
+          }
+
+          return {
+            ...job,
+            _id: String(job._id || ''),
+            title: sanitizeField(job.title),
+            titleEn: sanitizeField(job.titleEn),
+            location: sanitizeField(job.location),
+            type: sanitizeField(job.type),
+            typeEn: sanitizeField(job.typeEn),
+            category: sanitizeField(job.category),
+            experience: sanitizeField(job.experience),
+            experienceEn: sanitizeField(job.experienceEn),
+            description: sanitizeField(job.description),
+            descriptionEn: sanitizeField(job.descriptionEn),
+            missions: sanitizeArray(job.missions),
+            missionsEn: sanitizeArray(job.missionsEn),
+            requirements: sanitizeArray(job.requirements),
+            requirementsEn: sanitizeArray(job.requirementsEn),
+            active: Boolean(job.active),
+            assignedTo: sanitizeField(job.assignedTo),
+            assignedToName: sanitizeField(job.assignedToName),
+            createdAt: sanitizeField(job.createdAt)
+          } as Job
+        })
+        setJobs(sanitizedJobs)
+      } else {
+        const data = await res.json().catch(() => ({}))
+        setError(data.error || 'Erreur lors du chargement des offres')
       }
     } catch (error) {
       console.error('Error fetching jobs:', error)
+      setError('Erreur de connexion au serveur')
     } finally {
       setLoading(false)
     }
@@ -233,14 +281,34 @@ export default function JobsPage() {
     updateField(field, arr)
   }
 
+  // Helper to safely get string value (handles objects and nulls)
+  const safeString = (value: unknown): string => {
+    if (value === null || value === undefined) return ''
+    if (typeof value === 'string') return value
+    if (typeof value === 'object') {
+      // Handle potential BoondManager objects or MongoDB objects
+      const obj = value as Record<string, unknown>
+      if ('detail' in obj && typeof obj.detail === 'string') return obj.detail
+      if ('value' in obj && typeof obj.value === 'string') return obj.value
+      if ('label' in obj && typeof obj.label === 'string') return obj.label
+      return JSON.stringify(value)
+    }
+    return String(value)
+  }
+
   // Filter jobs
   const filteredJobs = jobs.filter(job => {
     const searchLower = searchTerm.toLowerCase()
+    const titleStr = safeString(job.title)
+    const titleEnStr = safeString(job.titleEn)
+    const locationStr = safeString(job.location)
+    const descriptionStr = safeString(job.description)
+
     const matchesSearch = !searchTerm ||
-      job.title.toLowerCase().includes(searchLower) ||
-      job.titleEn?.toLowerCase().includes(searchLower) ||
-      job.location.toLowerCase().includes(searchLower) ||
-      job.description?.toLowerCase().includes(searchLower)
+      titleStr.toLowerCase().includes(searchLower) ||
+      titleEnStr.toLowerCase().includes(searchLower) ||
+      locationStr.toLowerCase().includes(searchLower) ||
+      descriptionStr.toLowerCase().includes(searchLower)
 
     const matchesCategory = filterCategory === 'all' || job.category === filterCategory
     const matchesStatus = filterStatus === 'all' ||
@@ -333,6 +401,20 @@ export default function JobsPage() {
         </div>
       </div>
 
+      {/* Error Alert */}
+      {error && !showModal && (
+        <div className="mb-6 flex items-center gap-3 p-4 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 rounded-xl text-red-600 dark:text-red-400">
+          <AlertCircle className="w-5 h-5 flex-shrink-0" />
+          <span className="text-sm">{error}</span>
+          <button
+            onClick={() => { setError(''); fetchJobs(); }}
+            className="ml-auto px-3 py-1 text-sm bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-900/50 rounded-lg transition"
+          >
+            Réessayer
+          </button>
+        </div>
+      )}
+
       {/* Jobs Table */}
       <div className="glass-card overflow-hidden">
         {loading ? (
@@ -373,15 +455,15 @@ export default function JobsPage() {
                   >
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-full bg-gradient-to-r ${CATEGORY_COLORS[job.category] || 'from-slate-500 to-slate-600'} flex items-center justify-center`}>
+                        <div className={`w-10 h-10 rounded-full bg-gradient-to-r ${CATEGORY_COLORS[safeString(job.category)] || 'from-slate-500 to-slate-600'} flex items-center justify-center`}>
                           <Briefcase className="w-5 h-5 text-white" />
                         </div>
                         <div>
-                          <span className="font-medium text-gray-900 dark:text-white block">{job.title}</span>
+                          <span className="font-medium text-gray-900 dark:text-white block">{safeString(job.title) || 'Sans titre'}</span>
                           {job.assignedTo && (
                             <span className="text-xs text-purple-600 dark:text-purple-400 flex items-center gap-1 mt-1">
                               <UserCheck className="w-3 h-3" />
-                              {job.assignedToName || 'Assigné'}
+                              {safeString(job.assignedToName) || 'Assigné'}
                             </span>
                           )}
                         </div>
@@ -390,18 +472,18 @@ export default function JobsPage() {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
                         <MapPin className="w-4 h-4 text-gray-400 dark:text-gray-500" />
-                        {job.location}
+                        {safeString(job.location) || '-'}
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r ${TYPE_COLORS[job.type] || 'from-slate-500 to-slate-600'} text-white`}>
+                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r ${TYPE_COLORS[safeString(job.type)] || 'from-slate-500 to-slate-600'} text-white`}>
                         <Clock className="w-3 h-3" />
-                        {job.type}
+                        {safeString(job.type) || '-'}
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getCategoryBadgeClass(job.category)}`}>
-                        {CATEGORY_LABELS[job.category] || job.category}
+                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getCategoryBadgeClass(safeString(job.category))}`}>
+                        {CATEGORY_LABELS[safeString(job.category)] || safeString(job.category) || '-'}
                       </span>
                     </td>
                     <td className="px-6 py-4">
