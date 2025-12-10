@@ -4,14 +4,6 @@
  */
 
 /**
- * List of known document-level keys that should remain as objects
- * All other objects will be converted to strings if they're not plain data objects
- */
-const ALLOWED_OBJECT_KEYS = new Set([
-  // Root document keys that should remain as objects
-])
-
-/**
  * List of keys that should always be string arrays
  */
 const STRING_ARRAY_KEYS = new Set([
