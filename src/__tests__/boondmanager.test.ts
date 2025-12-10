@@ -1093,3 +1093,322 @@ describe('API Endpoint Availability', () => {
     }
   })
 })
+
+// ==================== DOCUMENTS / CV TESTS ====================
+
+describe('Documents & CV API', () => {
+  beforeEach(() => {
+    mockFetch.mockReset()
+  })
+
+  afterEach(() => {
+    vi.clearAllMocks()
+  })
+
+  describe('getResourceResumes', () => {
+    it('should extract documents from resource information endpoint', async () => {
+      const { BoondManagerClient } = await import('@/lib/boondmanager-client')
+      const client = new BoondManagerClient('production')
+
+      const mockResourceInfoResponse = {
+        data: {
+          id: 123,
+          type: 'resource',
+          attributes: {
+            firstName: 'Jean',
+            lastName: 'Dupont',
+          },
+          relationships: {
+            resumes: {
+              data: [
+                { id: 456, type: 'document' },
+                { id: 789, type: 'document' },
+              ]
+            }
+          }
+        },
+        included: [
+          {
+            id: 456,
+            type: 'document',
+            attributes: {
+              name: 'CV_Jean_Dupont.pdf',
+              mimeType: 'application/pdf',
+              size: 150000,
+            }
+          },
+          {
+            id: 789,
+            type: 'document',
+            attributes: {
+              name: 'Certifications.pdf',
+              mimeType: 'application/pdf',
+              size: 80000,
+            }
+          }
+        ]
+      }
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        text: () => Promise.resolve(JSON.stringify(mockResourceInfoResponse)),
+      })
+
+      const documents = await client.getResourceResumes(123)
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining('/resources/123/information'),
+        expect.any(Object)
+      )
+      expect(documents).toHaveLength(2)
+      expect(documents[0].id).toBe(456)
+      expect(documents[0].attributes.name).toBe('CV_Jean_Dupont.pdf')
+      expect(documents[1].id).toBe(789)
+    })
+
+    it('should return empty array when no documents exist', async () => {
+      const { BoondManagerClient } = await import('@/lib/boondmanager-client')
+      const client = new BoondManagerClient('production')
+
+      const mockResourceInfoResponse = {
+        data: {
+          id: 123,
+          type: 'resource',
+          attributes: { firstName: 'Jean', lastName: 'Dupont' },
+        },
+        included: []
+      }
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        text: () => Promise.resolve(JSON.stringify(mockResourceInfoResponse)),
+      })
+
+      const documents = await client.getResourceResumes(123)
+      expect(documents).toHaveLength(0)
+    })
+
+    it('should filter only document types from included', async () => {
+      const { BoondManagerClient } = await import('@/lib/boondmanager-client')
+      const client = new BoondManagerClient('production')
+
+      const mockResponse = {
+        data: { id: 123, type: 'resource', attributes: {} },
+        included: [
+          { id: 1, type: 'document', attributes: { name: 'CV.pdf' } },
+          { id: 2, type: 'manager', attributes: { name: 'Manager Name' } },
+          { id: 3, type: 'document', attributes: { name: 'Lettre.pdf' } },
+        ]
+      }
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        text: () => Promise.resolve(JSON.stringify(mockResponse)),
+      })
+
+      const documents = await client.getResourceResumes(123)
+      expect(documents).toHaveLength(2)
+      expect(documents.every(d => d.type === 'document')).toBe(true)
+    })
+  })
+
+  describe('getCandidateResumes', () => {
+    it('should extract documents from candidate information endpoint', async () => {
+      const { BoondManagerClient } = await import('@/lib/boondmanager-client')
+      const client = new BoondManagerClient('production')
+
+      const mockCandidateInfoResponse = {
+        data: {
+          id: 456,
+          type: 'candidate',
+          attributes: { firstName: 'Marie', lastName: 'Martin' },
+        },
+        included: [
+          {
+            id: 111,
+            type: 'document',
+            attributes: {
+              name: 'CV_Marie_Martin.pdf',
+              mimeType: 'application/pdf',
+            }
+          }
+        ]
+      }
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        text: () => Promise.resolve(JSON.stringify(mockCandidateInfoResponse)),
+      })
+
+      const documents = await client.getCandidateResumes(456)
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining('/candidates/456/information'),
+        expect.any(Object)
+      )
+      expect(documents).toHaveLength(1)
+      expect(documents[0].attributes.name).toBe('CV_Marie_Martin.pdf')
+    })
+  })
+
+  describe('downloadDocument', () => {
+    it('should download document content', async () => {
+      const { BoondManagerClient } = await import('@/lib/boondmanager-client')
+      const client = new BoondManagerClient('production')
+
+      const mockPdfContent = new ArrayBuffer(100)
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        headers: new Headers({
+          'content-type': 'application/pdf',
+          'content-disposition': 'attachment; filename="CV_Test.pdf"',
+        }),
+        arrayBuffer: () => Promise.resolve(mockPdfContent),
+      })
+
+      const result = await client.downloadDocument(789)
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining('/documents/789'),
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            Authorization: expect.stringMatching(/^Basic /),
+          }),
+        })
+      )
+      expect(result.content).toBe(mockPdfContent)
+      expect(result.mimeType).toBe('application/pdf')
+      expect(result.filename).toBe('CV_Test.pdf')
+    })
+
+    it('should handle missing Content-Disposition header', async () => {
+      const { BoondManagerClient } = await import('@/lib/boondmanager-client')
+      const client = new BoondManagerClient('production')
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        headers: new Headers({
+          'content-type': 'application/octet-stream',
+        }),
+        arrayBuffer: () => Promise.resolve(new ArrayBuffer(50)),
+      })
+
+      const result = await client.downloadDocument(999)
+
+      expect(result.filename).toBe('document_999')
+      expect(result.mimeType).toBe('application/octet-stream')
+    })
+
+    it('should throw BoondPermissionError on 403', async () => {
+      const { BoondManagerClient, BoondPermissionError } = await import('@/lib/boondmanager-client')
+      const client = new BoondManagerClient('production')
+
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 403,
+      })
+
+      try {
+        await client.downloadDocument(123)
+        fail('Should have thrown')
+      } catch (error) {
+        expect(error).toBeInstanceOf(BoondPermissionError)
+        if (error instanceof BoondPermissionError) {
+          expect(error.statusCode).toBe(403)
+          expect(error.feature).toBe('DOCUMENTS_ENABLED')
+        }
+      }
+    })
+  })
+
+  describe('getDocument', () => {
+    it('should fetch document metadata', async () => {
+      const { BoondManagerClient } = await import('@/lib/boondmanager-client')
+      const client = new BoondManagerClient('production')
+
+      const mockDocumentResponse = {
+        data: {
+          id: 123,
+          type: 'document',
+          attributes: {
+            name: 'CV.pdf',
+            mimeType: 'application/pdf',
+            size: 150000,
+            creationDate: '2024-01-15',
+          }
+        }
+      }
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        text: () => Promise.resolve(JSON.stringify(mockDocumentResponse)),
+      })
+
+      const result = await client.getDocument(123)
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining('/documents/123/information'),
+        expect.any(Object)
+      )
+      expect(result.data.attributes.name).toBe('CV.pdf')
+    })
+  })
+})
+
+// ==================== INTEGRATION WORKFLOW TESTS ====================
+
+describe('CV Download Workflow', () => {
+  beforeEach(() => {
+    mockFetch.mockReset()
+  })
+
+  it('should support full CV retrieval workflow: list resources -> get resumes -> download', async () => {
+    const { BoondManagerClient } = await import('@/lib/boondmanager-client')
+    const client = new BoondManagerClient('production')
+
+    // Step 1: Get resources
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      text: () => Promise.resolve(JSON.stringify({
+        data: [
+          { id: 1, type: 'resource', attributes: { firstName: 'Jean', lastName: 'Dupont' } },
+          { id: 2, type: 'resource', attributes: { firstName: 'Marie', lastName: 'Martin' } },
+        ],
+        meta: { totals: { rows: 2 } }
+      })),
+    })
+
+    const resources = await client.getResources()
+    expect(resources.data).toHaveLength(2)
+
+    // Step 2: Get resumes for first resource
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      text: () => Promise.resolve(JSON.stringify({
+        data: { id: 1, type: 'resource', attributes: {} },
+        included: [
+          { id: 100, type: 'document', attributes: { name: 'CV_Jean.pdf', mimeType: 'application/pdf' } },
+        ]
+      })),
+    })
+
+    const resumes = await client.getResourceResumes(1)
+    expect(resumes).toHaveLength(1)
+    expect(resumes[0].attributes.name).toBe('CV_Jean.pdf')
+
+    // Step 3: Download the CV
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      headers: new Headers({
+        'content-type': 'application/pdf',
+        'content-disposition': 'attachment; filename="CV_Jean.pdf"',
+      }),
+      arrayBuffer: () => Promise.resolve(new ArrayBuffer(100)),
+    })
+
+    const download = await client.downloadDocument(100)
+    expect(download.filename).toBe('CV_Jean.pdf')
+    expect(download.mimeType).toBe('application/pdf')
+  })
+})

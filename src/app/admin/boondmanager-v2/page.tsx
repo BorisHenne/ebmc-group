@@ -8,7 +8,7 @@ import {
   Phone, Mail, Calendar, Eye, ToggleLeft, ToggleRight,
   Shield, ShieldOff, Download, Upload, Sparkles, AlertTriangle, Info,
   Copy, CheckCircle, XCircle, FileJson, FileSpreadsheet, Trash, ArrowRight,
-  BarChart3, Globe, MapPin, Book, ChevronDown, ChevronUp
+  BarChart3, Globe, MapPin, Book, ChevronDown, ChevronUp, FileText, ExternalLink
 } from 'lucide-react'
 
 // Types
@@ -149,6 +149,12 @@ export default function BoondManagerV2Page() {
   const [formData, setFormData] = useState<Record<string, unknown>>({})
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState<number | null>(null)
+
+  // Documents/CVs
+  const [documents, setDocuments] = useState<Array<{ id: number; attributes: { name: string; mimeType?: string } }>>([])
+  const [loadingDocuments, setLoadingDocuments] = useState(false)
+  const [selectedDocument, setSelectedDocument] = useState<number | null>(null)
+  const [documentError, setDocumentError] = useState<string | null>(null)
 
   // Tabs configuration
   const tabs: { id: TabType; label: string; icon: React.ElementType; color: string; section?: string }[] = [
@@ -349,11 +355,37 @@ export default function BoondManagerV2Page() {
     setShowModal(true)
   }
 
-  const handleView = (item: BaseEntity) => {
+  const handleView = async (item: BaseEntity) => {
     setModalMode('view')
     setSelectedItem(item)
     setFormData({ ...item.attributes })
+    setDocuments([])
+    setSelectedDocument(null)
+    setDocumentError(null)
     setShowModal(true)
+
+    // Fetch documents/CVs for resources and candidates
+    if (activeTab === 'resources' || activeTab === 'candidates') {
+      setLoadingDocuments(true)
+      try {
+        const endpoint = activeTab === 'resources'
+          ? `/api/boondmanager/v2/resources/${item.id}/resumes?env=${environment}`
+          : `/api/boondmanager/v2/candidates/${item.id}/resumes?env=${environment}`
+
+        const res = await fetch(endpoint, { credentials: 'include' })
+        const data = await res.json()
+
+        if (data.success && Array.isArray(data.data)) {
+          setDocuments(data.data)
+        } else {
+          setDocumentError(data.error || 'Erreur lors du chargement des CVs')
+        }
+      } catch (err) {
+        setDocumentError(err instanceof Error ? err.message : 'Erreur inconnue')
+      } finally {
+        setLoadingDocuments(false)
+      }
+    }
   }
 
   const handleDelete = async (id: number) => {
@@ -1631,7 +1663,11 @@ export default function BoondManagerV2Page() {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="glass-card p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto"
+              className={`glass-card p-6 w-full max-h-[90vh] overflow-y-auto ${
+                modalMode === 'view' && (activeTab === 'resources' || activeTab === 'candidates') && selectedDocument
+                  ? 'max-w-5xl'
+                  : 'max-w-lg'
+              }`}
             >
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-bold text-slate-800 dark:text-white">
@@ -1642,8 +1678,119 @@ export default function BoondManagerV2Page() {
                 </button>
               </div>
 
-              <div className="space-y-4">
-                {renderFormFields()}
+              <div className={`${selectedDocument ? 'flex gap-6' : ''}`}>
+                {/* Form fields */}
+                <div className={`space-y-4 ${selectedDocument ? 'w-1/3 flex-shrink-0' : 'w-full'}`}>
+                  {renderFormFields()}
+
+                  {/* Documents/CVs section for resources and candidates in view mode */}
+                  {modalMode === 'view' && (activeTab === 'resources' || activeTab === 'candidates') && (
+                    <div className="mt-6 pt-6 border-t border-slate-200/60 dark:border-slate-700/60">
+                      <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3 flex items-center gap-2">
+                        <FileText className="w-4 h-4" />
+                        CV / Documents ({documents.length})
+                      </h3>
+
+                      {loadingDocuments ? (
+                        <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Chargement des documents...
+                        </div>
+                      ) : documentError ? (
+                        <div className="text-sm text-red-500 dark:text-red-400 flex items-center gap-2">
+                          <AlertCircle className="w-4 h-4" />
+                          {documentError}
+                        </div>
+                      ) : documents.length === 0 ? (
+                        <p className="text-sm text-slate-500 dark:text-slate-400">Aucun document trouve</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {documents.map((doc) => (
+                            <div
+                              key={doc.id}
+                              className={`flex items-center justify-between p-3 rounded-lg border transition-all cursor-pointer ${
+                                selectedDocument === doc.id
+                                  ? 'bg-ebmc-turquoise/10 border-ebmc-turquoise'
+                                  : 'bg-white/50 dark:bg-slate-800/50 border-slate-200/60 dark:border-slate-700/60 hover:border-ebmc-turquoise/50'
+                              }`}
+                              onClick={() => setSelectedDocument(selectedDocument === doc.id ? null : doc.id)}
+                            >
+                              <div className="flex items-center gap-3">
+                                <div className={`p-2 rounded-lg ${
+                                  doc.attributes.mimeType?.includes('pdf')
+                                    ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400'
+                                    : 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                                }`}>
+                                  <FileText className="w-4 h-4" />
+                                </div>
+                                <span className="text-sm font-medium text-slate-700 dark:text-slate-200 truncate max-w-[180px]">
+                                  {doc.attributes.name}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <a
+                                  href={`/api/boondmanager/v2/documents/${doc.id}?env=${environment}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition"
+                                  title="Telecharger"
+                                >
+                                  <Download className="w-3.5 h-3.5 text-slate-600 dark:text-slate-300" />
+                                </a>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    setSelectedDocument(selectedDocument === doc.id ? null : doc.id)
+                                  }}
+                                  className="p-1.5 rounded-lg bg-ebmc-turquoise/10 hover:bg-ebmc-turquoise/20 transition"
+                                  title="Apercu"
+                                >
+                                  <Eye className="w-3.5 h-3.5 text-ebmc-turquoise" />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* PDF Viewer */}
+                {selectedDocument && (
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                        Apercu du document
+                      </h3>
+                      <div className="flex items-center gap-2">
+                        <a
+                          href={`/api/boondmanager/v2/documents/${selectedDocument}?env=${environment}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                          Ouvrir
+                        </a>
+                        <button
+                          onClick={() => setSelectedDocument(null)}
+                          className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition"
+                        >
+                          <X className="w-4 h-4 text-slate-600 dark:text-slate-300" />
+                        </button>
+                      </div>
+                    </div>
+                    <div className="bg-slate-100 dark:bg-slate-800 rounded-xl overflow-hidden" style={{ height: '600px' }}>
+                      <iframe
+                        src={`/api/boondmanager/v2/documents/${selectedDocument}?env=${environment}`}
+                        className="w-full h-full"
+                        title="Document preview"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
               {modalMode !== 'view' && (

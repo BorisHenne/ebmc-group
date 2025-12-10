@@ -1282,6 +1282,91 @@ export class BoondManagerClient {
 
   // ==================== DOCUMENTS ====================
 
+  /**
+   * Download a document by ID - returns binary content
+   * Based on Python script: GET /documents/{id}
+   */
+  async downloadDocument(documentId: number): Promise<{ content: ArrayBuffer; filename: string; mimeType: string }> {
+    const response = await fetch(`${this.baseUrl}/documents/${documentId}`, {
+      headers: {
+        'Authorization': this.authHeader,
+      },
+    })
+
+    if (!response.ok) {
+      if (response.status === 403) {
+        throw new BoondPermissionError(
+          `Access denied to document ${documentId}`,
+          403,
+          `/documents/${documentId}`,
+          'DOCUMENTS_ENABLED'
+        )
+      }
+      throw new Error(`BoondManager API error: ${response.status}`)
+    }
+
+    // Get filename from Content-Disposition header or default
+    const contentDisposition = response.headers.get('content-disposition')
+    let filename = `document_${documentId}`
+    if (contentDisposition) {
+      const match = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/)
+      if (match) {
+        filename = match[1].replace(/['"]/g, '')
+      }
+    }
+
+    const mimeType = response.headers.get('content-type') || 'application/octet-stream'
+    const content = await response.arrayBuffer()
+
+    return { content, filename, mimeType }
+  }
+
+  /**
+   * Get document metadata (without downloading content)
+   */
+  async getDocument(documentId: number): Promise<BoondApiResponse<BoondDocument>> {
+    return this.fetch(`/documents/${documentId}/information`)
+  }
+
+  /**
+   * Get resumes/CVs for a resource
+   * Based on Python script structure: GET /resources/{id}/information
+   * Returns documents from the 'included' array where type='document' and linked to resumes
+   */
+  async getResourceResumes(resourceId: number): Promise<BoondDocument[]> {
+    const response = await this.fetch<BoondApiResponse<BoondResource>>(`/resources/${resourceId}/information`)
+
+    // Extract documents from included array (like Python script)
+    const documents: BoondDocument[] = []
+    if (response.included && Array.isArray(response.included)) {
+      for (const item of response.included) {
+        if (item.type === 'document') {
+          documents.push(item as unknown as BoondDocument)
+        }
+      }
+    }
+
+    return documents
+  }
+
+  /**
+   * Get resumes/CVs for a candidate
+   */
+  async getCandidateResumes(candidateId: number): Promise<BoondDocument[]> {
+    const response = await this.fetch<BoondApiResponse<BoondCandidate>>(`/candidates/${candidateId}/information`)
+
+    const documents: BoondDocument[] = []
+    if (response.included && Array.isArray(response.included)) {
+      for (const item of response.included) {
+        if (item.type === 'document') {
+          documents.push(item as unknown as BoondDocument)
+        }
+      }
+    }
+
+    return documents
+  }
+
   async uploadDocument(file: ArrayBuffer | Blob, filename: string, parentId: number, parentType: 'candidate' | 'resource' | 'resourceResume'): Promise<BoondApiResponse<BoondDocument>> {
     this.assertCanWrite('uploadDocument')
 
