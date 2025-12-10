@@ -541,11 +541,18 @@ export class BoondManagerClient {
   private async generateJWT(): Promise<string> {
     const secret = new TextEncoder().encode(this.credentials.clientKey)
 
+    // Decode hex tokens to UTF-8 strings as BoondManager expects
+    const decodedClientToken = Buffer.from(this.credentials.clientToken, 'hex').toString('utf-8')
+    const decodedUserToken = Buffer.from(this.credentials.userToken, 'hex').toString('utf-8')
+
+    console.log(`[BoondManager] JWT clientToken (decoded): ${decodedClientToken}`)
+    console.log(`[BoondManager] JWT userToken (decoded): ${decodedUserToken}`)
+
     const jwt = await new SignJWT({
-      // clientToken identifies the application (required for X-Jwt-App-BoondManager)
-      clientToken: this.credentials.clientToken,
-      // userToken identifies the user/space (LMGC or LMGC-SANDBOX)
-      userToken: this.credentials.userToken,
+      // clientToken identifies the application (decoded from hex)
+      clientToken: decodedClientToken,
+      // userToken identifies the user/space (decoded from hex)
+      userToken: decodedUserToken,
     })
       .setProtectedHeader({ alg: 'HS256' })
       .setIssuedAt()

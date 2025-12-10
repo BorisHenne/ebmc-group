@@ -56,11 +56,15 @@ export async function GET(request: NextRequest) {
     const creds = BOOND_CREDENTIALS[env]
     const secret = new TextEncoder().encode(creds.clientKey)
 
+    // Decode hex tokens to UTF-8 strings as BoondManager expects
+    const decodedClientToken = Buffer.from(creds.clientToken, 'hex').toString('utf-8')
+    const decodedUserToken = Buffer.from(creds.userToken, 'hex').toString('utf-8')
+
     const jwt = await new SignJWT({
-      // clientToken identifies the application (required)
-      clientToken: creds.clientToken,
-      // userToken identifies the user/space
-      userToken: creds.userToken,
+      // clientToken identifies the application (decoded from hex)
+      clientToken: decodedClientToken,
+      // userToken identifies the user/space (decoded from hex)
+      userToken: decodedUserToken,
     })
       .setProtectedHeader({ alg: 'HS256' })
       .setIssuedAt()
