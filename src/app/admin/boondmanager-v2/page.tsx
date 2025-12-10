@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Users, Briefcase, Target, Building2, UserCircle, FolderKanban, Zap,
@@ -245,6 +246,30 @@ export default function BoondManagerV2Page() {
 
   const canWrite = environment === 'sandbox'
 
+  // Fetch dictionary
+  const fetchDictionary = useCallback(async (refresh = false) => {
+    setDictionaryLoading(true)
+    setError(null)
+
+    try {
+      const res = await fetch(`/api/boondmanager/v2/dictionary?env=${environment}${refresh ? '&refresh=true' : ''}&_t=${Date.now()}`, {
+        credentials: 'include',
+        cache: 'no-store'
+      })
+      const data = await res.json()
+
+      if (data.success) {
+        setDictionary(data.data?.data?.attributes || null)
+      } else {
+        throw new Error(data.error)
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur de chargement du dictionnaire')
+    } finally {
+      setDictionaryLoading(false)
+    }
+  }, [environment])
+
   // Fetch data
   const fetchData = useCallback(async () => {
     setLoading(true)
@@ -292,7 +317,7 @@ export default function BoondManagerV2Page() {
     } finally {
       setLoading(false)
     }
-  }, [activeTab, environment, search])
+  }, [activeTab, environment, search, fetchDictionary])
 
   useEffect(() => {
     fetchData()
@@ -524,30 +549,6 @@ export default function BoondManagerV2Page() {
     } finally {
       setImporting(false)
       setImportProgress(null)
-    }
-  }
-
-  // Fetch dictionary
-  const fetchDictionary = async (refresh = false) => {
-    setDictionaryLoading(true)
-    setError(null)
-
-    try {
-      const res = await fetch(`/api/boondmanager/v2/dictionary?env=${environment}${refresh ? '&refresh=true' : ''}&_t=${Date.now()}`, {
-        credentials: 'include',
-        cache: 'no-store'
-      })
-      const data = await res.json()
-
-      if (data.success) {
-        setDictionary(data.data?.data?.attributes || null)
-      } else {
-        throw new Error(data.error)
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur de chargement du dictionnaire')
-    } finally {
-      setDictionaryLoading(false)
     }
   }
 
@@ -2833,11 +2834,15 @@ export default function BoondManagerV2Page() {
                         {/* Images - Direct display */}
                         {isImage && (
                           <div className="w-full h-full flex items-center justify-center p-4 bg-slate-900/5 dark:bg-slate-900/50">
-                            <img
-                              src={docUrl}
-                              alt={fileName}
-                              className="max-w-full max-h-full object-contain rounded-lg shadow-lg"
-                            />
+                            <div className="relative max-w-full max-h-full w-full h-full">
+                              <Image
+                                src={docUrl}
+                                alt={fileName}
+                                fill
+                                className="object-contain rounded-lg shadow-lg"
+                                unoptimized
+                              />
+                            </div>
                           </div>
                         )}
 
