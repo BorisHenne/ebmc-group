@@ -13,6 +13,7 @@ import {
   BoondResource,
   BoondCandidate,
   BoondOpportunity,
+  BoondAction,
 } from './boondmanager-client'
 import { RoleType } from './roles'
 import {
@@ -115,6 +116,109 @@ export interface SiteCandidate {
   notes?: string
   createdAt: Date
   updatedAt: Date
+}
+
+// ==================== RECRUITMENT STATE FROM ACTIONS ====================
+
+/**
+ * Determine recruitment pipeline state from candidate's actions
+ *
+ * This function analyzes the actions associated with a candidate and determines
+ * their position in the recruitment pipeline. It can use either:
+ * - Default action type IDs (fallback)
+ * - Action type labels from the BoondManager dictionary (more accurate)
+ *
+ * BoondManager ACTION_TYPES (default mapping):
+ * 1: Positionnement
+ * 2: Entretien client
+ * 3: Entretien interne
+ * 4: Proposition
+ * 5: Démarrage (hired!)
+ * 6: Appel
+ * 7: Email
+ * 8: Réunion
+ * 9: Autre
+ *
+ * Our RECRUITMENT_STATES:
+ * 0: Nouveau
+ * 1: A qualifier
+ * 2: Qualifié
+ * 3: En cours
+ * 4: Entretien
+ * 5: Proposition
+ * 6: Embauché
+ * 7: Refusé
+ * 8: Archivé
+ */
+export function determineRecruitmentStateFromActions(
+  actions: BoondAction[],
+  candidateState?: number,
+  actionTypesDict?: Map<number, string>
+): { state: number; stateLabel: string; matchedAction?: string } {
+  // Default: Nouveau
+  if (!actions || actions.length === 0) {
+    return { state: 0, stateLabel: 'Nouveau' }
+  }
+
+  // Sort by date (most recent first)
+  const sortedActions = [...actions].sort((a, b) => {
+    const dateA = new Date(a.attributes.startDate || a.attributes.creationDate || '').getTime()
+    const dateB = new Date(b.attributes.startDate || b.attributes.creationDate || '').getTime()
+    return dateB - dateA
+  })
+
+  // Find the most significant action type
+  // We check both by ID and by label (if dictionary is provided) for robustness
+  const actionTypes = sortedActions.map(a => a.attributes.typeOf)
+  const actionLabels = actionTypesDict
+    ? sortedActions.map(a => actionTypesDict.get(a.attributes.typeOf)?.toLowerCase() || '')
+    : []
+
+  // Helper to check if action type matches by ID or label
+  const hasAction = (ids: number[], labelPatterns: string[]): boolean => {
+    // Check by ID first
+    if (ids.some(id => actionTypes.includes(id))) return true
+    // Then check by label pattern (case insensitive)
+    if (actionLabels.length > 0) {
+      return labelPatterns.some(pattern =>
+        actionLabels.some(label => label.includes(pattern.toLowerCase()))
+      )
+    }
+    return false
+  }
+
+  // Check for "Démarrage" = Embauché
+  if (hasAction([5], ['démarrage', 'demarrage', 'start', 'embauche', 'hired'])) {
+    return { state: 6, stateLabel: 'Embauché', matchedAction: 'Démarrage' }
+  }
+
+  // Check for "Proposition" = Proposition
+  if (hasAction([4], ['proposition', 'offre', 'offer'])) {
+    return { state: 5, stateLabel: 'Proposition', matchedAction: 'Proposition' }
+  }
+
+  // Check for "Entretien client/interne" = Entretien
+  if (hasAction([2, 3], ['entretien', 'interview'])) {
+    return { state: 4, stateLabel: 'Entretien', matchedAction: 'Entretien' }
+  }
+
+  // Check for "Positionnement" = En cours
+  if (hasAction([1], ['positionnement', 'positioning', 'position'])) {
+    return { state: 3, stateLabel: 'En cours', matchedAction: 'Positionnement' }
+  }
+
+  // Check for "Appel/Email/Réunion" = A qualifier
+  if (hasAction([6, 7, 8], ['appel', 'call', 'email', 'mail', 'réunion', 'reunion', 'meeting'])) {
+    return { state: 1, stateLabel: 'A qualifier', matchedAction: 'Contact' }
+  }
+
+  // Has some actions but nothing specific = Qualifié (at least they're being processed)
+  if (sortedActions.length > 0) {
+    return { state: 2, stateLabel: 'Qualifié', matchedAction: 'Autre action' }
+  }
+
+  // Default
+  return { state: 0, stateLabel: 'Nouveau' }
 }
 
 // ==================== HELPER FUNCTIONS ====================
@@ -276,16 +380,31 @@ function mapStateLabelToState(stateLabel: string | undefined, defaultState: numb
 
 /**
  * Map BoondManager Candidate to Site Candidate
+ * @param candidate The candidate from BoondManager
+ * @param actions Optional array of actions associated with this candidate (used to determine recruitment state)
  */
-export function mapCandidateToSiteCandidate(candidate: BoondCandidate): Partial<SiteCandidate> {
+export function mapCandidateToSiteCandidate(
+  candidate: BoondCandidate,
+  actions?: BoondAction[]
+): Partial<SiteCandidate> {
   const attrs = candidate.attributes
-  const boondState = attrs.state ?? 0
-  const boondStateLabel = safeString(attrs.stateLabel)
 
-  // Use stateLabel to determine the correct state if available
-  // This ensures we map BoondManager's states correctly to our pipeline
-  const state = mapStateLabelToState(boondStateLabel, boondState)
-  const stateLabel = boondStateLabel || getCandidateStateLabelSync(state)
+  // Determine recruitment state from actions (if provided) or use fallback
+  let state: number
+  let stateLabel: string
+
+  if (actions && actions.length > 0) {
+    // Use actions to determine the recruitment pipeline state
+    const recruitmentState = determineRecruitmentStateFromActions(actions, attrs.state)
+    state = recruitmentState.state
+    stateLabel = recruitmentState.stateLabel
+  } else {
+    // Fallback: try to use stateLabel if available
+    const boondState = attrs.state ?? 0
+    const boondStateLabel = safeString(attrs.stateLabel)
+    state = mapStateLabelToState(boondStateLabel, boondState)
+    stateLabel = boondStateLabel || getCandidateStateLabelSync(state)
+  }
 
   // Extract skills from custom fields if available
   const rawSkills = (attrs as Record<string, unknown>).skills as string[] | string | undefined
@@ -489,8 +608,13 @@ export class BoondImportService {
   /**
    * Import Candidates to Candidates collection
    * Syncs the recruitment pipeline from BoondManager
+   * @param candidates Array of candidates from BoondManager
+   * @param actionsByCandidate Optional map of candidateId → actions (used to determine recruitment state)
    */
-  async importCandidates(candidates: BoondCandidate[]): Promise<ImportResult> {
+  async importCandidates(
+    candidates: BoondCandidate[],
+    actionsByCandidate?: Map<number, BoondAction[]>
+  ): Promise<ImportResult> {
     const result: ImportResult = {
       entity: 'candidates → candidates',
       total: candidates.length,
@@ -505,7 +629,9 @@ export class BoondImportService {
 
     for (const candidate of candidates) {
       try {
-        const candidateData = mapCandidateToSiteCandidate(candidate)
+        // Get actions for this candidate (if available)
+        const actions = actionsByCandidate?.get(candidate.id)
+        const candidateData = mapCandidateToSiteCandidate(candidate, actions)
 
         // Check if already exists by boondManagerId
         const existing = await collection.findOne({ boondManagerId: candidate.id })
@@ -589,7 +715,10 @@ export class BoondImportService {
     resources: BoondResource[],
     candidates: BoondCandidate[],
     opportunities: BoondOpportunity[],
-    options: { createUsersFromResources?: boolean } = {}
+    options: {
+      createUsersFromResources?: boolean
+      actionsByCandidate?: Map<number, BoondAction[]>
+    } = {}
   ): Promise<ImportSummary> {
     const startedAt = new Date()
     const results: ImportResult[] = []
@@ -608,7 +737,7 @@ export class BoondImportService {
 
     // Import candidates to candidates collection
     if (candidates.length > 0) {
-      const candidateResult = await this.importCandidates(candidates)
+      const candidateResult = await this.importCandidates(candidates, options.actionsByCandidate)
       results.push(candidateResult)
     }
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import {
   Database,
@@ -135,17 +135,7 @@ export default function DemoDataPage() {
   const [editingConsultant, setEditingConsultant] = useState<Partial<Consultant> | null>(null)
   const [saving, setSaving] = useState(false)
 
-  useEffect(() => {
-    fetchAll()
-  }, [])
-
-  const fetchAll = async () => {
-    setLoading(true)
-    await Promise.all([fetchStatus(), fetchJobs(), fetchConsultants()])
-    setLoading(false)
-  }
-
-  const fetchStatus = async () => {
+  const fetchStatus = useCallback(async () => {
     try {
       const res = await fetch('/api/admin/demo-data', { credentials: 'include' })
       if (res.ok) {
@@ -155,9 +145,9 @@ export default function DemoDataPage() {
     } catch (error) {
       console.error('Error fetching status:', error)
     }
-  }
+  }, [])
 
-  const fetchJobs = async () => {
+  const fetchJobs = useCallback(async () => {
     try {
       const res = await fetch('/api/admin/jobs', { credentials: 'include' })
       if (res.ok) {
@@ -167,9 +157,9 @@ export default function DemoDataPage() {
     } catch (error) {
       console.error('Error fetching jobs:', error)
     }
-  }
+  }, [])
 
-  const fetchConsultants = async () => {
+  const fetchConsultants = useCallback(async () => {
     try {
       const res = await fetch('/api/admin/consultants', { credentials: 'include' })
       if (res.ok) {
@@ -179,7 +169,17 @@ export default function DemoDataPage() {
     } catch (error) {
       console.error('Error fetching consultants:', error)
     }
-  }
+  }, [])
+
+  const fetchAll = useCallback(async () => {
+    setLoading(true)
+    await Promise.all([fetchStatus(), fetchJobs(), fetchConsultants()])
+    setLoading(false)
+  }, [fetchStatus, fetchJobs, fetchConsultants])
+
+  useEffect(() => {
+    fetchAll()
+  }, [fetchAll])
 
   const performAction = async (action: string, options: Record<string, unknown> = {}) => {
     setActionLoading(action)
