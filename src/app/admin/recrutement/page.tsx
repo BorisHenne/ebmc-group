@@ -188,13 +188,31 @@ export default function RecrutementPage() {
       const types: CandidateType[] = data.types || []
       setCandidateTypes(types)
 
-      // If we have types from dictionary, use them for columns
-      // Otherwise fall back to organizing by typeOf values present in candidates
-      let boardColumns: KanbanColumn[]
+      // Build board columns
+      let boardColumns: KanbanColumn[] = []
+
+      // First, create column for unassigned candidates (no typeOf)
+      const unassignedCandidates = candidates.filter((c: SiteCandidate) => c.typeOf === undefined || c.typeOf === null)
+      if (unassignedCandidates.length > 0) {
+        const unassignedColorClasses = {
+          lightBg: 'bg-slate-50',
+          darkBg: 'dark:bg-slate-800/50',
+          lightBorder: 'border-slate-300',
+          darkBorder: 'dark:border-slate-600',
+          headerBg: 'from-slate-100 to-slate-50 dark:from-slate-700 dark:to-slate-800'
+        }
+        boardColumns.push({
+          id: -1,  // Special ID for unassigned
+          name: 'Non attribue',
+          color: '#64748b',
+          ...unassignedColorClasses,
+          candidates: unassignedCandidates
+        })
+      }
 
       if (types.length > 0) {
         // Use types from BoondManager dictionary as columns
-        boardColumns = types.map((type, index) => {
+        const typeColumns = types.map((type, index) => {
           const colorClasses = getColorClasses(type.color, index)
           return {
             id: type.id,
@@ -204,47 +222,31 @@ export default function RecrutementPage() {
             candidates: candidates.filter((c: SiteCandidate) => c.typeOf === type.id)
           }
         })
-
-        // Add a column for candidates without typeOf (undefined/null)
-        const unassignedCandidates = candidates.filter((c: SiteCandidate) => c.typeOf === undefined || c.typeOf === null)
-        if (unassignedCandidates.length > 0) {
-          const unassignedColorClasses = {
-            lightBg: 'bg-slate-50',
-            darkBg: 'dark:bg-slate-800/50',
-            lightBorder: 'border-slate-300',
-            darkBorder: 'dark:border-slate-600',
-            headerBg: 'from-slate-100 to-slate-50 dark:from-slate-700 dark:to-slate-800'
-          }
-          boardColumns.unshift({
-            id: -1,  // Special ID for unassigned
-            name: 'Non attribue',
-            color: '#64748b',
-            ...unassignedColorClasses,
-            candidates: unassignedCandidates
-          })
-        }
-      } else {
+        boardColumns = [...boardColumns, ...typeColumns]
+      } else if (candidates.length > 0) {
         // Fallback: collect unique typeOf values from candidates and create columns
         const typeOfValues = new Map<number, { count: number; label: string }>()
         candidates.forEach((c: SiteCandidate) => {
-          const typeOf = c.typeOf ?? -1  // -1 for undefined
-          const current = typeOfValues.get(typeOf) || { count: 0, label: c.typeOfLabel || `Type ${typeOf}` }
-          current.count++
-          typeOfValues.set(typeOf, current)
+          if (c.typeOf !== undefined && c.typeOf !== null) {
+            const current = typeOfValues.get(c.typeOf) || { count: 0, label: c.typeOfLabel || `Type ${c.typeOf}` }
+            current.count++
+            typeOfValues.set(c.typeOf, current)
+          }
         })
 
-        boardColumns = Array.from(typeOfValues.entries())
+        const typeColumns = Array.from(typeOfValues.entries())
           .sort(([a], [b]) => a - b)
           .map(([typeOf, info], index) => {
             const colorClasses = getColorClasses(undefined, index)
             return {
               id: typeOf,
-              name: typeOf === -1 ? 'Non attribue' : info.label,
+              name: info.label,
               color: DEFAULT_COLORS[index % DEFAULT_COLORS.length],
               ...colorClasses,
-              candidates: candidates.filter((c: SiteCandidate) => (c.typeOf ?? -1) === typeOf)
+              candidates: candidates.filter((c: SiteCandidate) => c.typeOf === typeOf)
             }
           })
+        boardColumns = [...boardColumns, ...typeColumns]
       }
 
       setColumns(boardColumns)
@@ -406,11 +408,18 @@ export default function RecrutementPage() {
   // Get total candidates count
   const totalCandidates = columns.reduce((sum: number, col: KanbanColumn) => sum + col.candidates.length, 0)
 
-  // Filter columns - show all columns (dynamic from Boond dictionary)
-  // The "showArchived" toggle now shows/hides the "Non attribue" column (id=-1)
-  const visibleColumns = showArchived
-    ? columns
-    : columns.filter((col: KanbanColumn) => col.id !== -1) // Hide "Non attribue" column by default
+  // Check if there are unassigned candidates (no typeOf)
+  const unassignedColumn = columns.find((col: KanbanColumn) => col.id === -1)
+  const hasUnassignedCandidates = unassignedColumn && unassignedColumn.candidates.length > 0
+
+  // Filter columns - show "Non attribué" column if it has candidates OR if showArchived is true
+  const visibleColumns = columns.filter((col: KanbanColumn) => {
+    if (col.id === -1) {
+      // Show "Non attribué" column if it has candidates or showArchived is enabled
+      return hasUnassignedCandidates || showArchived
+    }
+    return true  // Always show other columns
+  })
 
   if (loading) {
     return (
