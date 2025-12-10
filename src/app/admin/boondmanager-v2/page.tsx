@@ -141,6 +141,11 @@ export default function BoondManagerV2Page() {
 
   // Operations
   const [syncing, setSyncing] = useState(false)
+  const [syncProgress, setSyncProgress] = useState<{
+    percentage: number
+    currentAction: string
+    steps: Array<{ name: string; status: 'pending' | 'in_progress' | 'completed' | 'error' }>
+  } | null>(null)
   const [analyzing, setAnalyzing] = useState(false)
   const [exporting, setExporting] = useState(false)
 
@@ -160,6 +165,11 @@ export default function BoondManagerV2Page() {
 
   // Import
   const [importing, setImporting] = useState(false)
+  const [importProgress, setImportProgress] = useState<{
+    percentage: number
+    currentAction: string
+    steps: Array<{ name: string; status: 'pending' | 'in_progress' | 'completed' | 'error' }>
+  } | null>(null)
   const [importPreview, setImportPreview] = useState<{
     consultants: { new: number; existing: number }
     users: { new: number; existing: number; skipped: number }
@@ -333,31 +343,99 @@ export default function BoondManagerV2Page() {
     setImportPreview(null)
     setImportResult(null)
 
+    const steps = [
+      { name: 'Connexion à BoondManager Production', status: 'pending' as const },
+      { name: 'Récupération des consultants', status: 'pending' as const },
+      { name: 'Récupération des candidats', status: 'pending' as const },
+      { name: 'Récupération des opportunités', status: 'pending' as const },
+      { name: 'Analyse des données', status: 'pending' as const },
+    ]
+    setImportProgress({ percentage: 0, currentAction: 'Initialisation...', steps })
+
     try {
+      // Step 1: Connection
+      steps[0].status = 'in_progress'
+      setImportProgress({ percentage: 10, currentAction: 'Connexion à BoondManager Production...', steps: [...steps] })
+      await new Promise(r => setTimeout(r, 300))
+      steps[0].status = 'completed'
+
+      // Step 2: Fetching resources
+      steps[1].status = 'in_progress'
+      setImportProgress({ percentage: 25, currentAction: 'Récupération des consultants...', steps: [...steps] })
+      await new Promise(r => setTimeout(r, 200))
+
+      // Step 3: Fetching candidates
+      steps[1].status = 'completed'
+      steps[2].status = 'in_progress'
+      setImportProgress({ percentage: 45, currentAction: 'Récupération des candidats...', steps: [...steps] })
+      await new Promise(r => setTimeout(r, 200))
+
+      // Step 4: Fetching opportunities
+      steps[2].status = 'completed'
+      steps[3].status = 'in_progress'
+      setImportProgress({ percentage: 65, currentAction: 'Récupération des opportunités...', steps: [...steps] })
+
       // Always import from production
       const res = await fetch('/api/boondmanager/v2/import?env=production', { credentials: 'include' })
       const data = await res.json()
 
+      // Step 5: Analysis
+      steps[3].status = 'completed'
+      steps[4].status = 'in_progress'
+      setImportProgress({ percentage: 85, currentAction: 'Analyse des données...', steps: [...steps] })
+      await new Promise(r => setTimeout(r, 300))
+
       if (data.success) {
+        steps[4].status = 'completed'
+        setImportProgress({ percentage: 100, currentAction: 'Aperçu prêt!', steps: [...steps] })
+        await new Promise(r => setTimeout(r, 500))
         setImportPreview(data.preview)
       } else {
+        steps[4].status = 'error'
         throw new Error(data.error)
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur de preview')
     } finally {
       setImporting(false)
+      setImportProgress(null)
     }
   }
 
   // Execute import to site - ALWAYS from production
   const handleExecuteImport = async (entities: string[], options: { createAllCandidatesAsUsers?: boolean } = {}) => {
-    if (!confirm('Cette operation va importer les donnees de BoondManager PRODUCTION vers les collections du site. Continuer ?')) return
+    if (!confirm('Cette opération va importer les données de BoondManager PRODUCTION vers les collections du site. Continuer ?')) return
 
     setImporting(true)
     setError(null)
 
+    const steps = [
+      { name: 'Connexion à BoondManager Production', status: 'pending' as const },
+      { name: 'Récupération des données', status: 'pending' as const },
+      { name: 'Import des consultants', status: 'pending' as const },
+      { name: 'Import des candidats', status: 'pending' as const },
+      { name: 'Import des opportunités', status: 'pending' as const },
+      { name: 'Finalisation', status: 'pending' as const },
+    ]
+    setImportProgress({ percentage: 0, currentAction: 'Démarrage de l\'import...', steps })
+
     try {
+      // Step 1: Connection
+      steps[0].status = 'in_progress'
+      setImportProgress({ percentage: 5, currentAction: 'Connexion à BoondManager Production...', steps: [...steps] })
+      await new Promise(r => setTimeout(r, 300))
+      steps[0].status = 'completed'
+
+      // Step 2: Fetching data
+      steps[1].status = 'in_progress'
+      setImportProgress({ percentage: 15, currentAction: 'Récupération des données...', steps: [...steps] })
+      await new Promise(r => setTimeout(r, 500))
+      steps[1].status = 'completed'
+
+      // Step 3: Import consultants
+      steps[2].status = 'in_progress'
+      setImportProgress({ percentage: 30, currentAction: 'Import des consultants...', steps: [...steps] })
+
       // Always import from production
       const res = await fetch('/api/boondmanager/v2/import?env=production', {
         method: 'POST',
@@ -368,18 +446,40 @@ export default function BoondManagerV2Page() {
           options
         })
       })
+
+      // Simulate progress during import
+      steps[2].status = 'completed'
+      steps[3].status = 'in_progress'
+      setImportProgress({ percentage: 50, currentAction: 'Import des candidats...', steps: [...steps] })
+      await new Promise(r => setTimeout(r, 300))
+
+      steps[3].status = 'completed'
+      steps[4].status = 'in_progress'
+      setImportProgress({ percentage: 70, currentAction: 'Import des opportunités...', steps: [...steps] })
+      await new Promise(r => setTimeout(r, 300))
+
       const data = await res.json()
 
+      steps[4].status = 'completed'
+      steps[5].status = 'in_progress'
+      setImportProgress({ percentage: 90, currentAction: 'Finalisation...', steps: [...steps] })
+      await new Promise(r => setTimeout(r, 300))
+
       if (data.success) {
+        steps[5].status = 'completed'
+        setImportProgress({ percentage: 100, currentAction: 'Import terminé avec succès!', steps: [...steps] })
+        await new Promise(r => setTimeout(r, 800))
         setImportResult(data.result)
         setImportPreview(null)
       } else {
+        steps[5].status = 'error'
         throw new Error(data.error)
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur d\'import')
     } finally {
       setImporting(false)
+      setImportProgress(null)
     }
   }
 
@@ -1943,6 +2043,178 @@ export default function BoondManagerV2Page() {
 
   return (
     <div className="space-y-6">
+      {/* Loading Overlay for Import/Sync Operations */}
+      <AnimatePresence>
+        {(importing && importProgress) && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="w-full max-w-lg mx-4 p-8 bg-white dark:bg-slate-800 rounded-2xl shadow-2xl"
+            >
+              {/* Header */}
+              <div className="flex items-center gap-4 mb-6">
+                <div className="p-3 rounded-xl bg-gradient-to-r from-ebmc-turquoise to-cyan-500">
+                  <DatabaseBackup className="w-8 h-8 text-white animate-pulse" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-slate-800 dark:text-white">Import en cours</h3>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">Veuillez patienter...</p>
+                </div>
+              </div>
+
+              {/* Progress bar */}
+              <div className="mb-6">
+                <div className="flex justify-between text-sm mb-2">
+                  <span className="text-slate-600 dark:text-slate-300 font-medium">{importProgress.currentAction}</span>
+                  <span className="text-ebmc-turquoise font-bold">{importProgress.percentage}%</span>
+                </div>
+                <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${importProgress.percentage}%` }}
+                    transition={{ duration: 0.3 }}
+                    className="h-full bg-gradient-to-r from-ebmc-turquoise to-cyan-500 rounded-full"
+                  />
+                </div>
+              </div>
+
+              {/* Steps */}
+              <div className="space-y-3">
+                {importProgress.steps.map((step, idx) => (
+                  <div key={idx} className="flex items-center gap-3">
+                    {step.status === 'completed' && (
+                      <div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center">
+                        <Check className="w-4 h-4 text-white" />
+                      </div>
+                    )}
+                    {step.status === 'in_progress' && (
+                      <div className="w-6 h-6 rounded-full bg-ebmc-turquoise flex items-center justify-center">
+                        <Loader2 className="w-4 h-4 text-white animate-spin" />
+                      </div>
+                    )}
+                    {step.status === 'pending' && (
+                      <div className="w-6 h-6 rounded-full bg-slate-200 dark:bg-slate-700" />
+                    )}
+                    {step.status === 'error' && (
+                      <div className="w-6 h-6 rounded-full bg-red-500 flex items-center justify-center">
+                        <XCircle className="w-4 h-4 text-white" />
+                      </div>
+                    )}
+                    <span className={`text-sm ${
+                      step.status === 'in_progress' ? 'text-ebmc-turquoise font-medium' :
+                      step.status === 'completed' ? 'text-green-600 dark:text-green-400' :
+                      step.status === 'error' ? 'text-red-500' :
+                      'text-slate-400'
+                    }`}>
+                      {step.name}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Warning */}
+              <div className="mt-6 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg flex items-start gap-2">
+                <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-amber-700 dark:text-amber-400">
+                  Ne fermez pas cette page pendant l&apos;import. Cette opération peut prendre quelques minutes.
+                </p>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Sync Loading Overlay */}
+      <AnimatePresence>
+        {(syncing && syncProgress) && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="w-full max-w-lg mx-4 p-8 bg-white dark:bg-slate-800 rounded-2xl shadow-2xl"
+            >
+              <div className="flex items-center gap-4 mb-6">
+                <div className="p-3 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500">
+                  <RefreshCw className="w-8 h-8 text-white animate-spin" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-slate-800 dark:text-white">Synchronisation en cours</h3>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">Production → Sandbox</p>
+                </div>
+              </div>
+
+              <div className="mb-6">
+                <div className="flex justify-between text-sm mb-2">
+                  <span className="text-slate-600 dark:text-slate-300 font-medium">{syncProgress.currentAction}</span>
+                  <span className="text-purple-500 font-bold">{syncProgress.percentage}%</span>
+                </div>
+                <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${syncProgress.percentage}%` }}
+                    transition={{ duration: 0.3 }}
+                    className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                {syncProgress.steps.map((step, idx) => (
+                  <div key={idx} className="flex items-center gap-3">
+                    {step.status === 'completed' && (
+                      <div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center">
+                        <Check className="w-4 h-4 text-white" />
+                      </div>
+                    )}
+                    {step.status === 'in_progress' && (
+                      <div className="w-6 h-6 rounded-full bg-purple-500 flex items-center justify-center">
+                        <Loader2 className="w-4 h-4 text-white animate-spin" />
+                      </div>
+                    )}
+                    {step.status === 'pending' && (
+                      <div className="w-6 h-6 rounded-full bg-slate-200 dark:bg-slate-700" />
+                    )}
+                    {step.status === 'error' && (
+                      <div className="w-6 h-6 rounded-full bg-red-500 flex items-center justify-center">
+                        <XCircle className="w-4 h-4 text-white" />
+                      </div>
+                    )}
+                    <span className={`text-sm ${
+                      step.status === 'in_progress' ? 'text-purple-500 font-medium' :
+                      step.status === 'completed' ? 'text-green-600 dark:text-green-400' :
+                      step.status === 'error' ? 'text-red-500' :
+                      'text-slate-400'
+                    }`}>
+                      {step.name}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-6 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg flex items-start gap-2">
+                <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-amber-700 dark:text-amber-400">
+                  Ne fermez pas cette page pendant la synchronisation.
+                </p>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
