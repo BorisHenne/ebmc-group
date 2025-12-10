@@ -15,7 +15,7 @@ import {
 
 // Types
 type BoondEnvironment = 'production' | 'sandbox'
-type TabType = 'dashboard' | 'dictionary' | 'sync' | 'quality' | 'export' | 'import' | 'candidates' | 'resources' | 'opportunities' | 'companies' | 'contacts' | 'projects' | 'debug'
+type TabType = 'dashboard' | 'dictionary' | 'sync' | 'quality' | 'export' | 'export-sandbox' | 'import' | 'candidates' | 'resources' | 'opportunities' | 'companies' | 'contacts' | 'projects' | 'debug'
 type StepStatus = 'pending' | 'in_progress' | 'completed' | 'error'
 
 interface ImportStep {
@@ -227,6 +227,41 @@ export default function BoondManagerV2Page() {
   const [debugging, setDebugging] = useState(false)
   const [debugResults, setDebugResults] = useState<DebugResults | null>(null)
 
+  // Export to Sandbox
+  const [exportingToSandbox, setExportingToSandbox] = useState(false)
+  const [exportToSandboxPreview, setExportToSandboxPreview] = useState<{
+    mongoData: {
+      consultants: { total: number; withBoondId: number; withoutBoondId: number }
+      candidates: { total: number; withBoondId: number; withoutBoondId: number }
+      jobs: { total: number; withBoondId: number; withoutBoondId: number }
+    }
+    sandboxCurrent: { resources: number; candidates: number; opportunities: number }
+    estimatedActions: {
+      consultantsToCreate: number
+      consultantsToUpdate: number
+      candidatesToCreate: number
+      candidatesToUpdate: number
+      jobsToCreate: number
+      jobsToUpdate: number
+    }
+  } | null>(null)
+  const [exportToSandboxResult, setExportToSandboxResult] = useState<{
+    results: Record<string, {
+      entity: string
+      total: number
+      created: number
+      updated: number
+      skipped: number
+      errors: string[]
+    }>
+    summary: { totalCreated: number; totalUpdated: number; totalErrors: number }
+  } | null>(null)
+  const [exportToSandboxProgress, setExportToSandboxProgress] = useState<{
+    percentage: number
+    currentAction: string
+    steps: ImportStep[]
+  } | null>(null)
+
   // Tabs configuration
   const tabs: { id: TabType; label: string; icon: React.ElementType; color: string; section?: string }[] = [
     { id: 'dashboard', label: 'Dashboard', icon: Zap, color: 'from-amber-500 to-orange-500', section: 'overview' },
@@ -235,6 +270,7 @@ export default function BoondManagerV2Page() {
     { id: 'import', label: 'Import Site', icon: DatabaseBackup, color: 'from-orange-500 to-red-500', section: 'tools' },
     { id: 'quality', label: 'Qualite donnees', icon: Sparkles, color: 'from-purple-500 to-pink-500', section: 'tools' },
     { id: 'export', label: 'Export', icon: Download, color: 'from-green-500 to-emerald-500', section: 'tools' },
+    { id: 'export-sandbox', label: 'Export Sandbox', icon: Upload, color: 'from-amber-500 to-orange-500', section: 'tools' },
     { id: 'candidates', label: 'Candidats', icon: Users, color: 'from-purple-500 to-pink-500', section: 'data' },
     { id: 'resources', label: 'Ressources', icon: Briefcase, color: 'from-blue-500 to-indigo-500', section: 'data' },
     { id: 'opportunities', label: 'Opportunites', icon: Target, color: 'from-green-500 to-emerald-500', section: 'data' },
@@ -295,7 +331,7 @@ export default function BoondManagerV2Page() {
         await fetchDictionary()
         setLoading(false)
         return
-      } else if (activeTab === 'sync' || activeTab === 'quality' || activeTab === 'export' || activeTab === 'import' || activeTab === 'debug') {
+      } else if (activeTab === 'sync' || activeTab === 'quality' || activeTab === 'export' || activeTab === 'export-sandbox' || activeTab === 'import' || activeTab === 'debug') {
         // These tabs don't auto-load data
         setLoading(false)
         return
@@ -550,6 +586,101 @@ export default function BoondManagerV2Page() {
     } finally {
       setImporting(false)
       setImportProgress(null)
+    }
+  }
+
+  // Preview export to sandbox
+  const handlePreviewExportToSandbox = async () => {
+    setExportingToSandbox(true)
+    setError(null)
+    setExportToSandboxPreview(null)
+    setExportToSandboxResult(null)
+
+    try {
+      const res = await fetch('/api/boondmanager/v2/export-to-sandbox', {
+        credentials: 'include'
+      })
+      const data = await res.json()
+
+      if (data.success) {
+        setExportToSandboxPreview(data.preview)
+      } else {
+        throw new Error(data.error)
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur de preview export sandbox')
+    } finally {
+      setExportingToSandbox(false)
+    }
+  }
+
+  // Execute export to sandbox
+  const handleExecuteExportToSandbox = async (entities: string[] = ['consultants', 'candidates', 'jobs']) => {
+    if (!confirm('Cette operation va exporter les donnees de MongoDB vers BoondManager Sandbox. Continuer ?')) return
+
+    setExportingToSandbox(true)
+    setError(null)
+
+    const steps: ImportStep[] = [
+      { name: 'Connexion a BoondManager Sandbox', status: 'pending' },
+      { name: 'Export des consultants', status: 'pending' },
+      { name: 'Export des candidats', status: 'pending' },
+      { name: 'Export des opportunites', status: 'pending' },
+      { name: 'Finalisation', status: 'pending' },
+    ]
+    setExportToSandboxProgress({ percentage: 0, currentAction: 'Demarrage de l\'export...', steps })
+
+    try {
+      // Step 1: Connection
+      steps[0].status = 'in_progress'
+      setExportToSandboxProgress({ percentage: 10, currentAction: 'Connexion a BoondManager Sandbox...', steps: [...steps] })
+      await new Promise(r => setTimeout(r, 300))
+      steps[0].status = 'completed'
+
+      // Step 2: Exporting consultants
+      steps[1].status = 'in_progress'
+      setExportToSandboxProgress({ percentage: 25, currentAction: 'Export des consultants...', steps: [...steps] })
+
+      const res = await fetch('/api/boondmanager/v2/export-to-sandbox', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ entities })
+      })
+
+      // Simulate progress during export
+      steps[1].status = 'completed'
+      steps[2].status = 'in_progress'
+      setExportToSandboxProgress({ percentage: 50, currentAction: 'Export des candidats...', steps: [...steps] })
+      await new Promise(r => setTimeout(r, 300))
+
+      steps[2].status = 'completed'
+      steps[3].status = 'in_progress'
+      setExportToSandboxProgress({ percentage: 70, currentAction: 'Export des opportunites...', steps: [...steps] })
+      await new Promise(r => setTimeout(r, 300))
+
+      const data = await res.json()
+
+      steps[3].status = 'completed'
+      steps[4].status = 'in_progress'
+      setExportToSandboxProgress({ percentage: 90, currentAction: 'Finalisation...', steps: [...steps] })
+      await new Promise(r => setTimeout(r, 300))
+
+      if (data.success) {
+        steps[4].status = 'completed'
+        setExportToSandboxProgress({ percentage: 100, currentAction: 'Export termine avec succes!', steps: [...steps] })
+        await new Promise(r => setTimeout(r, 800))
+        setExportToSandboxResult({ results: data.results, summary: data.summary })
+        setExportToSandboxPreview(null)
+      } else {
+        steps[4].status = 'error'
+        throw new Error(data.error)
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur d\'export vers sandbox')
+    } finally {
+      setExportingToSandbox(false)
+      setExportToSandboxProgress(null)
     }
   }
 
@@ -885,58 +1016,29 @@ export default function BoondManagerV2Page() {
           </button>
 
           <button
-            onClick={handleSync}
-            disabled={syncing}
-            className="flex flex-col items-center gap-2 p-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 border-2 border-amber-200 dark:border-amber-800 hover:border-amber-400 transition disabled:opacity-50"
+            onClick={() => setActiveTab('export-sandbox')}
+            className="flex flex-col items-center gap-2 p-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 border-2 border-amber-200 dark:border-amber-800 hover:border-amber-400 transition"
           >
-            {syncing ? (
-              <Loader2 className="w-8 h-8 text-amber-600 animate-spin" />
-            ) : (
-              <Upload className="w-8 h-8 text-amber-600" />
-            )}
+            <Upload className="w-8 h-8 text-amber-600" />
             <span className="font-medium text-amber-800 dark:text-amber-200">3. Export → Sandbox</span>
-            <span className="text-xs text-amber-600">{syncing ? 'En cours...' : 'Pousser vers Sandbox'}</span>
+            <span className="text-xs text-amber-600">Pousser vers Sandbox</span>
           </button>
         </div>
       </div>
 
-      {/* Quick Sync Button */}
+      {/* Workflow Info */}
       <div className="glass-card p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h3 className="font-semibold text-slate-800 dark:text-white">Synchronisation complete automatique</h3>
-            <p className="text-sm text-slate-500">Executer les 3 etapes en une seule operation</p>
-          </div>
-          <button
-            onClick={handleSync}
-            disabled={syncing}
-            className="flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-xl hover:shadow-lg transition disabled:opacity-50"
-          >
-            {syncing ? (
-              <>
-                <Loader2 className="w-5 h-5 animate-spin" />
-                En cours...
-              </>
-            ) : (
-              <>
-                <Zap className="w-5 h-5" />
-                Lancer le workflow complet
-              </>
-            )}
-          </button>
-        </div>
-
         <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
           <div className="flex items-start gap-3">
             <Info className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5" />
             <div className="text-sm text-blue-700 dark:text-blue-300">
-              <p className="font-medium mb-1">Workflow automatise</p>
+              <p className="font-medium mb-1">Workflow de synchronisation</p>
               <ol className="list-decimal list-inside space-y-1">
-                <li>Import des donnees depuis BoondManager Production</li>
-                <li>Stockage et formatage dans MongoDB (site EBMC)</li>
-                <li>Validation de la qualite des donnees</li>
-                <li>Push vers BoondManager Sandbox pour tests</li>
+                <li>Import des donnees depuis BoondManager Production vers MongoDB</li>
+                <li>Validation de la qualite des donnees dans MongoDB</li>
+                <li>Export des donnees de MongoDB vers BoondManager Sandbox</li>
               </ol>
+              <p className="mt-2 text-xs">Les relations entre les entites sont maintenues via les identifiants boondManagerId</p>
             </div>
           </div>
         </div>
@@ -1427,6 +1529,291 @@ export default function BoondManagerV2Page() {
             <span>Importez manuellement le fichier JSON dans BoondManager Production via l&apos;interface admin Boond</span>
           </li>
         </ol>
+      </div>
+    </div>
+  )
+
+  // Render export to sandbox tab
+  const renderExportToSandboxTab = () => (
+    <div className="space-y-6">
+      <div className="glass-card p-6">
+        <div className="flex items-center gap-4 mb-6">
+          <div className="p-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500">
+            <Upload className="w-8 h-8 text-white" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-slate-800 dark:text-white">Export vers Sandbox</h2>
+            <p className="text-slate-500 dark:text-slate-400">
+              Exporter les donnees de <span className="font-medium text-emerald-600">MongoDB</span> vers <span className="font-medium text-amber-600">BoondManager Sandbox</span>
+            </p>
+          </div>
+        </div>
+
+        {/* Mapping explanation */}
+        <div className="mb-6 p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50">
+          <h3 className="font-semibold text-slate-800 dark:text-white mb-3 flex items-center gap-2">
+            <ArrowRight className="w-4 h-4" />
+            Correspondance des donnees
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-white dark:bg-slate-700/50">
+              <Briefcase className="w-5 h-5 text-blue-500" />
+              <div>
+                <p className="font-medium text-slate-700 dark:text-slate-200">Consultants</p>
+                <p className="text-slate-500 dark:text-slate-400">→ Ressources</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-white dark:bg-slate-700/50">
+              <Users className="w-5 h-5 text-purple-500" />
+              <div>
+                <p className="font-medium text-slate-700 dark:text-slate-200">Candidats</p>
+                <p className="text-slate-500 dark:text-slate-400">→ Candidats</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-white dark:bg-slate-700/50">
+              <Target className="w-5 h-5 text-green-500" />
+              <div>
+                <p className="font-medium text-slate-700 dark:text-slate-200">Offres d&apos;emploi</p>
+                <p className="text-slate-500 dark:text-slate-400">→ Opportunites</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Preview button */}
+        {!exportToSandboxPreview && !exportToSandboxResult && (
+          <button
+            onClick={handlePreviewExportToSandbox}
+            disabled={exportingToSandbox}
+            className="w-full flex items-center justify-center gap-3 p-4 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-medium hover:shadow-lg transition disabled:opacity-50"
+          >
+            {exportingToSandbox ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                Analyse en cours...
+              </>
+            ) : (
+              <>
+                <Eye className="w-5 h-5" />
+                Previsualiser l&apos;export
+              </>
+            )}
+          </button>
+        )}
+
+        {/* Progress */}
+        {exportToSandboxProgress && (
+          <div className="mt-6 space-y-4">
+            <div className="relative h-3 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+              <motion.div
+                className="absolute top-0 left-0 h-full bg-gradient-to-r from-amber-500 to-orange-500"
+                initial={{ width: 0 }}
+                animate={{ width: `${exportToSandboxProgress.percentage}%` }}
+                transition={{ duration: 0.3 }}
+              />
+            </div>
+            <p className="text-center text-sm text-slate-600 dark:text-slate-400">{exportToSandboxProgress.currentAction}</p>
+            <div className="space-y-2">
+              {exportToSandboxProgress.steps.map((step, index) => (
+                <div key={index} className="flex items-center gap-3 text-sm">
+                  {step.status === 'completed' ? (
+                    <CheckCircle className="w-5 h-5 text-green-500" />
+                  ) : step.status === 'in_progress' ? (
+                    <Loader2 className="w-5 h-5 text-amber-500 animate-spin" />
+                  ) : step.status === 'error' ? (
+                    <XCircle className="w-5 h-5 text-red-500" />
+                  ) : (
+                    <div className="w-5 h-5 rounded-full border-2 border-slate-300 dark:border-slate-600" />
+                  )}
+                  <span className={step.status === 'completed' ? 'text-green-600 dark:text-green-400' : step.status === 'in_progress' ? 'text-amber-600 dark:text-amber-400' : step.status === 'error' ? 'text-red-600 dark:text-red-400' : 'text-slate-500 dark:text-slate-400'}>{step.name}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Preview */}
+        {exportToSandboxPreview && !exportToSandboxResult && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-6 space-y-6"
+          >
+            {/* MongoDB Data */}
+            <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800">
+              <h4 className="font-semibold text-emerald-800 dark:text-emerald-200 mb-4 flex items-center gap-2">
+                <Database className="w-5 h-5" />
+                Donnees MongoDB (source)
+              </h4>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="text-center p-3 rounded-lg bg-white dark:bg-slate-700/50">
+                  <p className="text-2xl font-bold text-slate-800 dark:text-white">{exportToSandboxPreview.mongoData.consultants.total}</p>
+                  <p className="text-sm text-slate-500">Consultants</p>
+                  <p className="text-xs text-emerald-600">{exportToSandboxPreview.mongoData.consultants.withBoondId} avec ID Boond</p>
+                </div>
+                <div className="text-center p-3 rounded-lg bg-white dark:bg-slate-700/50">
+                  <p className="text-2xl font-bold text-slate-800 dark:text-white">{exportToSandboxPreview.mongoData.candidates.total}</p>
+                  <p className="text-sm text-slate-500">Candidats</p>
+                  <p className="text-xs text-emerald-600">{exportToSandboxPreview.mongoData.candidates.withBoondId} avec ID Boond</p>
+                </div>
+                <div className="text-center p-3 rounded-lg bg-white dark:bg-slate-700/50">
+                  <p className="text-2xl font-bold text-slate-800 dark:text-white">{exportToSandboxPreview.mongoData.jobs.total}</p>
+                  <p className="text-sm text-slate-500">Offres</p>
+                  <p className="text-xs text-emerald-600">{exportToSandboxPreview.mongoData.jobs.withBoondId} avec ID Boond</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Sandbox Current */}
+            <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+              <h4 className="font-semibold text-amber-800 dark:text-amber-200 mb-4 flex items-center gap-2">
+                <ShieldOff className="w-5 h-5" />
+                Sandbox actuel (destination)
+              </h4>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="text-center p-3 rounded-lg bg-white dark:bg-slate-700/50">
+                  <p className="text-2xl font-bold text-slate-800 dark:text-white">{exportToSandboxPreview.sandboxCurrent.resources}</p>
+                  <p className="text-sm text-slate-500">Ressources</p>
+                </div>
+                <div className="text-center p-3 rounded-lg bg-white dark:bg-slate-700/50">
+                  <p className="text-2xl font-bold text-slate-800 dark:text-white">{exportToSandboxPreview.sandboxCurrent.candidates}</p>
+                  <p className="text-sm text-slate-500">Candidats</p>
+                </div>
+                <div className="text-center p-3 rounded-lg bg-white dark:bg-slate-700/50">
+                  <p className="text-2xl font-bold text-slate-800 dark:text-white">{exportToSandboxPreview.sandboxCurrent.opportunities}</p>
+                  <p className="text-sm text-slate-500">Opportunites</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Estimated Actions */}
+            <div className="p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+              <h4 className="font-semibold text-blue-800 dark:text-blue-200 mb-4 flex items-center gap-2">
+                <Zap className="w-5 h-5" />
+                Actions estimees
+              </h4>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <div className="p-3 rounded-lg bg-white dark:bg-slate-700/50">
+                  <div className="flex items-center gap-2 text-green-600 mb-1">
+                    <Plus className="w-4 h-4" />
+                    <span className="text-sm font-medium">A creer</span>
+                  </div>
+                  <p className="text-xs text-slate-500">{exportToSandboxPreview.estimatedActions.consultantsToCreate} consultants</p>
+                  <p className="text-xs text-slate-500">{exportToSandboxPreview.estimatedActions.candidatesToCreate} candidats</p>
+                  <p className="text-xs text-slate-500">{exportToSandboxPreview.estimatedActions.jobsToCreate} offres</p>
+                </div>
+                <div className="p-3 rounded-lg bg-white dark:bg-slate-700/50">
+                  <div className="flex items-center gap-2 text-blue-600 mb-1">
+                    <RefreshCw className="w-4 h-4" />
+                    <span className="text-sm font-medium">A mettre a jour</span>
+                  </div>
+                  <p className="text-xs text-slate-500">{exportToSandboxPreview.estimatedActions.consultantsToUpdate} consultants</p>
+                  <p className="text-xs text-slate-500">{exportToSandboxPreview.estimatedActions.candidatesToUpdate} candidats</p>
+                  <p className="text-xs text-slate-500">{exportToSandboxPreview.estimatedActions.jobsToUpdate} offres</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Execute button */}
+            <button
+              onClick={() => handleExecuteExportToSandbox()}
+              disabled={exportingToSandbox}
+              className="w-full flex items-center justify-center gap-3 p-4 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-medium hover:shadow-lg transition disabled:opacity-50"
+            >
+              {exportingToSandbox ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Export en cours...
+                </>
+              ) : (
+                <>
+                  <Upload className="w-5 h-5" />
+                  Executer l&apos;export vers Sandbox
+                </>
+              )}
+            </button>
+
+            {/* Reset button */}
+            <button
+              onClick={() => setExportToSandboxPreview(null)}
+              className="w-full flex items-center justify-center gap-3 p-3 rounded-xl border-2 border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
+            >
+              <X className="w-4 h-4" />
+              Annuler
+            </button>
+          </motion.div>
+        )}
+
+        {/* Result */}
+        {exportToSandboxResult && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-6 space-y-6"
+          >
+            <div className="p-4 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
+              <h4 className="font-semibold text-green-800 dark:text-green-200 mb-4 flex items-center gap-2">
+                <CheckCircle className="w-5 h-5" />
+                Export termine avec succes
+              </h4>
+              <div className="grid grid-cols-3 gap-4 mb-4">
+                <div className="text-center p-3 rounded-lg bg-white dark:bg-slate-700/50">
+                  <p className="text-2xl font-bold text-green-600">{exportToSandboxResult.summary.totalCreated}</p>
+                  <p className="text-sm text-slate-500">Crees</p>
+                </div>
+                <div className="text-center p-3 rounded-lg bg-white dark:bg-slate-700/50">
+                  <p className="text-2xl font-bold text-blue-600">{exportToSandboxResult.summary.totalUpdated}</p>
+                  <p className="text-sm text-slate-500">Mis a jour</p>
+                </div>
+                <div className="text-center p-3 rounded-lg bg-white dark:bg-slate-700/50">
+                  <p className="text-2xl font-bold text-red-600">{exportToSandboxResult.summary.totalErrors}</p>
+                  <p className="text-sm text-slate-500">Erreurs</p>
+                </div>
+              </div>
+              <div className="space-y-2">
+                {Object.entries(exportToSandboxResult.results).map(([key, result]) => (
+                  <div key={key} className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
+                    <span className="font-medium text-slate-700 dark:text-slate-300">{result.entity}</span>
+                    <div className="flex items-center gap-4 text-sm">
+                      <span className="text-green-600">+{result.created}</span>
+                      <span className="text-blue-600">{result.updated} maj</span>
+                      {result.errors.length > 0 && <span className="text-red-600">{result.errors.length} err</span>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* New export button */}
+            <button
+              onClick={() => {
+                setExportToSandboxResult(null)
+                setExportToSandboxPreview(null)
+              }}
+              className="w-full flex items-center justify-center gap-3 p-3 rounded-xl border-2 border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Nouvel export
+            </button>
+          </motion.div>
+        )}
+      </div>
+
+      {/* Info */}
+      <div className="glass-card p-6">
+        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
+          <div className="flex items-start gap-3">
+            <Info className="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5" />
+            <div className="text-sm text-amber-700 dark:text-amber-300">
+              <p className="font-medium mb-1">Maintien des relations</p>
+              <ul className="list-disc list-inside space-y-1">
+                <li>Les enregistrements avec <code className="bg-amber-100 dark:bg-amber-900/50 px-1 rounded">boondManagerId</code> seront mis a jour dans le Sandbox</li>
+                <li>Les nouveaux enregistrements seront crees et leur ID sera sauvegarde pour les futurs exports</li>
+                <li>Les relations entre entites sont maintenues via ces identifiants</li>
+              </ul>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   )
@@ -2501,7 +2888,7 @@ export default function BoondManagerV2Page() {
             </span>
           </div>
 
-          {!['dashboard', 'sync', 'quality', 'export'].includes(activeTab) && canWrite && (
+          {!['dashboard', 'sync', 'quality', 'export', 'export-sandbox'].includes(activeTab) && canWrite && (
             <button
               onClick={handleCreate}
               className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-ebmc-turquoise to-cyan-500 text-white rounded-lg hover:shadow-lg transition"
@@ -2575,7 +2962,7 @@ export default function BoondManagerV2Page() {
       </div>
 
       {/* Search (for data tabs) */}
-      {!['dashboard', 'sync', 'quality', 'export'].includes(activeTab) && (
+      {!['dashboard', 'sync', 'quality', 'export', 'export-sandbox'].includes(activeTab) && (
         <div className="flex gap-4">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
@@ -2608,7 +2995,7 @@ export default function BoondManagerV2Page() {
       )}
 
       {/* Content */}
-      {loading && !['dictionary', 'sync', 'quality', 'export', 'import', 'debug'].includes(activeTab) ? (
+      {loading && !['dictionary', 'sync', 'quality', 'export', 'export-sandbox', 'import', 'debug'].includes(activeTab) ? (
         <div className="flex justify-center py-12">
           <Loader2 className="w-8 h-8 animate-spin text-ebmc-turquoise" />
         </div>
@@ -2622,6 +3009,8 @@ export default function BoondManagerV2Page() {
         renderQualityTab()
       ) : activeTab === 'export' ? (
         renderExportTab()
+      ) : activeTab === 'export-sandbox' ? (
+        renderExportToSandboxTab()
       ) : activeTab === 'import' ? (
         renderImportTab()
       ) : activeTab === 'debug' ? (
