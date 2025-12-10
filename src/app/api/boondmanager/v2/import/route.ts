@@ -7,6 +7,7 @@ import {
   BoondResource,
   BoondCandidate,
   BoondOpportunity,
+  BoondAction,
   BoondPermissionError,
 } from '@/lib/boondmanager-client'
 import { boondImportService } from '@/lib/boondmanager-import'
@@ -122,6 +123,69 @@ async function fetchAllOpportunities(client: BoondManagerClient): Promise<FetchR
         data: [],
         permissionError: {
           entity: 'opportunities',
+          endpoint: error.endpoint,
+          message: error.message,
+        },
+      }
+    }
+    throw error
+  }
+}
+
+/**
+ * Fetch actions for all candidates and group them by candidateId
+ * This is used to determine the recruitment pipeline state
+ */
+async function fetchActionsForCandidates(
+  client: BoondManagerClient,
+  candidateIds: number[]
+): Promise<{
+  actionsByCandidate: Map<number, BoondAction[]>
+  permissionError?: PermissionError
+}> {
+  const actionsByCandidate = new Map<number, BoondAction[]>()
+
+  if (candidateIds.length === 0) {
+    return { actionsByCandidate }
+  }
+
+  try {
+    // Fetch actions for each candidate (in batches to avoid too many requests)
+    const BATCH_SIZE = 20
+    for (let i = 0; i < candidateIds.length; i += BATCH_SIZE) {
+      const batch = candidateIds.slice(i, i + BATCH_SIZE)
+
+      // Fetch actions for this batch in parallel
+      const results = await Promise.all(
+        batch.map(async (candidateId) => {
+          try {
+            const response = await client.getCandidateActions(candidateId)
+            return { candidateId, actions: response.data || [] }
+          } catch (error) {
+            // If we can't get actions for a specific candidate, skip it
+            console.warn(`Could not fetch actions for candidate ${candidateId}:`, error)
+            return { candidateId, actions: [] }
+          }
+        })
+      )
+
+      // Store results in map
+      for (const { candidateId, actions } of results) {
+        if (actions.length > 0) {
+          actionsByCandidate.set(candidateId, actions)
+        }
+      }
+    }
+
+    console.log(`[Import] Fetched actions for ${actionsByCandidate.size} candidates with actions`)
+    return { actionsByCandidate }
+  } catch (error) {
+    if (error instanceof BoondPermissionError) {
+      console.warn(`[SKIP] actions: ${error.message}`)
+      return {
+        actionsByCandidate,
+        permissionError: {
+          entity: 'actions',
           endpoint: error.endpoint,
           message: error.message,
         },
@@ -289,12 +353,26 @@ export async function POST(request: NextRequest) {
     const candidates = candidatesResult.data
     const opportunities = opportunitiesResult.data
 
+    // Fetch actions for candidates to determine recruitment pipeline state
+    let actionsByCandidate: Map<number, BoondAction[]> = new Map()
+    if (candidates.length > 0 && importCandidates) {
+      console.log(`[Import] Fetching actions for ${candidates.length} candidates...`)
+      const candidateIds = candidates.map(c => c.id)
+      const actionsResult = await fetchActionsForCandidates(client, candidateIds)
+      actionsByCandidate = actionsResult.actionsByCandidate
+
+      if (actionsResult.permissionError) {
+        permissionErrors.push(actionsResult.permissionError)
+        console.warn('[Import] Could not fetch actions - candidates will use fallback state logic')
+      }
+    }
+
     // Execute import with available data
     const result = await boondImportService.importAll(
       resources,
       candidates,
       opportunities,
-      { createUsersFromResources }
+      { createUsersFromResources, actionsByCandidate }
     )
 
     // Build response with permission errors log

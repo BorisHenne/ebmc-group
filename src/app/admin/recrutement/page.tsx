@@ -169,8 +169,8 @@ export default function RecrutementPage() {
     fetchCandidates()
   }, [fetchCandidates])
 
-  // Fix states based on stateLabel
-  const fixCandidateStates = async () => {
+  // Fix states based on BoondManager Actions (most accurate)
+  const fixCandidateStates = async (useBoondManagerActions = true) => {
     setFixingStates(true)
     setFixResult(null)
 
@@ -179,7 +179,7 @@ export default function RecrutementPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ dryRun: false }),
+        body: JSON.stringify({ dryRun: false, useBoondManagerActions }),
       })
 
       const data = await response.json()
@@ -189,7 +189,7 @@ export default function RecrutementPage() {
       }
 
       setFixResult({
-        message: data.message,
+        message: `${data.message} (Mode: ${data.mode === 'boondManagerActions' ? 'Actions BoondManager' : 'stateLabel'})`,
         type: 'success',
       })
 
@@ -399,13 +399,13 @@ export default function RecrutementPage() {
             Actualiser
           </button>
           <button
-            onClick={fixCandidateStates}
+            onClick={() => fixCandidateStates(true)}
             disabled={fixingStates}
-            title="Corriger les états en fonction du stateLabel"
+            title="Synchroniser les états avec les actions BoondManager (entretiens, propositions, etc.)"
             className="flex items-center gap-2 px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition disabled:opacity-50"
           >
             <Wrench className={`w-4 h-4 ${fixingStates ? 'animate-spin' : ''}`} />
-            {fixingStates ? 'Correction...' : 'Corriger états'}
+            {fixingStates ? 'Synchronisation...' : 'Sync BoondManager'}
           </button>
           <Link
             href="/admin/boondmanager-v2"
