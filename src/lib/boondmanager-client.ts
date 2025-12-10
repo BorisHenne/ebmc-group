@@ -1,6 +1,12 @@
 // BoondManager API Client - Dual Environment (Production & Sandbox)
 // Documentation: https://doc.boondmanager.com/api-externe/
 
+// ==================== FEATURE FLAGS ====================
+// Set to true when API permissions are granted for contacts
+export const BOOND_FEATURES = {
+  CONTACTS_ENABLED: false, // TODO: Enable when API access is granted (403 error currently)
+} as const
+
 // ==================== TYPES ====================
 
 export type BoondEnvironment = 'production' | 'sandbox'

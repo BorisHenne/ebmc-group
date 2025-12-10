@@ -1,10 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
-import { createBoondClient, BoondEnvironment } from '@/lib/boondmanager-client'
+import { createBoondClient, BoondEnvironment, BOOND_FEATURES } from '@/lib/boondmanager-client'
 
 function getEnvironment(request: NextRequest): BoondEnvironment {
   const env = request.nextUrl.searchParams.get('env') || 'sandbox'
   return env === 'production' ? 'production' : 'sandbox'
+}
+
+// Feature disabled response
+const CONTACTS_DISABLED_RESPONSE = {
+  success: false,
+  error: 'API Contacts desactivee - En attente des permissions BoondManager',
+  disabled: true,
+  data: [],
+  meta: { totals: { rows: 0 } }
 }
 
 // GET - List/Search contacts
@@ -12,6 +21,11 @@ export async function GET(request: NextRequest) {
   const session = await getSession()
   if (!session) {
     return NextResponse.json({ error: 'Non autorise' }, { status: 401 })
+  }
+
+  // Return empty data when contacts are disabled
+  if (!BOOND_FEATURES.CONTACTS_ENABLED) {
+    return NextResponse.json(CONTACTS_DISABLED_RESPONSE, { status: 200 })
   }
 
   const environment = getEnvironment(request)
@@ -52,6 +66,10 @@ export async function POST(request: NextRequest) {
   const session = await getSession()
   if (!session) {
     return NextResponse.json({ error: 'Non autorise' }, { status: 401 })
+  }
+
+  if (!BOOND_FEATURES.CONTACTS_ENABLED) {
+    return NextResponse.json(CONTACTS_DISABLED_RESPONSE, { status: 403 })
   }
 
   const environment = getEnvironment(request)
@@ -97,6 +115,10 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: 'Non autorise' }, { status: 401 })
   }
 
+  if (!BOOND_FEATURES.CONTACTS_ENABLED) {
+    return NextResponse.json(CONTACTS_DISABLED_RESPONSE, { status: 403 })
+  }
+
   const environment = getEnvironment(request)
 
   try {
@@ -140,6 +162,10 @@ export async function DELETE(request: NextRequest) {
   const session = await getSession()
   if (!session) {
     return NextResponse.json({ error: 'Non autorise' }, { status: 401 })
+  }
+
+  if (!BOOND_FEATURES.CONTACTS_ENABLED) {
+    return NextResponse.json(CONTACTS_DISABLED_RESPONSE, { status: 403 })
   }
 
   const environment = getEnvironment(request)
