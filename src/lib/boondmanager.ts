@@ -103,43 +103,24 @@ export interface BoondApiResponse<T> {
   }
 }
 
-// Candidate states in BoondManager
-export const CANDIDATE_STATES: Record<number, string> = {
-  1: 'A qualifier',
-  2: 'Qualifie',
-  3: 'En cours',
-  4: 'Entretien',
-  5: 'Proposition',
-  6: 'Embauche',
-  7: 'Refuse',
-  8: 'Archive',
-}
+// =============================================================================
+// BOONDMANAGER STATES - Now fetched dynamically from BoondManager API
+// =============================================================================
+// For dynamic state lookups, use functions from '@/lib/boondmanager-dictionary'
+// The constants below are re-exported from the dictionary service for backwards compatibility
 
-// Resource states
-export const RESOURCE_STATES: Record<number, string> = {
-  1: 'Disponible',
-  2: 'En mission',
-  3: 'Intercontrat',
-  4: 'Indisponible',
-  5: 'Sorti',
-}
-
-// Opportunity states
-export const OPPORTUNITY_STATES: Record<number, string> = {
-  1: 'En cours',
-  2: 'Gagnee',
-  3: 'Perdue',
-  4: 'Abandonnee',
-}
-
-// Action types (recruitment workflow)
-export const ACTION_TYPES: Record<number, string> = {
-  1: 'Positionnement',
-  2: 'Entretien client',
-  3: 'Entretien interne',
-  4: 'Proposition',
-  5: 'Demarrage',
-}
+export {
+  FALLBACK_CANDIDATE_STATES as CANDIDATE_STATES,
+  FALLBACK_RESOURCE_STATES as RESOURCE_STATES,
+  FALLBACK_OPPORTUNITY_STATES as OPPORTUNITY_STATES,
+  FALLBACK_ACTION_TYPES as ACTION_TYPES,
+  // Also export the dynamic getters for modern usage
+  getCandidateStates,
+  getResourceStates,
+  getOpportunityStates,
+  getActionTypes,
+  getAllStates,
+} from './boondmanager-dictionary'
 
 export class BoondManagerClient {
   private baseUrl: string
