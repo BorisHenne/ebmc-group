@@ -2,19 +2,14 @@ import { NextResponse } from 'next/server'
 import { connectToDatabase } from '@/lib/mongodb'
 import bcrypt from 'bcryptjs'
 
-// Default demo users for each role
+// Default demo users for each role (matching src/lib/roles.ts)
 const defaultUsers = [
+  // Bureau roles (internal staff)
   {
     email: 'admin@ebmc-group.com',
     password: 'admin123',
     name: 'Administrateur',
     role: 'admin',
-  },
-  {
-    email: 'sourceur@ebmc-group.com',
-    password: 'sourceur123',
-    name: 'Jean Sourceur',
-    role: 'sourceur',
   },
   {
     email: 'commercial@ebmc-group.com',
@@ -23,16 +18,35 @@ const defaultUsers = [
     role: 'commercial',
   },
   {
+    email: 'sourceur@ebmc-group.com',
+    password: 'sourceur123',
+    name: 'Jean Sourceur',
+    role: 'sourceur',
+  },
+  {
+    email: 'rh@ebmc-group.com',
+    password: 'rh123456',
+    name: 'Anne RH',
+    role: 'rh',
+  },
+  // Terrain roles (consultants and candidates)
+  {
+    email: 'consultant@ebmc-group.com',
+    password: 'consultant123',
+    name: 'Sophie Consultant CDI',
+    role: 'consultant_cdi',
+  },
+  {
     email: 'freelance@ebmc-group.com',
     password: 'freelance123',
     name: 'Pierre Freelance',
     role: 'freelance',
   },
   {
-    email: 'consultant@ebmc-group.com',
-    password: 'consultant123',
-    name: 'Sophie Consultant',
-    role: 'consultant',
+    email: 'candidat@ebmc-group.com',
+    password: 'candidat123',
+    name: 'Lucas Candidat',
+    role: 'candidat',
   },
 ]
 
@@ -314,6 +328,7 @@ const defaultConsultants = [
 ]
 
 // Seed endpoint - initialize database with default data
+// Add ?force=true to reset all users even if they exist
 export async function POST(request: Request) {
   try {
     // Check for admin authorization
@@ -323,6 +338,10 @@ export async function POST(request: Request) {
     if (authHeader !== `Bearer ${seedKey}`) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
     }
+
+    // Check for force parameter
+    const url = new URL(request.url)
+    const forceUsers = url.searchParams.get('force') === 'true'
 
     const db = await connectToDatabase()
 
@@ -334,11 +353,11 @@ export async function POST(request: Request) {
     const results: {
       jobs: { inserted: number; existing: number }
       consultants: { inserted: number; existing: number }
-      users: { inserted: number; existing: number; demo: string[] }
+      users: { inserted: number; updated: number; existing: number; demo: string[] }
     } = {
       jobs: { inserted: 0, existing: existingJobs },
       consultants: { inserted: 0, existing: existingConsultants },
-      users: { inserted: 0, existing: existingUsers, demo: [] },
+      users: { inserted: 0, updated: 0, existing: existingUsers, demo: [] },
     }
 
     // Only seed if collections are empty
@@ -352,12 +371,14 @@ export async function POST(request: Request) {
       results.consultants.inserted = consultantsResult.insertedCount
     }
 
-    // Create demo users if they don't exist
+    // Create or update demo users
     const usersCollection = db.collection('users')
     for (const user of defaultUsers) {
       const existing = await usersCollection.findOne({ email: user.email })
+      const hashedPassword = await bcrypt.hash(user.password, 12)
+
       if (!existing) {
-        const hashedPassword = await bcrypt.hash(user.password, 12)
+        // User doesn't exist - create it
         await usersCollection.insertOne({
           email: user.email,
           password: hashedPassword,
@@ -366,13 +387,31 @@ export async function POST(request: Request) {
           createdAt: new Date(),
         })
         results.users.inserted++
-        results.users.demo.push(`${user.email} (${user.role})`)
+        results.users.demo.push(`${user.email} (${user.role}) - CREATED`)
+      } else if (forceUsers) {
+        // User exists but force is enabled - update password and role
+        await usersCollection.updateOne(
+          { email: user.email },
+          {
+            $set: {
+              password: hashedPassword,
+              name: user.name,
+              role: user.role,
+              updatedAt: new Date(),
+            },
+          }
+        )
+        results.users.updated++
+        results.users.demo.push(`${user.email} (${user.role}) - UPDATED`)
       }
     }
 
     return NextResponse.json({
       success: true,
-      message: 'Database seeded successfully',
+      message: forceUsers
+        ? 'Database seeded with force - all demo users reset'
+        : 'Database seeded successfully',
+      forceMode: forceUsers,
       results,
       demoCredentials: defaultUsers.map(u => ({
         email: u.email,
@@ -384,6 +423,17 @@ export async function POST(request: Request) {
     console.error('Error seeding database:', error)
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
   }
+}
+
+// Role descriptions
+const roleDescriptions: Record<string, string> = {
+  admin: 'Accès complet à toutes les fonctionnalités',
+  commercial: 'Accès offres et consultants assignés',
+  sourceur: 'Accès candidats, consultants et messages',
+  rh: 'Gestion administrative des collaborateurs',
+  consultant_cdi: 'Portail consultant CDI',
+  freelance: 'Portail freelance',
+  candidat: 'Espace candidat (limité)',
 }
 
 // GET endpoint to check seed status
@@ -407,12 +457,9 @@ export async function GET() {
         email: u.email,
         password: u.password,
         role: u.role,
-        description: u.role === 'admin' ? 'Accès complet' :
-                     u.role === 'sourceur' ? 'Accès consultants et messages' :
-                     u.role === 'commercial' ? 'Accès offres et consultants assignés' :
-                     u.role === 'freelance' ? 'Portail freelance uniquement' :
-                     'Accès de base'
+        description: roleDescriptions[u.role] || 'Accès de base',
       })),
+      hint: 'POST with ?force=true to reset all demo users',
     })
   } catch (error) {
     console.error('Error checking seed status:', error)

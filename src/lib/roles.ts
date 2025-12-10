@@ -145,6 +145,7 @@ export interface RolePermissions {
   messages: boolean
   users: boolean
   roles: boolean
+  database: boolean // MongoDB database viewer
   webhooks: boolean
   apiTokens: boolean
   demoData: boolean
@@ -179,6 +180,7 @@ export const ROLE_PERMISSIONS: Record<RoleType, RolePermissions> = {
     messages: true,
     users: true,
     roles: true,
+    database: true,
     webhooks: true,
     apiTokens: true,
     demoData: true,
@@ -207,6 +209,7 @@ export const ROLE_PERMISSIONS: Record<RoleType, RolePermissions> = {
     messages: false,
     users: false,
     roles: false,
+    database: false,
     webhooks: false,
     apiTokens: false,
     demoData: false,
@@ -235,6 +238,7 @@ export const ROLE_PERMISSIONS: Record<RoleType, RolePermissions> = {
     messages: true,
     users: false,
     roles: false,
+    database: false,
     webhooks: false,
     apiTokens: false,
     demoData: false,
@@ -263,6 +267,7 @@ export const ROLE_PERMISSIONS: Record<RoleType, RolePermissions> = {
     messages: true,
     users: true,
     roles: false,
+    database: false,
     webhooks: false,
     apiTokens: false,
     demoData: false,
@@ -291,6 +296,7 @@ export const ROLE_PERMISSIONS: Record<RoleType, RolePermissions> = {
     messages: false,
     users: false,
     roles: false,
+    database: false,
     webhooks: false,
     apiTokens: false,
     demoData: false,
@@ -319,6 +325,7 @@ export const ROLE_PERMISSIONS: Record<RoleType, RolePermissions> = {
     messages: false,
     users: false,
     roles: false,
+    database: false,
     webhooks: false,
     apiTokens: false,
     demoData: false,
@@ -347,6 +354,7 @@ export const ROLE_PERMISSIONS: Record<RoleType, RolePermissions> = {
     messages: false,
     users: false,
     roles: false,
+    database: false,
     webhooks: false,
     apiTokens: false,
     demoData: false,
