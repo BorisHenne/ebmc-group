@@ -57,6 +57,9 @@ export async function GET(request: NextRequest) {
     const secret = new TextEncoder().encode(creds.clientKey)
 
     const jwt = await new SignJWT({
+      // clientToken identifies the application (required)
+      clientToken: creds.clientToken,
+      // userToken identifies the user/space
       userToken: creds.userToken,
     })
       .setProtectedHeader({ alg: 'HS256' })

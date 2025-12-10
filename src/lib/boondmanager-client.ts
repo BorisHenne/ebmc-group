@@ -542,7 +542,9 @@ export class BoondManagerClient {
     const secret = new TextEncoder().encode(this.credentials.clientKey)
 
     const jwt = await new SignJWT({
-      // The userToken identifies the space (LMGC or LMGC-SANDBOX)
+      // clientToken identifies the application (required for X-Jwt-App-BoondManager)
+      clientToken: this.credentials.clientToken,
+      // userToken identifies the user/space (LMGC or LMGC-SANDBOX)
       userToken: this.credentials.userToken,
     })
       .setProtectedHeader({ alg: 'HS256' })
