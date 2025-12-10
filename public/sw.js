@@ -1,5 +1,5 @@
 // EBMC GROUP - Service Worker
-const CACHE_NAME = 'ebmc-group-v1';
+const CACHE_NAME = 'ebmc-group-v2';
 
 // Assets to cache on install
 const STATIC_ASSETS = [
@@ -41,8 +41,11 @@ self.addEventListener('fetch', (event) => {
   // Skip non-GET requests
   if (event.request.method !== 'GET') return;
 
-  // Skip API calls and admin routes
+  // Skip non-http(s) requests (chrome-extension, etc.)
   const url = new URL(event.request.url);
+  if (!url.protocol.startsWith('http')) return;
+
+  // Skip API calls and admin routes
   if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/admin')) {
     return;
   }
