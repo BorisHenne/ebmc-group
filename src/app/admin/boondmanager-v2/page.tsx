@@ -1227,19 +1227,12 @@ export default function BoondManagerV2Page() {
             <ArrowRight className="w-4 h-4" />
             Correspondance des donnees
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
             <div className="flex items-center gap-3 p-3 rounded-lg bg-white dark:bg-slate-700/50">
               <Briefcase className="w-5 h-5 text-blue-500" />
               <div>
                 <p className="font-medium text-slate-700 dark:text-slate-200">Ressources</p>
-                <p className="text-slate-500 dark:text-slate-400">→ Consultants</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-white dark:bg-slate-700/50">
-              <Users className="w-5 h-5 text-purple-500" />
-              <div>
-                <p className="font-medium text-slate-700 dark:text-slate-200">Candidats (embauches)</p>
-                <p className="text-slate-500 dark:text-slate-400">→ Utilisateurs</p>
+                <p className="text-slate-500 dark:text-slate-400">→ Consultants + Utilisateurs</p>
               </div>
             </div>
             <div className="flex items-center gap-3 p-3 rounded-lg bg-white dark:bg-slate-700/50">
@@ -1313,7 +1306,7 @@ export default function BoondManagerV2Page() {
                     <span className="font-medium text-blue-600 dark:text-blue-400">{importPreview.users.existing}</span>
                   </p>
                   <p className="flex justify-between">
-                    <span className="text-slate-600 dark:text-slate-400">Ignores (non embauches):</span>
+                    <span className="text-slate-600 dark:text-slate-400">Ignores (sans email):</span>
                     <span className="font-medium text-slate-500">{importPreview.users.skipped}</span>
                   </p>
                 </div>
@@ -1341,7 +1334,7 @@ export default function BoondManagerV2Page() {
             {/* Action buttons */}
             <div className="flex flex-wrap gap-3 pt-4">
               <button
-                onClick={() => handleExecuteImport(['resources', 'candidates', 'opportunities'])}
+                onClick={() => handleExecuteImport(['resources', 'opportunities'])}
                 disabled={importing}
                 className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg hover:shadow-lg transition disabled:opacity-50"
               >
@@ -1355,14 +1348,6 @@ export default function BoondManagerV2Page() {
               >
                 <Briefcase className="w-4 h-4" />
                 Ressources seulement
-              </button>
-              <button
-                onClick={() => handleExecuteImport(['candidates'])}
-                disabled={importing}
-                className="flex items-center gap-2 px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition disabled:opacity-50"
-              >
-                <Users className="w-4 h-4" />
-                Candidats seulement
               </button>
               <button
                 onClick={() => handleExecuteImport(['opportunities'])}
@@ -1465,15 +1450,15 @@ export default function BoondManagerV2Page() {
         <ul className="space-y-2 text-sm text-slate-600 dark:text-slate-400">
           <li className="flex items-start gap-2">
             <Check className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-            <span>Les <strong>Ressources</strong> sont importees comme Consultants avec leurs competences et certifications</span>
-          </li>
-          <li className="flex items-start gap-2">
-            <Check className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-            <span>Seuls les <strong>Candidats embauches</strong> (state 6) sont importes comme Utilisateurs</span>
+            <span>Les <strong>Ressources</strong> (consultants embauches) sont importees comme Consultants + Utilisateurs</span>
           </li>
           <li className="flex items-start gap-2">
             <Check className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
             <span>Les <strong>Opportunites</strong> sont importees comme Offres d&apos;emploi avec missions et exigences</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <Info className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
+            <span>Les <strong>Candidats</strong> restent dans le pipeline BoondManager (non importes)</span>
           </li>
           <li className="flex items-start gap-2">
             <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />

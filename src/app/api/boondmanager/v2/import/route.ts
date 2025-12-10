@@ -10,6 +10,8 @@ function getEnvironment(request: NextRequest): BoondEnvironment {
 }
 
 // GET - Preview import (what would be imported)
+// Resources → Consultants + Users
+// Opportunities → Jobs
 export async function GET(request: NextRequest) {
   const session = await getSession()
   if (!session) {
@@ -28,17 +30,15 @@ export async function GET(request: NextRequest) {
   try {
     const client = createBoondClient(environment)
 
-    // Fetch data from BoondManager
-    const [resources, candidates, opportunities] = await Promise.all([
+    // Fetch data from BoondManager (only resources and opportunities)
+    const [resources, opportunities] = await Promise.all([
       client.getResources({ maxResults: 500 }).then(r => r.data || []),
-      client.getCandidates({ maxResults: 500 }).then(r => r.data || []),
       client.getOpportunities({ maxResults: 500 }).then(r => r.data || []),
     ])
 
     // Preview what would be imported
     const preview = await boondImportService.previewImport(
       resources,
-      candidates,
       opportunities
     )
 
@@ -48,7 +48,6 @@ export async function GET(request: NextRequest) {
       preview,
       totals: {
         resources: resources.length,
-        candidates: candidates.length,
         opportunities: opportunities.length,
       },
       message: 'Apercu de l\'import. Utilisez POST pour executer l\'import.',
@@ -65,6 +64,8 @@ export async function GET(request: NextRequest) {
 }
 
 // POST - Execute import
+// Resources → Consultants + Users
+// Opportunities → Jobs
 export async function POST(request: NextRequest) {
   const session = await getSession()
   if (!session) {
@@ -83,24 +84,20 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json().catch(() => ({}))
     const {
-      entities = ['resources', 'candidates', 'opportunities'],
+      entities = ['resources', 'opportunities'],
       options = {},
     } = body
 
     const importResources = entities.includes('resources')
-    const importCandidates = entities.includes('candidates')
     const importOpportunities = entities.includes('opportunities')
-    const createAllCandidatesAsUsers = options.createAllCandidatesAsUsers || false
+    const createUsersFromResources = options.createUsersFromResources !== false
 
     const client = createBoondClient(environment)
 
     // Fetch data from BoondManager based on options
-    const [resources, candidates, opportunities] = await Promise.all([
+    const [resources, opportunities] = await Promise.all([
       importResources
         ? client.getResources({ maxResults: 500 }).then(r => r.data || [])
-        : Promise.resolve([]),
-      importCandidates
-        ? client.getCandidates({ maxResults: 500 }).then(r => r.data || [])
         : Promise.resolve([]),
       importOpportunities
         ? client.getOpportunities({ maxResults: 500 }).then(r => r.data || [])
@@ -110,9 +107,8 @@ export async function POST(request: NextRequest) {
     // Execute import
     const result = await boondImportService.importAll(
       resources,
-      candidates,
       opportunities,
-      { createAllCandidatesAsUsers }
+      { createUsersFromResources }
     )
 
     return NextResponse.json({

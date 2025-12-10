@@ -2,21 +2,18 @@
  * BoondManager Data Import Service
  *
  * Maps BoondManager entities to site collections:
- * - Resources → Consultants + Users (consultant_cdi/freelance)
- * - Candidates → Candidates + Users (candidat, or consultant on embauche)
- * - Opportunities → Jobs
+ * - Resources → Consultants (public profiles) + Users (consultant_cdi/freelance login)
+ * - Opportunities → Jobs (public job listings)
+ *
+ * Note: Candidates stay in BoondManager recruitment pipeline.
+ * When a candidate is hired (state=6), they become a Resource in BoondManager.
  */
 
 import { connectToDatabase } from '@/lib/mongodb'
 import { ObjectId } from 'mongodb'
 import {
   BoondResource,
-  BoondCandidate,
   BoondOpportunity,
-  BoondCompany,
-  RESOURCE_STATES,
-  CANDIDATE_STATES,
-  OPPORTUNITY_STATES,
 } from './boondmanager-client'
 import { RoleType } from './roles'
 
@@ -154,39 +151,33 @@ export function mapResourceToConsultant(resource: BoondResource): Partial<SiteCo
 }
 
 /**
- * Map BoondManager Candidate to Site structure
- * Returns user role based on candidate state
+ * Map BoondManager Resource to Site User
+ * Resources are hired consultants who need login access
  */
-export function mapCandidateToUser(candidate: BoondCandidate): {
-  user: Partial<SiteUser>
-  isHired: boolean
-  candidateState: string
-} {
-  const attrs = candidate.attributes
+export function mapResourceToUser(resource: BoondResource): Partial<SiteUser> {
+  const attrs = resource.attributes
   const name = `${attrs.firstName || ''} ${attrs.lastName || ''}`.trim()
   const state = attrs.state ?? 0
 
-  // State 6 = Embauche (Hired)
-  const isHired = state === 6
-
-  // Determine role based on state
-  let role: RoleType = 'candidat'
-  if (isHired) {
-    // Default to freelance, could be consultant_cdi based on contract type
-    role = 'freelance'
+  // Determine role based on resource type/contract
+  // State 1 = Disponible, State 2 = En mission (active consultants)
+  // Default to freelance, could be consultant_cdi based on contract type field
+  const contractType = (attrs as Record<string, unknown>).typeContract as string | undefined
+  let role: RoleType = 'freelance'
+  if (contractType?.toLowerCase().includes('cdi')) {
+    role = 'consultant_cdi'
   }
 
+  // Active if state is 1 (Disponible) or 2 (En mission)
+  const active = state === 1 || state === 2
+
   return {
-    user: {
-      boondManagerId: candidate.id,
-      email: attrs.email || `candidate_${candidate.id}@ebmc-import.temp`,
-      name,
-      role,
-      active: isHired,
-      updatedAt: new Date(),
-    },
-    isHired,
-    candidateState: CANDIDATE_STATES[state] || 'Inconnu',
+    boondManagerId: resource.id,
+    email: attrs.email || `resource_${resource.id}@ebmc-import.temp`,
+    name,
+    role,
+    active,
+    updatedAt: new Date(),
   }
 }
 
@@ -304,13 +295,13 @@ export class BoondImportService {
   }
 
   /**
-   * Import Candidates to Users collection
-   * Only imports hired candidates (state = 6) as users
+   * Import Resources to Users collection
+   * Resources are hired consultants who need login access
    */
-  async importCandidates(candidates: BoondCandidate[], createAllAsUsers = false): Promise<ImportResult> {
+  async importResourcesAsUsers(resources: BoondResource[]): Promise<ImportResult> {
     const result: ImportResult = {
-      entity: 'candidates → users',
-      total: candidates.length,
+      entity: 'resources → users',
+      total: resources.length,
       created: 0,
       updated: 0,
       skipped: 0,
@@ -320,12 +311,12 @@ export class BoondImportService {
     const db = await connectToDatabase()
     const collection = db.collection('users')
 
-    for (const candidate of candidates) {
+    for (const resource of resources) {
       try {
-        const { user, isHired, candidateState } = mapCandidateToUser(candidate)
+        const userData = mapResourceToUser(resource)
 
-        // Skip non-hired candidates unless createAllAsUsers is true
-        if (!isHired && !createAllAsUsers) {
+        // Skip resources without email (can't create user account)
+        if (!userData.email || userData.email.includes('@ebmc-import.temp')) {
           result.skipped++
           continue
         }
@@ -333,30 +324,29 @@ export class BoondImportService {
         // Check if already exists by boondManagerId or email
         const existing = await collection.findOne({
           $or: [
-            { boondManagerId: candidate.id },
-            { email: user.email }
+            { boondManagerId: resource.id },
+            { email: userData.email }
           ]
         })
 
         if (existing) {
           // Update existing (don't overwrite password)
-          const { ...updateData } = user
           await collection.updateOne(
             { _id: existing._id },
-            { $set: updateData }
+            { $set: userData }
           )
           result.updated++
         } else {
           // Create new user without password (will need to be set manually or via SSO)
           await collection.insertOne({
-            ...user,
+            ...userData,
             password: null, // No password - use BoondManager SSO
             createdAt: new Date(),
           } as unknown as SiteUser)
           result.created++
         }
       } catch (error) {
-        result.errors.push(`Candidate ${candidate.id}: ${error instanceof Error ? error.message : 'Erreur inconnue'}`)
+        result.errors.push(`Resource ${resource.id}: ${error instanceof Error ? error.message : 'Erreur inconnue'}`)
       }
     }
 
@@ -411,32 +401,31 @@ export class BoondImportService {
 
   /**
    * Import all data from BoondManager
+   * - Resources → Consultants (public profiles)
+   * - Resources → Users (login accounts for consultants)
+   * - Opportunities → Jobs (job listings)
    */
   async importAll(
     resources: BoondResource[],
-    candidates: BoondCandidate[],
     opportunities: BoondOpportunity[],
-    options: { createAllCandidatesAsUsers?: boolean } = {}
+    options: { createUsersFromResources?: boolean } = {}
   ): Promise<ImportSummary> {
     const startedAt = new Date()
     const results: ImportResult[] = []
 
-    // Import resources first
+    // Import resources to consultants
     if (resources.length > 0) {
       const resourceResult = await this.importResources(resources)
       results.push(resourceResult)
+
+      // Also import resources as users if requested
+      if (options.createUsersFromResources !== false) {
+        const userResult = await this.importResourcesAsUsers(resources)
+        results.push(userResult)
+      }
     }
 
-    // Import candidates
-    if (candidates.length > 0) {
-      const candidateResult = await this.importCandidates(
-        candidates,
-        options.createAllCandidatesAsUsers
-      )
-      results.push(candidateResult)
-    }
-
-    // Import opportunities
+    // Import opportunities to jobs
     if (opportunities.length > 0) {
       const opportunityResult = await this.importOpportunities(opportunities)
       results.push(opportunityResult)
@@ -458,10 +447,11 @@ export class BoondImportService {
   /**
    * Preview import without actually importing
    * Returns what would be created/updated
+   * - Resources → Consultants + Users
+   * - Opportunities → Jobs
    */
   async previewImport(
     resources: BoondResource[],
-    candidates: BoondCandidate[],
     opportunities: BoondOpportunity[]
   ): Promise<{
     consultants: { new: number; existing: number }
@@ -470,7 +460,7 @@ export class BoondImportService {
   }> {
     const db = await connectToDatabase()
 
-    // Check resources
+    // Check resources for consultants
     const existingConsultantIds = new Set(
       (await db.collection('consultants')
         .find({ boondManagerId: { $in: resources.map(r => r.id) } })
@@ -479,11 +469,11 @@ export class BoondImportService {
       ).map(c => c.boondManagerId)
     )
 
-    // Check candidates (only hired ones)
-    const hiredCandidates = candidates.filter(c => c.attributes.state === 6)
+    // Check resources for users (only those with valid email)
+    const resourcesWithEmail = resources.filter(r => r.attributes.email)
     const existingUserIds = new Set(
       (await db.collection('users')
-        .find({ boondManagerId: { $in: candidates.map(c => c.id) } })
+        .find({ boondManagerId: { $in: resources.map(r => r.id) } })
         .project({ boondManagerId: 1 })
         .toArray()
       ).map(u => u.boondManagerId)
@@ -504,9 +494,9 @@ export class BoondImportService {
         existing: resources.filter(r => existingConsultantIds.has(r.id)).length,
       },
       users: {
-        new: hiredCandidates.filter(c => !existingUserIds.has(c.id)).length,
-        existing: hiredCandidates.filter(c => existingUserIds.has(c.id)).length,
-        skipped: candidates.length - hiredCandidates.length,
+        new: resourcesWithEmail.filter(r => !existingUserIds.has(r.id)).length,
+        existing: resourcesWithEmail.filter(r => existingUserIds.has(r.id)).length,
+        skipped: resources.length - resourcesWithEmail.length, // Resources without email
       },
       jobs: {
         new: opportunities.filter(o => !existingJobIds.has(o.id)).length,
