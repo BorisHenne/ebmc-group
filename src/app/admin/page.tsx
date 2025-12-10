@@ -522,7 +522,7 @@ export default function AdminDashboard() {
           { href: '/admin/recrutement', icon: Users, label: 'Kanban Recrutement', desc: 'Gérer le pipeline', gradient: 'from-purple-500 to-indigo-500' },
           { href: '/admin/sourceur', icon: Search, label: 'Espace Sourceur', desc: 'Rechercher des talents', gradient: 'from-blue-500 to-cyan-500' },
           { href: '/admin/commercial', icon: Building2, label: 'Espace Commercial', desc: 'Gérer les opportunités', gradient: 'from-green-500 to-emerald-500' },
-          { href: '/admin/consultants', icon: UserCheck, label: 'Consultants', desc: 'Voir les profils', gradient: 'from-amber-500 to-orange-500' },
+          { href: '/admin/ressources', icon: Users, label: 'Ressources', desc: 'Voir les profils', gradient: 'from-amber-500 to-orange-500' },
         ].map((action) => (
           <Link
             key={action.href}

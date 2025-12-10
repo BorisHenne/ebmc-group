@@ -259,13 +259,13 @@ export async function POST(request: NextRequest) {
     const [resourcesResult, candidatesResult, opportunitiesResult] = await Promise.all([
       importResources
         ? fetchAllResources(client)
-        : Promise.resolve({ data: [] as BoondResource[] }),
+        : Promise.resolve({ data: [] } as FetchResult<BoondResource>),
       importCandidates
         ? fetchAllCandidates(client)
-        : Promise.resolve({ data: [] as BoondCandidate[] }),
+        : Promise.resolve({ data: [] } as FetchResult<BoondCandidate>),
       importOpportunities
         ? fetchAllOpportunities(client)
-        : Promise.resolve({ data: [] as BoondOpportunity[] }),
+        : Promise.resolve({ data: [] } as FetchResult<BoondOpportunity>),
     ])
 
     // Collect permission errors
