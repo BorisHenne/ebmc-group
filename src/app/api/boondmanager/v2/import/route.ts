@@ -316,8 +316,20 @@ export async function POST(request: NextRequest) {
     const importCandidates = entities.includes('candidates')
     const importOpportunities = entities.includes('opportunities')
     const createUsersFromResources = options.createUsersFromResources !== false
+    const cleanBeforeImport = options.cleanBeforeImport === true
 
     const client = createBoondClient(environment)
+
+    // If cleanBeforeImport is set, clear the candidates collection first
+    let cleanedCount = 0
+    if (cleanBeforeImport && importCandidates) {
+      console.log('[Import] Cleaning candidates collection before import...')
+      const { connectToDatabase } = await import('@/lib/mongodb')
+      const db = await connectToDatabase()
+      const deleteResult = await db.collection('candidates').deleteMany({})
+      cleanedCount = deleteResult.deletedCount
+      console.log(`[Import] Deleted ${cleanedCount} existing candidates`)
+    }
 
     // Fetch ALL data from BoondManager with pagination (with 403 handling)
     const [resourcesResult, candidatesResult, opportunitiesResult] = await Promise.all([
@@ -353,17 +365,44 @@ export async function POST(request: NextRequest) {
     const candidates = candidatesResult.data
     const opportunities = opportunitiesResult.data
 
-    // Fetch actions for candidates to determine recruitment pipeline state
-    let actionsByCandidate: Map<number, BoondAction[]> = new Map()
-    if (candidates.length > 0 && importCandidates) {
-      console.log(`[Import] Fetching actions for ${candidates.length} candidates...`)
-      const candidateIds = candidates.map(c => c.id)
-      const actionsResult = await fetchActionsForCandidates(client, candidateIds)
-      actionsByCandidate = actionsResult.actionsByCandidate
+    // Fetch dictionary to get candidateStates and candidateTypes labels
+    let candidateStates: Map<number, string> = new Map()
+    let candidateTypes: Map<number, string> = new Map()
 
-      if (actionsResult.permissionError) {
-        permissionErrors.push(actionsResult.permissionError)
-        console.warn('[Import] Could not fetch actions - candidates will use fallback state logic')
+    if (candidates.length > 0 && importCandidates) {
+      console.log(`[Import] Fetching dictionary for state/type labels...`)
+      try {
+        const dictionary = await client.getDictionary()
+        const setting = (dictionary?.data as Record<string, unknown>)?.setting as Record<string, unknown> | undefined
+
+        // Extract candidateStates from dictionary
+        const statesObj = setting?.state as Record<string, unknown> | undefined
+        const candidateStatesArr = statesObj?.candidate as Array<{ id: number | string; value: string }> | undefined
+        if (candidateStatesArr && Array.isArray(candidateStatesArr)) {
+          for (const state of candidateStatesArr) {
+            const id = typeof state.id === 'string' ? parseInt(state.id, 10) : state.id
+            candidateStates.set(id, state.value)
+          }
+          console.log(`[Import] Loaded ${candidateStates.size} candidate states from dictionary`)
+        }
+
+        // Extract candidateTypes from dictionary
+        const typesObj = setting?.typeOf as Record<string, unknown> | undefined
+        const candidateTypesArr = typesObj?.candidate as Array<{ id: number | string; value: string }> | undefined
+        if (candidateTypesArr && Array.isArray(candidateTypesArr)) {
+          for (const type of candidateTypesArr) {
+            const id = typeof type.id === 'string' ? parseInt(type.id, 10) : type.id
+            candidateTypes.set(id, type.value)
+          }
+          console.log(`[Import] Loaded ${candidateTypes.size} candidate types from dictionary`)
+        }
+      } catch (dictError) {
+        console.warn('[Import] Could not fetch dictionary - candidates will use BoondManager stateLabel directly:', dictError)
+        permissionErrors.push({
+          entity: 'dictionary',
+          endpoint: '/api/application/dictionary',
+          message: `Could not fetch dictionary for state labels: ${dictError instanceof Error ? dictError.message : 'Unknown error'}`
+        })
       }
     }
 
@@ -372,15 +411,20 @@ export async function POST(request: NextRequest) {
       resources,
       candidates,
       opportunities,
-      { createUsersFromResources, actionsByCandidate }
+      { createUsersFromResources, candidateStates, candidateTypes }
     )
 
     // Build response with permission errors log
+    let message = cleanedCount > 0
+      ? `Import terminé: ${cleanedCount} supprimés, ${result.totalCreated} créés, ${result.totalUpdated} mis à jour, ${result.totalSkipped} ignorés`
+      : `Import terminé: ${result.totalCreated} créés, ${result.totalUpdated} mis à jour, ${result.totalSkipped} ignorés`
+
     const response: Record<string, unknown> = {
       success: true,
       environment,
       result,
-      message: `Import terminé: ${result.totalCreated} créés, ${result.totalUpdated} mis à jour, ${result.totalSkipped} ignorés`,
+      cleanedCount: cleanBeforeImport ? cleanedCount : undefined,
+      message,
     }
 
     // Add permission errors log if any
@@ -390,7 +434,8 @@ export async function POST(request: NextRequest) {
         errors: permissionErrors,
         message: `${skippedEntities.length} entité(s) ignorée(s) car droits manquants sur BoondManager`,
       }
-      response.message = `${response.message}. ATTENTION: ${skippedEntities.join(', ')} ignoré(s) - droits manquants`
+      message = `${message}. ATTENTION: ${skippedEntities.join(', ')} ignoré(s) - droits manquants`
+      response.message = message
     }
 
     return NextResponse.json(response)
