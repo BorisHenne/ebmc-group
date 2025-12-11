@@ -433,7 +433,7 @@ function parseBoondDate(dateValue: unknown): Date | undefined {
 
 /**
  * Map BoondManager Candidate to Site Candidate
- * Uses the NATIVE state field from BoondManager (not derived from actions)
+ * Simplified version similar to mapResourceToConsultant
  *
  * @param candidate The candidate from BoondManager
  * @param candidateStates Optional map of state ID to label (from dictionary)
@@ -445,124 +445,69 @@ export function mapCandidateToSiteCandidate(
   candidateTypes?: Map<number, string>
 ): Partial<SiteCandidate> {
   const attrs = candidate.attributes
-  const extAttrs = attrs as Record<string, unknown>
 
-  // Debug: Log the candidate data structure to understand what we're receiving
-  console.log(`[Import] Processing candidate ${candidate.id}:`, {
-    firstName: attrs.firstName,
-    lastName: attrs.lastName,
-    state: attrs.state,
-    stateLabel: attrs.stateLabel,
-    creationDate: attrs.creationDate,
-    updateDate: attrs.updateDate,
-  })
+  // Extract names directly like mapResourceToConsultant does
+  const firstName = attrs.firstName || ''
+  const lastName = attrs.lastName || ''
 
-  // Extract names - handle different possible structures
-  // BoondManager may return names in attributes directly or nested
-  let firstName = ''
-  let lastName = ''
+  // Get state directly from BoondManager
+  const state = typeof attrs.state === 'number' ? attrs.state : 0
+  const stateLabel = attrs.stateLabel
+    || (candidateStates ? candidateStates.get(state) : undefined)
+    || getCandidateStateLabelSync(state)
 
-  // Try direct attributes first
-  if (attrs.firstName && typeof attrs.firstName === 'string') {
-    firstName = attrs.firstName.trim()
-  }
-  if (attrs.lastName && typeof attrs.lastName === 'string') {
-    lastName = attrs.lastName.trim()
-  }
-
-  // If names are still empty, try alternative field names
-  if (!firstName) {
-    const altFirstName = safeString((attrs as Record<string, unknown>).firstname)
-      || safeString((attrs as Record<string, unknown>).first_name)
-      || safeString((attrs as Record<string, unknown>).prenom)
-    if (altFirstName) firstName = altFirstName.trim()
-  }
-  if (!lastName) {
-    const altLastName = safeString((attrs as Record<string, unknown>).lastname)
-      || safeString((attrs as Record<string, unknown>).last_name)
-      || safeString((attrs as Record<string, unknown>).nom)
-    if (altLastName) lastName = altLastName.trim()
-  }
-
-  // Determine recruitment state
-  // First, use the state directly from BoondManager if available
-  let state: number = 0
-  let stateLabel: string = 'A traiter'
-
-  // BoondManager returns state as a number (0-8 typically)
-  // Use the NATIVE state field from BoondManager directly
-  if (typeof attrs.state === 'number') {
-    state = attrs.state
-    // Use stateLabel from BoondManager if provided, otherwise look it up
-    if (attrs.stateLabel && typeof attrs.stateLabel === 'string') {
-      stateLabel = attrs.stateLabel
-    } else if (candidateStates) {
-      stateLabel = candidateStates.get(state) || getCandidateStateLabelSync(state)
-    } else {
-      stateLabel = getCandidateStateLabelSync(state)
-    }
-  }
-
-  // Extract typeOf from candidate
-  const typeOf = attrs.typeOf as number | undefined
+  // Get typeOf
+  const typeOf = typeof attrs.typeOf === 'number' ? attrs.typeOf : undefined
   const typeOfLabel = typeOf !== undefined && candidateTypes
     ? candidateTypes.get(typeOf)
     : undefined
 
-  // Extract skills from custom fields if available
-  const rawSkills = extAttrs.skills as string[] | string | undefined
+  // Extract skills
+  const rawSkills = (attrs as Record<string, unknown>).skills as string[] | string | undefined
   const skills: string[] = Array.isArray(rawSkills)
     ? rawSkills
     : typeof rawSkills === 'string'
       ? rawSkills.split(',').map(s => s.trim()).filter(Boolean)
       : []
 
-  // Parse dates from BoondManager
-  // BoondManager uses creationDate and updateDate fields
-  const createdAt = parseBoondDate(attrs.creationDate)
-  const updatedAt = parseBoondDate(attrs.updateDate) || new Date()
-
-  const result: Partial<SiteCandidate> = {
+  // Build result object - simple and direct like mapResourceToConsultant
+  return {
     boondManagerId: candidate.id,
     firstName,
     lastName,
-    email: safeString(attrs.email),
-    phone: safeString(attrs.phone1),
-    phone2: safeString(attrs.phone2),
+    email: attrs.email || undefined,
+    phone: attrs.phone1 || undefined,
+    phone2: attrs.phone2 || undefined,
+    title: attrs.title || undefined,
     civility: typeof attrs.civility === 'number' ? attrs.civility : undefined,
-    title: safeString(attrs.title),
-    thumbnail: safeString(attrs.thumbnail),
-    linkedInUrl: safeString(attrs.linkedInUrl),
-    dateOfBirth: safeString(attrs.dateOfBirth),
-    nationality: safeString(attrs.nationality),
-    // State
+    thumbnail: attrs.thumbnail || undefined,
+    linkedInUrl: attrs.linkedInUrl || undefined,
+    dateOfBirth: attrs.dateOfBirth || undefined,
+    nationality: attrs.nationality || undefined,
     state,
     stateLabel,
     typeOf,
     typeOfLabel,
-    // Location
-    location: safeString(attrs.town) || safeString(attrs.country),
-    address: safeString(attrs.address),
-    postcode: safeString(attrs.postcode),
-    town: safeString(attrs.town),
-    country: safeString(attrs.country),
-    mobilityArea: safeString(attrs.mobilityArea),
-    // Experience & Skills
+    location: attrs.town || attrs.country || undefined,
+    address: attrs.address || undefined,
+    postcode: attrs.postcode || undefined,
+    town: attrs.town || undefined,
+    country: attrs.country || undefined,
+    mobilityArea: attrs.mobilityArea || undefined,
+    availabilityDate: attrs.availabilityDate || undefined,
+    minimumSalary: typeof attrs.minimumSalary === 'number' ? attrs.minimumSalary : undefined,
+    maximumSalary: typeof attrs.maximumSalary === 'number' ? attrs.maximumSalary : undefined,
     skills,
+    experienceYears: typeof attrs.experienceYears === 'number' ? attrs.experienceYears : undefined,
     experience: attrs.experienceYears ? `${attrs.experienceYears} ans` : undefined,
-    source: safeString((attrs as Record<string, unknown>).source),
-    notes: safeString((attrs as Record<string, unknown>).notes),
-    updatedAt,
+    expertise1: typeof attrs.expertise1 === 'number' ? attrs.expertise1 : undefined,
+    expertise2: typeof attrs.expertise2 === 'number' ? attrs.expertise2 : undefined,
+    expertise3: typeof attrs.expertise3 === 'number' ? attrs.expertise3 : undefined,
+    source: attrs.source as string || undefined,
+    origin: attrs.origin as string || undefined,
+    lastActivityDate: attrs.lastActivityDate || undefined,
+    updatedAt: new Date(),
   }
-
-  // Only set createdAt if we have a valid date from BoondManager
-  if (createdAt) {
-    (result as Record<string, unknown>).createdAt = createdAt
-  }
-
-  console.log(`[Import] Mapped candidate ${candidate.id} -> firstName: "${firstName}", lastName: "${lastName}", state: ${state} (${stateLabel})`)
-
-  return result
 }
 
 /**
@@ -740,10 +685,7 @@ export class BoondImportService {
 
   /**
    * Import Candidates to Candidates collection
-   * Syncs the recruitment pipeline from BoondManager
-   * @param candidates Array of candidates from BoondManager
-   * @param candidateStates Optional map of state ID to label (from dictionary)
-   * @param candidateTypes Optional map of typeOf ID to label (from dictionary) for étapes
+   * Simplified version similar to importResources
    */
   async importCandidates(
     candidates: BoondCandidate[],
@@ -764,44 +706,24 @@ export class BoondImportService {
 
     for (const candidate of candidates) {
       try {
-        // Map candidate using dictionary for state labels
         const candidateData = mapCandidateToSiteCandidate(candidate, candidateStates, candidateTypes)
 
         // Check if already exists by boondManagerId
         const existing = await collection.findOne({ boondManagerId: candidate.id })
 
         if (existing) {
-          // Update existing - don't overwrite empty values with existing data
-          // and never overwrite createdAt
-          const updateData = { ...candidateData }
-
-          // Don't overwrite existing names with empty strings
-          if (!updateData.firstName && existing.firstName) {
-            delete updateData.firstName
-          }
-          if (!updateData.lastName && existing.lastName) {
-            delete updateData.lastName
-          }
-
-          // Remove createdAt from update - we should never overwrite it
-          delete (updateData as Record<string, unknown>).createdAt
-
+          // Update existing
           await collection.updateOne(
             { _id: existing._id },
-            { $set: updateData }
+            { $set: candidateData }
           )
           result.updated++
         } else {
-          // Create new - use createdAt from BoondManager or fallback to now
-          const createData = {
+          // Create new - same pattern as importResources
+          await collection.insertOne({
             ...candidateData,
-          }
-          // If no createdAt from BoondManager, use current date
-          if (!(createData as Record<string, unknown>).createdAt) {
-            (createData as Record<string, unknown>).createdAt = new Date()
-          }
-
-          await collection.insertOne(createData as SiteCandidate)
+            createdAt: new Date(),
+          } as SiteCandidate)
           result.created++
         }
       } catch (error) {
