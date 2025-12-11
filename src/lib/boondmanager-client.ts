@@ -686,7 +686,9 @@ export class BoondManagerClient {
     const searchParams = new URLSearchParams()
     if (params?.page) searchParams.set('page', params.page.toString())
     if (params?.maxResults) searchParams.set('maxResults', params.maxResults.toString())
-    if (params?.keywords) searchParams.set('keywords', params.keywords)
+    // BoondManager search endpoint often requires keywords to return results
+    // Use '*' as wildcard to get all candidates
+    searchParams.set('keywords', params?.keywords || '*')
     if (params?.state !== undefined) searchParams.set('state', params.state.toString())
     if (params?.mainManager) searchParams.set('mainManager', params.mainManager.toString())
     // BoondManager API often requires perimeter settings to return all data
