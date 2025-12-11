@@ -75,13 +75,42 @@ async function fetchAllCandidates(client: BoondManagerClient): Promise<FetchResu
     while (hasMore) {
       const response = await client.getCandidates({ page, maxResults: PAGE_SIZE })
       const data = response.data || []
-      allData.push(...data)
+
+      // VALIDATION: Ensure data is an array of objects
+      if (!Array.isArray(data)) {
+        console.error('[Fetch] candidates response.data is not an array:', typeof data)
+        throw new Error(`Invalid candidates response: data is ${typeof data}, expected array`)
+      }
+
+      // Filter out any invalid entries and log them
+      const validCandidates = data.filter((item, index) => {
+        if (!item || typeof item !== 'object') {
+          console.error(`[Fetch] Invalid candidate at index ${index}:`, typeof item, item)
+          return false
+        }
+        if (typeof item.id !== 'number') {
+          console.error(`[Fetch] Candidate at index ${index} has invalid id:`, item.id)
+          return false
+        }
+        if (!item.attributes || typeof item.attributes !== 'object') {
+          console.error(`[Fetch] Candidate ${item.id} has invalid attributes:`, item.attributes)
+          return false
+        }
+        return true
+      })
+
+      if (validCandidates.length !== data.length) {
+        console.warn(`[Fetch] Filtered out ${data.length - validCandidates.length} invalid candidates on page ${page}`)
+      }
+
+      allData.push(...validCandidates)
 
       const total = response.meta?.totals?.rows || 0
       hasMore = allData.length < total && data.length === PAGE_SIZE
       page++
     }
 
+    console.log(`[Fetch] Retrieved ${allData.length} valid candidates`)
     return { data: allData }
   } catch (error) {
     if (error instanceof BoondPermissionError) {
