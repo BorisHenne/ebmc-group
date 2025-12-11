@@ -74,93 +74,80 @@ async function fetchAllCandidates(client: BoondManagerClient): Promise<FetchResu
 
     console.log(`[Import] Starting candidates fetch with PAGE_SIZE=${PAGE_SIZE}`)
 
+    // First, get the list of candidate IDs
+    const candidateIds: number[] = []
+
     while (hasMore) {
-      console.log(`[Import] Fetching candidates page ${page}...`)
+      console.log(`[Import] Fetching candidates list page ${page}...`)
       const response = await client.getCandidates({ page, maxResults: PAGE_SIZE })
       const data = response.data || []
       const total = response.meta?.totals?.rows || 0
 
-      console.log(`[Import] Page ${page} response:`, {
-        dataLength: data.length,
-        totalFromMeta: total,
-        dataType: typeof response.data,
-        isArray: Array.isArray(response.data),
-        metaKeys: response.meta ? Object.keys(response.meta) : 'no meta',
-      })
+      console.log(`[Import] Page ${page}: got ${data.length} candidates, total: ${total}`)
 
-      // VALIDATION: Log and validate the response structure
-      if (page === 1) {
-        if (data.length > 0) {
-          const first = data[0]
-          console.log(`[Import] First candidate FULL structure:`, JSON.stringify(first, null, 2).substring(0, 1500))
-          console.log(`[Import] First candidate analysis:`, {
-            type: typeof first,
-            isArray: Array.isArray(first),
-            hasId: 'id' in (first || {}),
-            hasAttributes: 'attributes' in (first || {}),
-            hasType: 'type' in (first || {}),
-            topLevelKeys: first ? Object.keys(first) : 'N/A',
-            id: (first as BoondCandidate)?.id,
-            idType: typeof (first as BoondCandidate)?.id,
-            attributesType: typeof (first as BoondCandidate)?.attributes,
-            attributesIsObject: (first as BoondCandidate)?.attributes && typeof (first as BoondCandidate)?.attributes === 'object',
-            attributesKeys: (first as BoondCandidate)?.attributes ? Object.keys((first as BoondCandidate).attributes) : 'N/A',
-            firstName: (first as BoondCandidate)?.attributes?.firstName,
-            firstNameType: typeof (first as BoondCandidate)?.attributes?.firstName,
-            lastName: (first as BoondCandidate)?.attributes?.lastName,
-            lastNameType: typeof (first as BoondCandidate)?.attributes?.lastName,
-            state: (first as BoondCandidate)?.attributes?.state,
-          })
-
-          // Log second and third candidate too for comparison
-          if (data.length > 1) {
-            const second = data[1] as BoondCandidate
-            console.log(`[Import] Second candidate:`, {
-              id: second?.id,
-              firstName: second?.attributes?.firstName,
-              lastName: second?.attributes?.lastName,
-            })
-          }
-          if (data.length > 2) {
-            const third = data[2] as BoondCandidate
-            console.log(`[Import] Third candidate:`, {
-              id: third?.id,
-              firstName: third?.attributes?.firstName,
-              lastName: third?.attributes?.lastName,
-            })
-          }
-        } else {
-          console.log(`[Import] Page 1 returned 0 candidates. Total from meta: ${total}`)
-          // If meta says there are candidates but data is empty, there might be a permission issue
-          if (total > 0) {
-            console.warn(`[Import] WARNING: meta.totals.rows=${total} but data is empty - possible permission issue`)
+      // Extract IDs from the list response
+      for (const item of data) {
+        if (item && typeof item === 'object') {
+          const id = typeof item.id === 'string' ? parseInt(item.id, 10) : item.id
+          if (typeof id === 'number' && !isNaN(id)) {
+            candidateIds.push(id)
           }
         }
       }
 
-      // Filter out any non-object items (safety check)
-      // Note: BoondManager API returns IDs as strings OR numbers
-      const validData = data.filter((item): item is BoondCandidate => {
-        const hasValidId = item?.id !== undefined && item?.id !== null && (typeof item.id === 'number' || typeof item.id === 'string')
-        const isValid = item && typeof item === 'object' && hasValidId && item.attributes && typeof item.attributes === 'object'
-        if (!isValid) {
-          console.warn(`[Import] Invalid candidate data filtered out:`, typeof item, item)
-        }
-        return isValid
-      })
-
-      if (validData.length !== data.length) {
-        console.warn(`[Import] Page ${page}: Filtered ${data.length - validData.length} invalid items from ${data.length} total`)
-      }
-
-      allData.push(...validData)
-
-      hasMore = allData.length < total && data.length === PAGE_SIZE
-      console.log(`[Import] Page ${page} done. Total so far: ${allData.length}/${total}. hasMore: ${hasMore}`)
+      hasMore = candidateIds.length < total && data.length === PAGE_SIZE
       page++
     }
 
-    console.log(`[Import] Candidates fetch complete. Total valid candidates: ${allData.length}`)
+    console.log(`[Import] Found ${candidateIds.length} candidate IDs. Now fetching full details...`)
+
+    // Now fetch full details for each candidate using /candidates/{id}/information
+    const BATCH_SIZE = 20 // Fetch 20 at a time to avoid overwhelming the API
+    let processed = 0
+
+    for (let i = 0; i < candidateIds.length; i += BATCH_SIZE) {
+      const batch = candidateIds.slice(i, i + BATCH_SIZE)
+
+      // Fetch details for this batch in parallel
+      const results = await Promise.all(
+        batch.map(async (candidateId) => {
+          try {
+            const response = await client.getCandidateInformation(candidateId)
+            return response.data
+          } catch (error) {
+            console.warn(`[Import] Could not fetch details for candidate ${candidateId}:`, error)
+            return null
+          }
+        })
+      )
+
+      // Add valid results
+      for (const candidate of results) {
+        if (candidate && typeof candidate === 'object' && candidate.attributes) {
+          allData.push(candidate)
+        }
+      }
+
+      processed += batch.length
+      if (processed % 100 === 0 || processed === candidateIds.length) {
+        console.log(`[Import] Fetched details for ${processed}/${candidateIds.length} candidates`)
+      }
+    }
+
+    // Log first candidate for debugging
+    if (allData.length > 0) {
+      const first = allData[0]
+      console.log(`[Import] First candidate with full details:`, {
+        id: first.id,
+        hasAttributes: !!first.attributes,
+        firstName: first.attributes?.firstName,
+        lastName: first.attributes?.lastName,
+        email: first.attributes?.email,
+        state: first.attributes?.state,
+      })
+    }
+
+    console.log(`[Import] Candidates fetch complete. Total with full details: ${allData.length}`)
     return { data: allData }
   } catch (error) {
     console.error(`[Import] Candidates fetch error:`, error)
