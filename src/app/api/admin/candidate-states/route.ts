@@ -5,6 +5,11 @@ import { ObjectId } from 'mongodb'
 import type { CandidateState } from '@/lib/candidate-states'
 import { getCandidateStateColors, getDefaultCandidateStates } from '@/lib/candidate-states'
 
+/**
+ * Candidate States API
+ * Manages recruitment workflow states synced from BoondManager
+ */
+
 // Sync states from BoondManager dictionary to local MongoDB
 async function syncFromBoondManager(): Promise<CandidateState[]> {
   try {
