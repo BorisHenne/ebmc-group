@@ -679,6 +679,9 @@ export class BoondManagerClient {
     state?: number
     mainManager?: number
     sort?: string
+    // Additional search params that might be needed
+    perimeterAgency?: string // 'all', 'mine', specific ID
+    perimeterManager?: string // 'all', 'mine', specific ID
   }): Promise<BoondApiResponse<BoondCandidate[]>> {
     const searchParams = new URLSearchParams()
     if (params?.page) searchParams.set('page', params.page.toString())
@@ -686,9 +689,18 @@ export class BoondManagerClient {
     if (params?.keywords) searchParams.set('keywords', params.keywords)
     if (params?.state !== undefined) searchParams.set('state', params.state.toString())
     if (params?.mainManager) searchParams.set('mainManager', params.mainManager.toString())
-    searchParams.set('sort', params?.sort || '-updateDate')
+    // BoondManager API often requires perimeter settings to return all data
+    // Without these, it may only return candidates assigned to the current user
+    searchParams.set('perimeterAgency', params?.perimeterAgency || 'all')
+    searchParams.set('perimeterManager', params?.perimeterManager || 'all')
+    if (params?.sort) {
+      searchParams.set('sort', params.sort)
+    }
 
-    return this.fetch(`/candidates?${searchParams.toString()}`)
+    console.log(`[BoondManager] getCandidates params:`, Object.fromEntries(searchParams.entries()))
+    const result = await this.fetch<BoondApiResponse<BoondCandidate[]>>(`/candidates?${searchParams.toString()}`)
+    console.log(`[BoondManager] getCandidates response: ${result.data?.length || 0} candidates, total: ${result.meta?.totals?.rows || 'unknown'}`)
+    return result
   }
 
   async getCandidate(id: number): Promise<BoondApiResponse<BoondCandidate>> {

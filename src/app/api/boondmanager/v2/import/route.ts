@@ -72,13 +72,24 @@ async function fetchAllCandidates(client: BoondManagerClient): Promise<FetchResu
     let page = 1
     let hasMore = true
 
+    console.log(`[Import] Starting candidates fetch with PAGE_SIZE=${PAGE_SIZE}`)
+
     while (hasMore) {
+      console.log(`[Import] Fetching candidates page ${page}...`)
       const response = await client.getCandidates({ page, maxResults: PAGE_SIZE })
       const data = response.data || []
+      const total = response.meta?.totals?.rows || 0
+
+      console.log(`[Import] Page ${page} response:`, {
+        dataLength: data.length,
+        totalFromMeta: total,
+        dataType: typeof response.data,
+        isArray: Array.isArray(response.data),
+        metaKeys: response.meta ? Object.keys(response.meta) : 'no meta',
+      })
 
       // VALIDATION: Log and validate the response structure
       if (page === 1) {
-        console.log(`[Import] First page response type:`, typeof response.data, Array.isArray(response.data))
         if (data.length > 0) {
           const first = data[0]
           console.log(`[Import] First candidate structure:`, {
@@ -87,7 +98,15 @@ async function fetchAllCandidates(client: BoondManagerClient): Promise<FetchResu
             hasAttributes: 'attributes' in (first || {}),
             id: (first as BoondCandidate)?.id,
             firstName: (first as BoondCandidate)?.attributes?.firstName,
+            lastName: (first as BoondCandidate)?.attributes?.lastName,
+            state: (first as BoondCandidate)?.attributes?.state,
           })
+        } else {
+          console.log(`[Import] Page 1 returned 0 candidates. Total from meta: ${total}`)
+          // If meta says there are candidates but data is empty, there might be a permission issue
+          if (total > 0) {
+            console.warn(`[Import] WARNING: meta.totals.rows=${total} but data is empty - possible permission issue`)
+          }
         }
       }
 
@@ -106,14 +125,15 @@ async function fetchAllCandidates(client: BoondManagerClient): Promise<FetchResu
 
       allData.push(...validData)
 
-      const total = response.meta?.totals?.rows || 0
       hasMore = allData.length < total && data.length === PAGE_SIZE
+      console.log(`[Import] Page ${page} done. Total so far: ${allData.length}/${total}. hasMore: ${hasMore}`)
       page++
     }
 
-    console.log(`[Import] Total valid candidates fetched: ${allData.length}`)
+    console.log(`[Import] Candidates fetch complete. Total valid candidates: ${allData.length}`)
     return { data: allData }
   } catch (error) {
+    console.error(`[Import] Candidates fetch error:`, error)
     if (error instanceof BoondPermissionError) {
       console.warn(`[SKIP] candidates: ${error.message}`)
       return {
