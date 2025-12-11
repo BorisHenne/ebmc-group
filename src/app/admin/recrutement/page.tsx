@@ -184,69 +184,48 @@ export default function RecrutementPage() {
       // Sanitize all candidate data to prevent React rendering errors
       const candidates: SiteCandidate[] = (data.data || []).map((c: Record<string, unknown>) => sanitizeCandidate(c))
 
-      // Store the types from dictionary
-      const types: CandidateType[] = data.types || []
-      setCandidateTypes(types)
+      // Store the states from dictionary (for kanban columns based on state)
+      const states: CandidateType[] = data.states || []
+      setCandidateTypes(states)
 
-      // Build board columns
+      // Build board columns based on candidate STATES (not typeOf)
       let boardColumns: KanbanColumn[] = []
 
-      // First, create column for unassigned candidates (no typeOf)
-      const unassignedCandidates = candidates.filter((c: SiteCandidate) => c.typeOf === undefined || c.typeOf === null)
-      if (unassignedCandidates.length > 0) {
-        const unassignedColorClasses = {
-          lightBg: 'bg-slate-50',
-          darkBg: 'dark:bg-slate-800/50',
-          lightBorder: 'border-slate-300',
-          darkBorder: 'dark:border-slate-600',
-          headerBg: 'from-slate-100 to-slate-50 dark:from-slate-700 dark:to-slate-800'
-        }
-        boardColumns.push({
-          id: -1,  // Special ID for unassigned
-          name: 'Non attribue',
-          color: '#64748b',
-          ...unassignedColorClasses,
-          candidates: unassignedCandidates
-        })
-      }
-
-      if (types.length > 0) {
-        // Use types from BoondManager dictionary as columns
-        const typeColumns = types.map((type, index) => {
-          const colorClasses = getColorClasses(type.color, index)
+      if (states.length > 0) {
+        // Use candidateStates from BoondManager dictionary as columns
+        const stateColumns = states.map((state, index) => {
+          const colorClasses = getColorClasses(undefined, index)
           return {
-            id: type.id,
-            name: type.value,
-            color: type.color || DEFAULT_COLORS[index % DEFAULT_COLORS.length],
+            id: state.id,
+            name: state.value,
+            color: DEFAULT_COLORS[index % DEFAULT_COLORS.length],
             ...colorClasses,
-            candidates: candidates.filter((c: SiteCandidate) => c.typeOf === type.id)
+            candidates: candidates.filter((c: SiteCandidate) => c.state === state.id)
           }
         })
-        boardColumns = [...boardColumns, ...typeColumns]
+        boardColumns = stateColumns
       } else if (candidates.length > 0) {
-        // Fallback: collect unique typeOf values from candidates and create columns
-        const typeOfValues = new Map<number, { count: number; label: string }>()
+        // Fallback: collect unique state values from candidates and create columns
+        const stateValues = new Map<number, { count: number; label: string }>()
         candidates.forEach((c: SiteCandidate) => {
-          if (c.typeOf !== undefined && c.typeOf !== null) {
-            const current = typeOfValues.get(c.typeOf) || { count: 0, label: c.typeOfLabel || `Type ${c.typeOf}` }
-            current.count++
-            typeOfValues.set(c.typeOf, current)
-          }
+          const current = stateValues.get(c.state) || { count: 0, label: c.stateLabel || `État ${c.state}` }
+          current.count++
+          stateValues.set(c.state, current)
         })
 
-        const typeColumns = Array.from(typeOfValues.entries())
+        const stateColumns = Array.from(stateValues.entries())
           .sort(([a], [b]) => a - b)
-          .map(([typeOf, info], index) => {
+          .map(([stateId, info], index) => {
             const colorClasses = getColorClasses(undefined, index)
             return {
-              id: typeOf,
+              id: stateId,
               name: info.label,
               color: DEFAULT_COLORS[index % DEFAULT_COLORS.length],
               ...colorClasses,
-              candidates: candidates.filter((c: SiteCandidate) => c.typeOf === typeOf)
+              candidates: candidates.filter((c: SiteCandidate) => c.state === stateId)
             }
           })
-        boardColumns = [...boardColumns, ...typeColumns]
+        boardColumns = stateColumns
       }
 
       setColumns(boardColumns)
@@ -299,24 +278,24 @@ export default function RecrutementPage() {
     }
   }
 
-  // Handle drag end - update candidate typeOf (étape)
+  // Handle drag end - update candidate state
   const handleDragEnd = async (result: DropResult) => {
     const { source, destination } = result
 
     // No destination = dropped outside
     if (!destination) return
 
-    const sourceTypeOf = parseInt(source.droppableId)
-    const destTypeOf = parseInt(destination.droppableId)
+    const sourceState = parseInt(source.droppableId)
+    const destState = parseInt(destination.droppableId)
 
     // Same position = no change
-    if (sourceTypeOf === destTypeOf && source.index === destination.index) {
+    if (sourceState === destState && source.index === destination.index) {
       return
     }
 
     // Find source and destination columns
-    const sourceColIndex = columns.findIndex((col: KanbanColumn) => col.id === sourceTypeOf)
-    const destColIndex = columns.findIndex((col: KanbanColumn) => col.id === destTypeOf)
+    const sourceColIndex = columns.findIndex((col: KanbanColumn) => col.id === sourceState)
+    const destColIndex = columns.findIndex((col: KanbanColumn) => col.id === destState)
 
     if (sourceColIndex === -1 || destColIndex === -1) return
 
@@ -326,18 +305,18 @@ export default function RecrutementPage() {
     // Optimistic update
     const newColumns = [...columns]
     const sourceCol = { ...newColumns[sourceColIndex], candidates: [...newColumns[sourceColIndex].candidates] }
-    const destCol = sourceTypeOf === destTypeOf
+    const destCol = sourceState === destState
       ? sourceCol
       : { ...newColumns[destColIndex], candidates: [...newColumns[destColIndex].candidates] }
 
     // Remove from source
     const [movedCandidate] = sourceCol.candidates.splice(source.index, 1)
 
-    // Update candidate typeOf (étape)
+    // Update candidate state
     const updatedCandidate: SiteCandidate = {
       ...movedCandidate,
-      typeOf: destTypeOf === -1 ? undefined : destTypeOf,
-      typeOfLabel: destColumn.name,
+      state: destState,
+      stateLabel: destColumn.name,
       updatedAt: new Date().toISOString()
     }
 
@@ -346,13 +325,13 @@ export default function RecrutementPage() {
 
     // Update columns
     newColumns[sourceColIndex] = sourceCol
-    if (sourceTypeOf !== destTypeOf) {
+    if (sourceState !== destState) {
       newColumns[destColIndex] = destCol
     }
 
     setColumns(newColumns)
 
-    // Persist to API (update typeOf)
+    // Persist to API (update state)
     try {
       setUpdating(true)
       const response = await fetch('/api/site/candidates', {
@@ -361,7 +340,7 @@ export default function RecrutementPage() {
         credentials: 'include',
         body: JSON.stringify({
           id: movedCandidate.id || movedCandidate._id,
-          typeOf: destTypeOf === -1 ? null : destTypeOf,
+          state: destState,
         }),
       })
 

@@ -16,7 +16,9 @@ import {
   Loader2,
   RefreshCw,
   Check,
-  Palette
+  Palette,
+  Cloud,
+  CloudDownload
 } from 'lucide-react'
 
 interface CandidateState {
@@ -41,7 +43,9 @@ export default function CandidateStatesPage() {
   const [colors, setColors] = useState<Record<number, ColorOption>>({})
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [syncing, setSyncing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [editingState, setEditingState] = useState<CandidateState | null>(null)
   const [isCreating, setIsCreating] = useState(false)
   const [hasOrderChanges, setHasOrderChanges] = useState(false)
@@ -74,6 +78,25 @@ export default function CandidateStatesPage() {
   useEffect(() => {
     fetchStates()
   }, [fetchStates])
+
+  const syncFromBoond = async () => {
+    try {
+      setSyncing(true)
+      setError(null)
+      setSuccessMessage(null)
+      const res = await fetch('/api/admin/candidate-states?sync=true')
+      if (!res.ok) throw new Error('Erreur lors de la synchronisation')
+      const data = await res.json()
+      setStates(data.states || [])
+      setColors(data.colors || {})
+      setSuccessMessage(`Synchronisation réussie - ${data.states?.length || 0} états chargés depuis BoondManager`)
+      setTimeout(() => setSuccessMessage(null), 5000)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur inconnue')
+    } finally {
+      setSyncing(false)
+    }
+  }
 
   const handleReorder = (newOrder: CandidateState[]) => {
     setStates(newOrder)
@@ -275,7 +298,15 @@ export default function CandidateStatesPage() {
             </p>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
+          <button
+            onClick={syncFromBoond}
+            disabled={syncing}
+            className="px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-xl font-medium hover:shadow-lg transition flex items-center gap-2 disabled:opacity-50"
+          >
+            {syncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <CloudDownload className="w-4 h-4" />}
+            Sync BoondManager
+          </button>
           <button
             onClick={fetchStates}
             disabled={loading}
@@ -284,15 +315,29 @@ export default function CandidateStatesPage() {
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             Actualiser
           </button>
-          <button
-            onClick={startCreate}
-            className="px-4 py-2 bg-gradient-to-r from-ebmc-turquoise to-cyan-500 text-white rounded-xl font-medium hover:shadow-lg transition flex items-center gap-2"
-          >
-            <Plus className="w-4 h-4" />
-            Nouvel état
-          </button>
         </div>
       </div>
+
+      {/* Success message */}
+      <AnimatePresence>
+        {successMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl flex items-center gap-3"
+          >
+            <Cloud className="w-5 h-5 text-green-500" />
+            <span className="text-green-700 dark:text-green-400">{successMessage}</span>
+            <button
+              onClick={() => setSuccessMessage(null)}
+              className="ml-auto p-1 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg"
+            >
+              <X className="w-4 h-4 text-green-500" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Error message */}
       <AnimatePresence>
@@ -340,141 +385,6 @@ export default function CandidateStatesPage() {
         )}
       </AnimatePresence>
 
-      {/* Create/Edit Form */}
-      <AnimatePresence>
-        {(isCreating || editingState) && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="glass-card p-6"
-          >
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-              {isCreating ? (
-                <>
-                  <Plus className="w-5 h-5" /> Nouvel état
-                </>
-              ) : (
-                <>
-                  <Edit2 className="w-5 h-5" /> Modifier &quot;{editingState?.value}&quot;
-                </>
-              )}
-            </h2>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Nom */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Nom de l&apos;état *
-                </label>
-                <input
-                  type="text"
-                  value={formData.value}
-                  onChange={(e) => setFormData({ ...formData, value: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-200 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-ebmc-turquoise focus:border-transparent"
-                  placeholder="Ex: En attente"
-                />
-              </div>
-
-              {/* Couleur */}
-              <div className="relative">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Couleur
-                </label>
-                <button
-                  type="button"
-                  onClick={() => setShowColorPicker(showColorPicker ? null : 'form')}
-                  className="w-full px-4 py-2 border border-gray-200 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 flex items-center gap-3 hover:border-ebmc-turquoise transition"
-                >
-                  <div
-                    className="w-6 h-6 rounded-lg"
-                    style={getColorStyle(formData.color)}
-                  />
-                  <span className="text-gray-900 dark:text-white">
-                    {colors[formData.color]?.name || 'Gris'}
-                  </span>
-                  <Palette className="w-4 h-4 ml-auto text-gray-400" />
-                </button>
-
-                {/* Color picker dropdown */}
-                <AnimatePresence>
-                  {showColorPicker === 'form' && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      className="absolute z-50 top-full mt-2 left-0 right-0 p-3 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-gray-200 dark:border-slate-600"
-                    >
-                      <div className="grid grid-cols-6 gap-2">
-                        {Object.entries(colors).map(([id, color]) => (
-                          <button
-                            key={id}
-                            onClick={() => {
-                              setFormData({ ...formData, color: parseInt(id) })
-                              setShowColorPicker(null)
-                            }}
-                            className={`w-8 h-8 rounded-lg transition hover:scale-110 ${formData.color === parseInt(id) ? 'ring-2 ring-ebmc-turquoise ring-offset-2 dark:ring-offset-slate-800' : ''}`}
-                            style={{ backgroundColor: color.hex }}
-                            title={color.name}
-                          />
-                        ))}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-
-              {/* Options */}
-              <div className="md:col-span-2 flex flex-wrap gap-4">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formData.isEnabled}
-                    onChange={(e) => setFormData({ ...formData, isEnabled: e.target.checked })}
-                    className="w-4 h-4 rounded border-gray-300 text-ebmc-turquoise focus:ring-ebmc-turquoise"
-                  />
-                  <span className="text-sm text-gray-700 dark:text-gray-300">Activé</span>
-                </label>
-
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formData.isExcludedFromSentState}
-                    onChange={(e) => setFormData({ ...formData, isExcludedFromSentState: e.target.checked })}
-                    className="w-4 h-4 rounded border-gray-300 text-ebmc-turquoise focus:ring-ebmc-turquoise"
-                  />
-                  <span className="text-sm text-gray-700 dark:text-gray-300">
-                    Exclure des états envoyés
-                  </span>
-                </label>
-              </div>
-            </div>
-
-            {/* Actions */}
-            <div className="flex justify-end gap-3 mt-6">
-              <button
-                onClick={cancelEdit}
-                className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-xl transition"
-              >
-                Annuler
-              </button>
-              <button
-                onClick={isCreating ? handleCreate : handleUpdate}
-                disabled={saving || !formData.value.trim()}
-                className="px-4 py-2 bg-gradient-to-r from-ebmc-turquoise to-cyan-500 text-white rounded-xl font-medium hover:shadow-lg transition flex items-center gap-2 disabled:opacity-50"
-              >
-                {saving ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Check className="w-4 h-4" />
-                )}
-                {isCreating ? 'Créer' : 'Enregistrer'}
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       {/* States list */}
       <div className="glass-card overflow-hidden">
         <div className="p-4 border-b border-gray-100 dark:border-slate-700 flex items-center justify-between">
@@ -491,10 +401,12 @@ export default function CandidateStatesPage() {
             <Tags className="w-12 h-12 mx-auto mb-4 opacity-50" />
             <p>Aucun état configuré</p>
             <button
-              onClick={startCreate}
-              className="mt-4 text-ebmc-turquoise hover:underline"
+              onClick={syncFromBoond}
+              disabled={syncing}
+              className="mt-4 text-blue-500 hover:underline flex items-center gap-2 mx-auto"
             >
-              Créer le premier état
+              <CloudDownload className="w-4 h-4" />
+              Synchroniser depuis BoondManager
             </button>
           </div>
         ) : (
@@ -541,29 +453,13 @@ export default function CandidateStatesPage() {
                   </span>
                 </div>
 
-                {/* Actions */}
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => toggleEnabled(state)}
-                    className={`p-2 rounded-lg transition ${state.isEnabled ? 'text-green-500 hover:bg-green-50 dark:hover:bg-green-900/20' : 'text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700'}`}
-                    title={state.isEnabled ? 'Désactiver' : 'Activer'}
-                  >
-                    {state.isEnabled ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                  </button>
-                  <button
-                    onClick={() => startEdit(state)}
-                    className="p-2 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition"
-                    title="Modifier"
-                  >
-                    <Edit2 className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(state)}
-                    className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition"
-                    title="Supprimer"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                {/* Status indicator */}
+                <div className="flex items-center">
+                  {state.isEnabled ? (
+                    <Eye className="w-4 h-4 text-green-500" />
+                  ) : (
+                    <EyeOff className="w-4 h-4 text-gray-400" />
+                  )}
                 </div>
               </Reorder.Item>
             ))}
@@ -573,16 +469,18 @@ export default function CandidateStatesPage() {
 
       {/* Info */}
       <div className="glass-card p-4 flex items-start gap-3">
-        <AlertCircle className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
+        <Cloud className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
         <div className="text-sm text-gray-600 dark:text-gray-300">
           <p className="font-medium text-gray-900 dark:text-white mb-1">
             À propos des états candidats
           </p>
           <ul className="list-disc list-inside space-y-1 text-gray-500 dark:text-gray-400">
-            <li>Ces états sont utilisés dans le Kanban du parcours de recrutement</li>
+            <li><strong>Sync BoondManager</strong> : Récupère les états depuis le dictionnaire BoondManager</li>
+            <li>Ces états correspondent aux statuts dans le parcours de recrutement (Kanban)</li>
             <li>L&apos;ordre détermine l&apos;affichage dans le Kanban (de gauche à droite)</li>
             <li>Les états désactivés ne seront plus proposés lors de la modification d&apos;un candidat</li>
-            <li>Les états &quot;Exclus&quot; ne seront pas envoyés à BoondManager</li>
+            <li>Les états &quot;Exclus&quot; ne seront pas synchronisés vers BoondManager</li>
+            <li>Les modifications locales (couleur, ordre) sont conservées lors de la synchronisation</li>
           </ul>
         </div>
       </div>
