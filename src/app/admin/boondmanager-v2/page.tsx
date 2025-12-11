@@ -205,6 +205,14 @@ export default function BoondManagerV2Page() {
     users: { new: number; existing: number; skipped: number }
     candidates: { new: number; existing: number }
     jobs: { new: number; existing: number }
+    // Totals from BoondManager API
+    totals?: { resources: number; candidates: number; opportunities: number }
+    // Permission errors (403) - entities that couldn't be fetched
+    permissionLog?: {
+      skippedEntities: string[]
+      errors: Array<{ entity: string; endpoint: string; message: string }>
+      message: string
+    }
   } | null>(null)
   const [importResult, setImportResult] = useState<{
     startedAt: string
@@ -262,22 +270,36 @@ export default function BoondManagerV2Page() {
     steps: ImportStep[]
   } | null>(null)
 
-  // Tabs configuration
-  const tabs: { id: TabType; label: string; icon: React.ElementType; color: string; section?: string }[] = [
+  // Tab sections for better organization
+  const tabSections = {
+    overview: { label: 'Vue d\'ensemble', icon: BarChart3 },
+    dataflow: { label: 'Flux de données', icon: RefreshCw },
+    quality: { label: 'Qualité', icon: Sparkles },
+    explorer: { label: 'Explorateur BoondManager', icon: Globe },
+    config: { label: 'Configuration', icon: Bug },
+  }
+
+  // Tabs configuration - reorganized by section
+  const tabs: { id: TabType; label: string; icon: React.ElementType; color: string; section: keyof typeof tabSections }[] = [
+    // Overview
     { id: 'dashboard', label: 'Dashboard', icon: Zap, color: 'from-amber-500 to-orange-500', section: 'overview' },
-    { id: 'dictionary', label: 'Dictionnaire', icon: Book, color: 'from-indigo-500 to-violet-500', section: 'tools' },
-    { id: 'sync', label: 'Synchronisation', icon: RefreshCw, color: 'from-cyan-500 to-blue-500', section: 'tools' },
-    { id: 'import', label: 'Import Site', icon: DatabaseBackup, color: 'from-orange-500 to-red-500', section: 'tools' },
-    { id: 'quality', label: 'Qualite donnees', icon: Sparkles, color: 'from-purple-500 to-pink-500', section: 'tools' },
-    { id: 'export', label: 'Export', icon: Download, color: 'from-green-500 to-emerald-500', section: 'tools' },
-    { id: 'export-sandbox', label: 'Export Sandbox', icon: Upload, color: 'from-amber-500 to-orange-500', section: 'tools' },
-    { id: 'candidates', label: 'Candidats', icon: Users, color: 'from-purple-500 to-pink-500', section: 'data' },
-    { id: 'resources', label: 'Ressources', icon: Briefcase, color: 'from-blue-500 to-indigo-500', section: 'data' },
-    { id: 'opportunities', label: 'Opportunites', icon: Target, color: 'from-green-500 to-emerald-500', section: 'data' },
-    { id: 'companies', label: 'Societes', icon: Building2, color: 'from-cyan-500 to-teal-500', section: 'data' },
-    { id: 'contacts', label: 'Contacts', icon: UserCircle, color: 'from-rose-500 to-pink-500', section: 'data' },
-    { id: 'projects', label: 'Projets', icon: FolderKanban, color: 'from-violet-500 to-purple-500', section: 'data' },
-    { id: 'debug', label: 'Debug Env', icon: Bug, color: 'from-red-500 to-rose-500', section: 'tools' },
+    // Data Flow - Import/Export
+    { id: 'import', label: 'Import Prod → MongoDB', icon: DatabaseBackup, color: 'from-green-500 to-emerald-500', section: 'dataflow' },
+    { id: 'export', label: 'Export JSON/CSV', icon: Download, color: 'from-blue-500 to-indigo-500', section: 'dataflow' },
+    { id: 'export-sandbox', label: 'Export → Sandbox', icon: Upload, color: 'from-amber-500 to-orange-500', section: 'dataflow' },
+    { id: 'sync', label: 'Workflow complet', icon: RefreshCw, color: 'from-cyan-500 to-blue-500', section: 'dataflow' },
+    // Quality - MongoDB based
+    { id: 'quality', label: 'Qualite MongoDB', icon: Sparkles, color: 'from-purple-500 to-pink-500', section: 'quality' },
+    // Explorer - BoondManager data
+    { id: 'candidates', label: 'Candidats', icon: Users, color: 'from-purple-500 to-pink-500', section: 'explorer' },
+    { id: 'resources', label: 'Ressources', icon: Briefcase, color: 'from-blue-500 to-indigo-500', section: 'explorer' },
+    { id: 'opportunities', label: 'Opportunites', icon: Target, color: 'from-green-500 to-emerald-500', section: 'explorer' },
+    { id: 'companies', label: 'Societes', icon: Building2, color: 'from-cyan-500 to-teal-500', section: 'explorer' },
+    { id: 'contacts', label: 'Contacts', icon: UserCircle, color: 'from-rose-500 to-pink-500', section: 'explorer' },
+    { id: 'projects', label: 'Projets', icon: FolderKanban, color: 'from-violet-500 to-purple-500', section: 'explorer' },
+    // Config
+    { id: 'dictionary', label: 'Dictionnaire API', icon: Book, color: 'from-indigo-500 to-violet-500', section: 'config' },
+    { id: 'debug', label: 'Debug Env', icon: Bug, color: 'from-red-500 to-rose-500', section: 'config' },
   ]
 
   const canWrite = environment === 'sandbox'
@@ -387,13 +409,15 @@ export default function BoondManagerV2Page() {
   }
 
   // Analyze data quality
+  // Analyze data quality from MongoDB collections (candidates, consultants, jobs)
   const handleAnalyzeQuality = async () => {
     setAnalyzing(true)
     setError(null)
     setQualityAnalysis(null)
 
     try {
-      const res = await fetch(`/api/boondmanager/v2/quality?env=${environment}&_t=${Date.now()}`, {
+      // Use MongoDB-based quality analysis
+      const res = await fetch(`/api/boondmanager/v2/quality-mongo?_t=${Date.now()}`, {
         credentials: 'include',
         cache: 'no-store'
       })
@@ -494,7 +518,12 @@ export default function BoondManagerV2Page() {
         steps[4].status = 'completed'
         setImportProgress({ percentage: 100, currentAction: 'Aperçu prêt!', steps: [...steps] })
         await new Promise(r => setTimeout(r, 500))
-        setImportPreview(data.preview)
+        // Store preview with totals and permission errors
+        setImportPreview({
+          ...data.preview,
+          totals: data.totals,
+          permissionLog: data.permissionLog,
+        })
       } else {
         steps[4].status = 'error'
         throw new Error(data.error)
@@ -1086,7 +1115,7 @@ export default function BoondManagerV2Page() {
     </div>
   )
 
-  // Render quality tab
+  // Render quality tab - MongoDB based analysis
   const renderQualityTab = () => (
     <div className="space-y-6">
       <div className="glass-card p-6">
@@ -1097,7 +1126,7 @@ export default function BoondManagerV2Page() {
             </div>
             <div>
               <h2 className="text-xl font-bold text-slate-800 dark:text-white">Analyse qualite des donnees</h2>
-              <p className="text-slate-500 dark:text-slate-400">Detecter les problemes et les doublons dans {environment === 'production' ? 'Production' : 'Sandbox'}</p>
+              <p className="text-slate-500 dark:text-slate-400">Detecter les problemes et les doublons dans MongoDB</p>
             </div>
           </div>
           <button
@@ -1117,6 +1146,21 @@ export default function BoondManagerV2Page() {
               </>
             )}
           </button>
+        </div>
+
+        {/* Info about MongoDB analysis */}
+        <div className="mb-6 p-4 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800">
+          <div className="flex items-start gap-3">
+            <Database className="w-5 h-5 text-emerald-600 dark:text-emerald-400 mt-0.5" />
+            <div className="text-sm text-emerald-700 dark:text-emerald-300">
+              <p className="font-medium mb-1">Collections MongoDB analysees</p>
+              <div className="flex flex-wrap gap-2">
+                <span className="px-2 py-0.5 bg-emerald-200 dark:bg-emerald-800 rounded text-xs">candidates</span>
+                <span className="px-2 py-0.5 bg-emerald-200 dark:bg-emerald-800 rounded text-xs">consultants</span>
+                <span className="px-2 py-0.5 bg-emerald-200 dark:bg-emerald-800 rounded text-xs">jobs</span>
+              </div>
+            </div>
+          </div>
         </div>
 
         {qualityAnalysis && (
@@ -1212,9 +1256,9 @@ export default function BoondManagerV2Page() {
                         </code>
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        {group.items.map(item => (
+                        {group.items.map((item: { id: string | number; name?: string; email?: string; attributes?: Record<string, unknown> }) => (
                           <span key={item.id} className="text-xs px-2 py-1 bg-white dark:bg-slate-800 rounded">
-                            #{item.id} - {String(item.attributes.firstName || item.attributes.name || '')} {String(item.attributes.lastName || '')}
+                            #{String(item.id).substring(0, 8)}... - {item.name || (item.attributes?.firstName as string) || (item.attributes?.name as string) || 'N/A'}
                           </span>
                         ))}
                       </div>
@@ -1888,6 +1932,60 @@ export default function BoondManagerV2Page() {
         {/* Preview results */}
         {importPreview && (
           <div className="space-y-4">
+            {/* Totals from BoondManager API */}
+            {importPreview.totals && (
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
+                <div className="flex items-center gap-2 mb-3">
+                  <Globe className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+                  <span className="font-medium text-slate-800 dark:text-white">Donnees recuperees depuis BoondManager Production</span>
+                </div>
+                <div className="flex flex-wrap gap-4 text-sm">
+                  <span className="px-3 py-1 rounded-lg bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
+                    {importPreview.totals.resources} ressources
+                  </span>
+                  <span className="px-3 py-1 rounded-lg bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300">
+                    {importPreview.totals.candidates} candidats
+                  </span>
+                  <span className="px-3 py-1 rounded-lg bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300">
+                    {importPreview.totals.opportunities} opportunites
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Permission errors - entities that couldn't be fetched */}
+            {importPreview.permissionLog && importPreview.permissionLog.errors.length > 0 && (
+              <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="font-medium text-amber-800 dark:text-amber-200 mb-2">
+                      Droits d&apos;acces manquants sur BoondManager
+                    </p>
+                    <p className="text-sm text-amber-700 dark:text-amber-300 mb-3">
+                      {importPreview.permissionLog.message}
+                    </p>
+                    <div className="space-y-2">
+                      {importPreview.permissionLog.errors.map((err, idx) => (
+                        <div key={idx} className="p-3 rounded-lg bg-white dark:bg-slate-800 border border-amber-200 dark:border-amber-700">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="px-2 py-0.5 text-xs font-medium rounded bg-amber-200 dark:bg-amber-800 text-amber-800 dark:text-amber-200">
+                              {err.entity.toUpperCase()}
+                            </span>
+                            <code className="text-xs text-slate-500 dark:text-slate-400">{err.endpoint}</code>
+                          </div>
+                          <p className="text-sm text-slate-600 dark:text-slate-300">{err.message}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-xs text-amber-600 dark:text-amber-400 mt-3">
+                      Pour activer ces entites, demandez les droits d&apos;acces a l&apos;administrateur BoondManager.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <h3 className="font-semibold text-slate-800 dark:text-white">Resultat de la previsualisation</h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -2916,47 +3014,118 @@ export default function BoondManagerV2Page() {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="space-y-2">
-        {/* Tools tabs */}
-        <div className="flex gap-2 overflow-x-auto pb-1">
-          {tabs.filter(t => t.section === 'overview' || t.section === 'tools').map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => {
-                setActiveTab(tab.id)
-                setSearch('')
-              }}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium transition whitespace-nowrap ${
-                activeTab === tab.id
-                  ? `bg-gradient-to-r ${tab.color} text-white shadow-lg`
-                  : 'bg-white/60 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-700'
-              }`}
-            >
-              <tab.icon className="w-4 h-4" />
-              {tab.label}
-            </button>
-          ))}
+      {/* Navigation par sections */}
+      <div className="space-y-4">
+        {/* Section: Vue d'ensemble + Flux de données + Qualité */}
+        <div className="glass-card p-3">
+          <div className="flex flex-wrap gap-2">
+            {/* Overview */}
+            {tabs.filter(t => t.section === 'overview').map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => { setActiveTab(tab.id); setSearch(''); }}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium transition whitespace-nowrap ${
+                  activeTab === tab.id
+                    ? `bg-gradient-to-r ${tab.color} text-white shadow-lg`
+                    : 'bg-white/60 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-700'
+                }`}
+              >
+                <tab.icon className="w-4 h-4" />
+                {tab.label}
+              </button>
+            ))}
+
+            <div className="w-px h-8 bg-slate-200 dark:bg-slate-700 mx-1" />
+
+            {/* Flux de données */}
+            <div className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 font-medium px-2">
+              <DatabaseBackup className="w-3.5 h-3.5" />
+              Flux
+            </div>
+            {tabs.filter(t => t.section === 'dataflow').map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => { setActiveTab(tab.id); setSearch(''); }}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg font-medium transition whitespace-nowrap text-sm ${
+                  activeTab === tab.id
+                    ? `bg-gradient-to-r ${tab.color} text-white shadow-lg`
+                    : 'bg-white/60 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-700'
+                }`}
+              >
+                <tab.icon className="w-3.5 h-3.5" />
+                {tab.label}
+              </button>
+            ))}
+
+            <div className="w-px h-8 bg-slate-200 dark:bg-slate-700 mx-1" />
+
+            {/* Qualité */}
+            {tabs.filter(t => t.section === 'quality').map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => { setActiveTab(tab.id); setSearch(''); }}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg font-medium transition whitespace-nowrap text-sm ${
+                  activeTab === tab.id
+                    ? `bg-gradient-to-r ${tab.color} text-white shadow-lg`
+                    : 'bg-white/60 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-700'
+                }`}
+              >
+                <tab.icon className="w-3.5 h-3.5" />
+                {tab.label}
+              </button>
+            ))}
+
+            <div className="w-px h-8 bg-slate-200 dark:bg-slate-700 mx-1" />
+
+            {/* Config */}
+            <div className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 font-medium px-2">
+              <Bug className="w-3.5 h-3.5" />
+              Config
+            </div>
+            {tabs.filter(t => t.section === 'config').map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => { setActiveTab(tab.id); setSearch(''); }}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg font-medium transition whitespace-nowrap text-sm ${
+                  activeTab === tab.id
+                    ? `bg-gradient-to-r ${tab.color} text-white shadow-lg`
+                    : 'bg-white/60 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-700'
+                }`}
+              >
+                <tab.icon className="w-3.5 h-3.5" />
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
-        {/* Data tabs */}
-        <div className="flex gap-2 overflow-x-auto pb-1">
-          {tabs.filter(t => t.section === 'data').map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => {
-                setActiveTab(tab.id)
-                setSearch('')
-              }}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg font-medium transition whitespace-nowrap text-sm ${
-                activeTab === tab.id
-                  ? `bg-gradient-to-r ${tab.color} text-white shadow-lg`
-                  : 'bg-white/40 dark:bg-slate-800/40 text-slate-500 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-700'
-              }`}
-            >
-              <tab.icon className="w-3.5 h-3.5" />
-              {tab.label}
-            </button>
-          ))}
+
+        {/* Section: Explorateur BoondManager */}
+        <div className="glass-card p-3">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 font-medium px-2">
+              <Globe className="w-4 h-4" />
+              <span>Explorateur BoondManager</span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700">
+                {environment === 'production' ? 'PROD' : 'SANDBOX'}
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {tabs.filter(t => t.section === 'explorer').map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => { setActiveTab(tab.id); setSearch(''); }}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg font-medium transition whitespace-nowrap text-sm ${
+                    activeTab === tab.id
+                      ? `bg-gradient-to-r ${tab.color} text-white shadow-lg`
+                      : 'bg-white/40 dark:bg-slate-800/40 text-slate-500 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-700'
+                  }`}
+                >
+                  <tab.icon className="w-3.5 h-3.5" />
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 
