@@ -2279,7 +2279,12 @@ export default function BoondManagerV2Page() {
         baseUrl: 'Error',
         tests: [],
         summary: { totalTests: 0, passed: 0, failed: 1, empty: 0 },
-        comparison: { diagnosis: err instanceof Error ? err.message : 'Erreur de connexion' },
+        comparison: {
+          resourcesWork: false,
+          candidatesWork: false,
+          opportunitiesWork: false,
+          diagnosis: err instanceof Error ? err.message : 'Erreur de connexion'
+        },
         recommendations: []
       })
     } finally {
