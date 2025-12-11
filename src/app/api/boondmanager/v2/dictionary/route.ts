@@ -44,13 +44,8 @@ export async function GET(request: NextRequest) {
     const client = createBoondClient(environment)
     const dictionary = await client.getDictionary()
 
-    // Debug: Log the raw dictionary structure
-    console.log('[Dictionary API] Raw response keys:', Object.keys(dictionary || {}))
-    console.log('[Dictionary API] dictionary.data keys:', Object.keys(dictionary?.data || {}))
-
     // BoondManager uses data.setting.* format, not data.attributes.*
     const setting = (dictionary?.data as Record<string, unknown>)?.setting
-    console.log('[Dictionary API] dictionary.data.setting keys:', Object.keys(setting || {}))
 
     // Normalize dictionary structure for frontend
     // BoondManager API returns: { data: { setting: { state: {...}, typeOf: {...}, ... } } }
@@ -107,25 +102,18 @@ export async function GET(request: NextRequest) {
       if (settingObj.durationUnit) attributes.durationUnits = settingObj.durationUnit
       if (settingObj.activityArea) attributes.activityAreas = settingObj.activityArea
       if (settingObj.tool) attributes.tools = settingObj.tool
-
-      // If we found data in setting, use it
-      console.log('[Dictionary API] Mapped from setting, attributes keys:', Object.keys(attributes))
     }
     // Fallback: try data.attributes (JSON:API standard)
     else if (dictionary?.data?.attributes) {
       attributes = dictionary.data.attributes
-      console.log('[Dictionary API] Using data.attributes format')
     }
     // Fallback: try direct format
     else if (dictionary && typeof dictionary === 'object') {
       const dictKeys = Object.keys(dictionary)
       if (dictKeys.some(k => k.includes('States') || k.includes('Types') || k.includes('setting'))) {
         attributes = dictionary as unknown as Record<string, unknown>
-        console.log('[Dictionary API] Using direct format')
       }
     }
-
-    console.log('[Dictionary API] Final attributes keys:', Object.keys(attributes))
 
     // Update cache with normalized attributes
     cachedDictionary = {
