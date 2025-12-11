@@ -13,15 +13,10 @@ import {
   Mail,
   Phone,
   Calendar,
-  MoreVertical,
   ChevronLeft,
   Briefcase,
   Clock,
-  MapPin,
-  CheckCircle,
-  XCircle,
-  Archive,
-  Wrench
+  MapPin
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -154,6 +149,9 @@ function sanitizeCandidate(candidate: Record<string, unknown>): SiteCandidate {
   }
 }
 
+// Maximum candidates to show per column before requiring "Show more"
+const MAX_CANDIDATES_PER_COLUMN = 20
+
 export default function RecrutementPage() {
   const [columns, setColumns] = useState<KanbanColumn[]>([])
   const [candidateTypes, setCandidateTypes] = useState<CandidateType[]>([])
@@ -163,8 +161,7 @@ export default function RecrutementPage() {
   const [selectedCandidate, setSelectedCandidate] = useState<SiteCandidate | null>(null)
   const [updating, setUpdating] = useState(false)
   const [showArchived, setShowArchived] = useState(false)
-  const [fixingStates, setFixingStates] = useState(false)
-  const [fixResult, setFixResult] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
+  const [expandedColumns, setExpandedColumns] = useState<Set<number>>(new Set())
 
   const fetchCandidates = useCallback(async () => {
     setLoading(true)
@@ -240,43 +237,6 @@ export default function RecrutementPage() {
   useEffect(() => {
     fetchCandidates()
   }, [fetchCandidates])
-
-  // Fix states based on BoondManager Actions (most accurate)
-  const fixCandidateStates = async (useBoondManagerActions = true) => {
-    setFixingStates(true)
-    setFixResult(null)
-
-    try {
-      const response = await fetch('/api/site/candidates', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ dryRun: false, useBoondManagerActions }),
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Erreur lors de la correction')
-      }
-
-      setFixResult({
-        message: `${data.message} (Mode: ${data.mode === 'boondManagerActions' ? 'Actions BoondManager' : 'stateLabel'})`,
-        type: 'success',
-      })
-
-      // Refresh the kanban after fixing states
-      await fetchCandidates()
-    } catch (err) {
-      console.error('Error fixing states:', err)
-      setFixResult({
-        message: err instanceof Error ? err.message : 'Erreur inconnue',
-        type: 'error',
-      })
-    } finally {
-      setFixingStates(false)
-    }
-  }
 
   // Handle drag end - update candidate state
   const handleDragEnd = async (result: DropResult) => {
@@ -384,6 +344,29 @@ export default function RecrutementPage() {
     return `Il y a ${Math.floor(diffDays / 30)} mois`
   }
 
+  // Toggle column expansion
+  const toggleColumnExpanded = (columnId: number) => {
+    setExpandedColumns(prev => {
+      const next = new Set(prev)
+      if (next.has(columnId)) {
+        next.delete(columnId)
+      } else {
+        next.add(columnId)
+      }
+      return next
+    })
+  }
+
+  // Get visible candidates for a column (limited unless expanded)
+  const getVisibleCandidates = (column: KanbanColumn) => {
+    const filtered = filterCandidates(column.candidates)
+    const isExpanded = expandedColumns.has(column.id)
+    if (isExpanded || filtered.length <= MAX_CANDIDATES_PER_COLUMN) {
+      return filtered
+    }
+    return filtered.slice(0, MAX_CANDIDATES_PER_COLUMN)
+  }
+
   // Get total candidates count
   const totalCandidates = columns.reduce((sum: number, col: KanbanColumn) => sum + col.candidates.length, 0)
 
@@ -481,15 +464,6 @@ export default function RecrutementPage() {
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             Actualiser
           </button>
-          <button
-            onClick={() => fixCandidateStates(true)}
-            disabled={fixingStates}
-            title="Synchroniser les états avec les actions BoondManager (entretiens, propositions, etc.)"
-            className="flex items-center gap-2 px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition disabled:opacity-50"
-          >
-            <Wrench className={`w-4 h-4 ${fixingStates ? 'animate-spin' : ''}`} />
-            {fixingStates ? 'Synchronisation...' : 'Sync BoondManager'}
-          </button>
           <Link
             href="/admin/boondmanager-v2"
             className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg hover:shadow-lg transition"
@@ -500,73 +474,52 @@ export default function RecrutementPage() {
         </div>
       </div>
 
-      {/* Fix Result Message */}
-      {fixResult && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className={`mb-4 p-3 rounded-lg flex items-center gap-2 ${
-            fixResult.type === 'success'
-              ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
-              : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
-          }`}
-        >
-          {fixResult.type === 'success' ? (
-            <CheckCircle className="w-5 h-5" />
-          ) : (
-            <AlertCircle className="w-5 h-5" />
-          )}
-          <span>{fixResult.message}</span>
-          <button
-            onClick={() => setFixResult(null)}
-            className="ml-auto text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-          >
-            &times;
-          </button>
-        </motion.div>
-      )}
-
-      {/* Stats Row */}
-      <div className={`grid gap-4 mb-6 ${showArchived ? 'grid-cols-9' : 'grid-cols-8'}`}>
-        {visibleColumns.map(col => (
-          <motion.div
-            key={col.id}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className={`rounded-xl p-3 shadow-sm border-l-4 ${col.lightBg} ${col.darkBg} border ${col.lightBorder} ${col.darkBorder}`}
-            style={{ borderLeftColor: col.color }}
-          >
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs font-medium text-gray-600 dark:text-gray-300 truncate">{col.name}</span>
-            </div>
-            <p className="text-xl font-bold" style={{ color: col.color }}>{col.candidates.length}</p>
-          </motion.div>
-        ))}
+      {/* Stats Row - Horizontal scroll */}
+      <div className="overflow-x-auto pb-2 mb-4">
+        <div className="flex gap-3 min-w-max">
+          {visibleColumns.map(col => (
+            <motion.div
+              key={col.id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={`w-32 flex-shrink-0 rounded-xl p-3 shadow-sm border-l-4 ${col.lightBg} ${col.darkBg} border ${col.lightBorder} ${col.darkBorder}`}
+              style={{ borderLeftColor: col.color }}
+            >
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-medium text-gray-600 dark:text-gray-300 truncate">{col.name}</span>
+              </div>
+              <p className="text-xl font-bold" style={{ color: col.color }}>{col.candidates.length}</p>
+            </motion.div>
+          ))}
+        </div>
       </div>
 
       {/* Kanban Board */}
       <DragDropContext onDragEnd={handleDragEnd}>
         <div className="flex-1 overflow-x-auto pb-4">
           <div className="flex gap-3 min-w-max h-full">
-            {visibleColumns.map(column => (
+            {visibleColumns.map(column => {
+              const filteredCount = filterCandidates(column.candidates).length
+              const visibleCandidates = getVisibleCandidates(column)
+              const hasMore = filteredCount > visibleCandidates.length
+              const isExpanded = expandedColumns.has(column.id)
+
+              return (
               <div
                 key={column.id}
-                className={`w-72 flex-shrink-0 flex flex-col rounded-xl border-t-4 overflow-hidden ${column.lightBg} ${column.darkBg} ${column.lightBorder} ${column.darkBorder} border`}
+                className={`w-56 flex-shrink-0 flex flex-col rounded-xl border-t-4 overflow-hidden max-h-[calc(100vh-280px)] ${column.lightBg} ${column.darkBg} ${column.lightBorder} ${column.darkBorder} border`}
                 style={{ borderTopColor: column.color }}
               >
                 {/* Column Header */}
-                <div className={`p-3 bg-gradient-to-b ${column.headerBg}`}>
+                <div className={`p-2 bg-gradient-to-b ${column.headerBg}`}>
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      {column.id === 6 && <CheckCircle className="w-4 h-4 text-emerald-500" />}
-                      {column.id === 7 && <XCircle className="w-4 h-4 text-red-500" />}
-                      {column.id === 8 && <Archive className="w-4 h-4 text-slate-500" />}
-                      <h3 className="font-semibold text-gray-900 dark:text-white text-sm">{column.name}</h3>
+                    <div className="flex items-center gap-1.5">
+                      <h3 className="font-semibold text-gray-900 dark:text-white text-xs truncate max-w-[100px]" title={column.name}>{column.name}</h3>
                       <span
-                        className="px-2 py-0.5 rounded-full text-xs font-medium text-white"
+                        className="px-1.5 py-0.5 rounded-full text-xs font-medium text-white"
                         style={{ backgroundColor: column.color }}
                       >
-                        {filterCandidates(column.candidates).length}
+                        {filteredCount}
                       </span>
                     </div>
                   </div>
@@ -578,11 +531,11 @@ export default function RecrutementPage() {
                     <div
                       ref={provided.innerRef}
                       {...provided.droppableProps}
-                      className={`flex-1 p-2 space-y-2 overflow-y-auto min-h-[200px] transition-colors ${
+                      className={`flex-1 p-1.5 space-y-1.5 overflow-y-auto min-h-[100px] transition-colors ${
                         snapshot.isDraggingOver ? 'bg-white/50 dark:bg-white/5' : ''
                       }`}
                     >
-                      {filterCandidates(column.candidates).map((candidate, index) => (
+                      {visibleCandidates.map((candidate, index) => (
                         <Draggable
                           key={candidate.id || candidate._id}
                           draggableId={candidate.id || candidate._id || `candidate-${index}`}
@@ -593,69 +546,52 @@ export default function RecrutementPage() {
                               ref={provided.innerRef}
                               {...provided.draggableProps}
                               {...provided.dragHandleProps}
-                              className={`bg-white dark:bg-slate-800 rounded-lg p-3 shadow-sm border border-gray-100 dark:border-slate-700 cursor-grab active:cursor-grabbing hover:shadow-md transition-all ${
+                              className={`bg-white dark:bg-slate-800 rounded-lg p-2 shadow-sm border border-gray-100 dark:border-slate-700 cursor-grab active:cursor-grabbing hover:shadow-md transition-all ${
                                 snapshot.isDragging ? 'shadow-lg ring-2 ring-ebmc-turquoise/20 scale-105' : ''
                               }`}
                               onClick={() => setSelectedCandidate(candidate)}
                             >
-                              <div className="flex items-start justify-between mb-2">
-                                <div className="flex items-center gap-2">
-                                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 dark:from-slate-600 dark:to-slate-700 flex items-center justify-center text-gray-600 dark:text-gray-300 text-xs font-medium">
-                                    {candidate.firstName?.[0]}{candidate.lastName?.[0]}
-                                  </div>
-                                  <div>
-                                    <p className="font-medium text-gray-900 dark:text-white text-sm">
-                                      {candidate.firstName} {candidate.lastName}
-                                    </p>
-                                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[150px]">
-                                      {candidate.title || 'Candidat'}
-                                    </p>
-                                  </div>
+                              <div className="flex items-center gap-2">
+                                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 dark:from-slate-600 dark:to-slate-700 flex items-center justify-center text-gray-600 dark:text-gray-300 text-xs font-medium flex-shrink-0">
+                                  {candidate.firstName?.[0]}{candidate.lastName?.[0]}
                                 </div>
-                                <button
-                                  className="p-1 hover:bg-gray-100 dark:hover:bg-slate-600 rounded opacity-0 group-hover:opacity-100 transition"
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                  }}
-                                >
-                                  <MoreVertical className="w-4 h-4 text-gray-400 dark:text-gray-500" />
-                                </button>
+                                <div className="min-w-0 flex-1">
+                                  <p className="font-medium text-gray-900 dark:text-white text-xs truncate">
+                                    {candidate.firstName} {candidate.lastName}
+                                  </p>
+                                  <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                                    {candidate.title || 'Candidat'}
+                                  </p>
+                                </div>
                               </div>
 
-                              <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 flex-wrap">
-                                <span className="flex items-center gap-1">
-                                  <Clock className="w-3 h-3" />
-                                  {formatRelativeTime(candidate.updatedAt || candidate.createdAt)}
-                                </span>
-                                {candidate.source && (
-                                  <span className="px-1.5 py-0.5 bg-gray-100 dark:bg-slate-700 rounded text-gray-600 dark:text-gray-300 truncate max-w-[80px]">
-                                    {candidate.source}
+                              <div className="flex items-center gap-1 mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                <Clock className="w-3 h-3 flex-shrink-0" />
+                                <span className="truncate">{formatRelativeTime(candidate.updatedAt || candidate.createdAt)}</span>
+                                {candidate.skills && candidate.skills.length > 0 && (
+                                  <span className="px-1 py-0.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded text-xs ml-auto truncate max-w-[50px]">
+                                    {candidate.skills[0]}
                                   </span>
                                 )}
                               </div>
-
-                              {candidate.skills && candidate.skills.length > 0 && (
-                                <div className="mt-2 flex flex-wrap gap-1">
-                                  {candidate.skills.slice(0, 2).map((skill, i) => (
-                                    <span key={i} className="px-1.5 py-0.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded text-xs truncate max-w-[60px]">
-                                      {skill}
-                                    </span>
-                                  ))}
-                                  {candidate.skills.length > 2 && (
-                                    <span className="px-1.5 py-0.5 bg-gray-100 dark:bg-slate-700 text-gray-500 dark:text-gray-400 rounded text-xs">
-                                      +{candidate.skills.length - 2}
-                                    </span>
-                                  )}
-                                </div>
-                              )}
                             </div>
                           )}
                         </Draggable>
                       ))}
                       {provided.placeholder}
 
-                      {filterCandidates(column.candidates).length === 0 && (
-                        <div className="text-center py-8 text-gray-400 dark:text-gray-500 text-sm">
+                      {/* Show more button */}
+                      {hasMore && (
+                        <button
+                          onClick={() => toggleColumnExpanded(column.id)}
+                          className="w-full py-2 text-xs text-center text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-white/50 dark:hover:bg-white/5 rounded transition"
+                        >
+                          {isExpanded ? 'Voir moins' : `+ ${filteredCount - visibleCandidates.length} autres`}
+                        </button>
+                      )}
+
+                      {filteredCount === 0 && (
+                        <div className="text-center py-4 text-gray-400 dark:text-gray-500 text-xs">
                           Aucun candidat
                         </div>
                       )}
@@ -663,7 +599,8 @@ export default function RecrutementPage() {
                   )}
                 </Droppable>
               </div>
-            ))}
+              )
+            })}
           </div>
         </div>
       </DragDropContext>
