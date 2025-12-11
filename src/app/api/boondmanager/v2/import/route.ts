@@ -278,9 +278,27 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error('BoondManager import preview error:', error)
+
+    // Determine error message with more context
+    let errorMessage = 'Erreur inconnue'
+    if (error instanceof Error) {
+      errorMessage = error.message
+      // Add stack trace to server logs
+      console.error('Stack trace:', error.stack)
+    }
+
+    // Check for common issues
+    if (errorMessage.includes('ECONNREFUSED') || errorMessage.includes('connect')) {
+      errorMessage = 'Impossible de se connecter à MongoDB. Vérifiez que le serveur est accessible.'
+    } else if (errorMessage.includes('timeout')) {
+      errorMessage = 'Timeout lors de la connexion. Réessayez plus tard.'
+    } else if (errorMessage.includes('HTML')) {
+      errorMessage = 'L\'API BoondManager a renvoyé une page d\'erreur. Vérifiez les credentials.'
+    }
+
     return NextResponse.json({
       success: false,
-      error: error instanceof Error ? error.message : 'Erreur inconnue',
+      error: errorMessage,
       environment
     }, { status: 500 })
   }
@@ -397,9 +415,27 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('BoondManager import error:', error)
+
+    // Determine error message with more context
+    let errorMessage = 'Erreur inconnue'
+    if (error instanceof Error) {
+      errorMessage = error.message
+      // Add stack trace to server logs
+      console.error('Stack trace:', error.stack)
+    }
+
+    // Check for common issues
+    if (errorMessage.includes('ECONNREFUSED') || errorMessage.includes('connect')) {
+      errorMessage = 'Impossible de se connecter à MongoDB. Vérifiez que le serveur est accessible.'
+    } else if (errorMessage.includes('timeout')) {
+      errorMessage = 'Timeout lors de la connexion. Réessayez plus tard.'
+    } else if (errorMessage.includes('HTML')) {
+      errorMessage = 'L\'API BoondManager a renvoyé une page d\'erreur. Vérifiez les credentials.'
+    }
+
     return NextResponse.json({
       success: false,
-      error: error instanceof Error ? error.message : 'Erreur inconnue',
+      error: errorMessage,
       environment
     }, { status: 500 })
   }

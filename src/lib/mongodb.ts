@@ -8,18 +8,28 @@ let db: Db | null = null
 export async function connectToDatabase(): Promise<Db> {
   if (db) return db
 
-  if (!client) {
-    client = new MongoClient(uri, {
-      // Add timeouts to prevent hanging connections
-      serverSelectionTimeoutMS: 10000, // 10 seconds to find a server
-      connectTimeoutMS: 10000, // 10 seconds to establish connection
-      socketTimeoutMS: 30000, // 30 seconds for socket operations
-    })
-    await client.connect()
-  }
+  try {
+    if (!client) {
+      console.log('[MongoDB] Connecting to:', uri.replace(/\/\/[^:]+:[^@]+@/, '//***:***@'))
+      client = new MongoClient(uri, {
+        // Add timeouts to prevent hanging connections
+        serverSelectionTimeoutMS: 10000, // 10 seconds to find a server
+        connectTimeoutMS: 10000, // 10 seconds to establish connection
+        socketTimeoutMS: 30000, // 30 seconds for socket operations
+      })
+      await client.connect()
+      console.log('[MongoDB] Connected successfully')
+    }
 
-  db = client.db('ebmc')
-  return db
+    db = client.db('ebmc')
+    return db
+  } catch (error) {
+    console.error('[MongoDB] Connection failed:', error)
+    // Reset client on connection failure
+    client = null
+    db = null
+    throw new Error(`MongoDB connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+  }
 }
 
 export async function getCollection(name: string) {
