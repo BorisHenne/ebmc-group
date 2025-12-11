@@ -111,8 +111,10 @@ async function fetchAllCandidates(client: BoondManagerClient): Promise<FetchResu
       }
 
       // Filter out any non-object items (safety check)
+      // Note: BoondManager API returns IDs as strings OR numbers
       const validData = data.filter((item): item is BoondCandidate => {
-        const isValid = item && typeof item === 'object' && typeof item.id === 'number' && item.attributes && typeof item.attributes === 'object'
+        const hasValidId = item?.id !== undefined && item?.id !== null && (typeof item.id === 'number' || typeof item.id === 'string')
+        const isValid = item && typeof item === 'object' && hasValidId && item.attributes && typeof item.attributes === 'object'
         if (!isValid) {
           console.warn(`[Import] Invalid candidate data filtered out:`, typeof item, item)
         }
