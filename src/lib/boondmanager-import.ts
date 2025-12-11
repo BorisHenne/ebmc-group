@@ -381,6 +381,34 @@ function mapStateLabelToState(stateLabel: string | undefined, defaultState: numb
 }
 
 /**
+ * Parse a date from BoondManager format
+ * BoondManager returns dates in various formats: ISO string, YYYY-MM-DD, timestamp, etc.
+ */
+function parseBoondDate(dateValue: unknown): Date | undefined {
+  if (!dateValue) return undefined
+
+  // Handle string dates
+  if (typeof dateValue === 'string') {
+    const parsed = new Date(dateValue)
+    if (!isNaN(parsed.getTime())) {
+      return parsed
+    }
+  }
+
+  // Handle timestamps (number)
+  if (typeof dateValue === 'number') {
+    // If it's a small number, it might be seconds since epoch
+    const timestamp = dateValue > 1e12 ? dateValue : dateValue * 1000
+    const parsed = new Date(timestamp)
+    if (!isNaN(parsed.getTime())) {
+      return parsed
+    }
+  }
+
+  return undefined
+}
+
+/**
  * Map BoondManager Candidate to Site Candidate
  * @param candidate The candidate from BoondManager
  * @param actions Optional array of actions associated with this candidate (used to determine recruitment state)
@@ -393,21 +421,62 @@ export function mapCandidateToSiteCandidate(
 ): Partial<SiteCandidate> {
   const attrs = candidate.attributes
 
-  // Determine recruitment state from actions (if provided) or use fallback
-  let state: number
-  let stateLabel: string
+  // Debug: Log the candidate data structure to understand what we're receiving
+  console.log(`[Import] Processing candidate ${candidate.id}:`, {
+    firstName: attrs.firstName,
+    lastName: attrs.lastName,
+    state: attrs.state,
+    stateLabel: attrs.stateLabel,
+    creationDate: attrs.creationDate,
+    updateDate: attrs.updateDate,
+  })
 
-  if (actions && actions.length > 0) {
-    // Use actions to determine the recruitment pipeline state
-    const recruitmentState = determineRecruitmentStateFromActions(actions, attrs.state)
+  // Extract names - handle different possible structures
+  // BoondManager may return names in attributes directly or nested
+  let firstName = ''
+  let lastName = ''
+
+  // Try direct attributes first
+  if (attrs.firstName && typeof attrs.firstName === 'string') {
+    firstName = attrs.firstName.trim()
+  }
+  if (attrs.lastName && typeof attrs.lastName === 'string') {
+    lastName = attrs.lastName.trim()
+  }
+
+  // If names are still empty, try alternative field names
+  if (!firstName) {
+    const altFirstName = safeString((attrs as Record<string, unknown>).firstname)
+      || safeString((attrs as Record<string, unknown>).first_name)
+      || safeString((attrs as Record<string, unknown>).prenom)
+    if (altFirstName) firstName = altFirstName.trim()
+  }
+  if (!lastName) {
+    const altLastName = safeString((attrs as Record<string, unknown>).lastname)
+      || safeString((attrs as Record<string, unknown>).last_name)
+      || safeString((attrs as Record<string, unknown>).nom)
+    if (altLastName) lastName = altLastName.trim()
+  }
+
+  // Determine recruitment state
+  // First, use the state directly from BoondManager if available
+  let state: number = 0
+  let stateLabel: string = 'A traiter'
+
+  // BoondManager returns state as a number (0-8 typically)
+  if (typeof attrs.state === 'number') {
+    state = attrs.state
+    // Use stateLabel from BoondManager if provided, otherwise look it up
+    if (attrs.stateLabel && typeof attrs.stateLabel === 'string') {
+      stateLabel = attrs.stateLabel
+    } else {
+      stateLabel = getCandidateStateLabelSync(state)
+    }
+  } else if (actions && actions.length > 0) {
+    // Fallback to action-based state determination if no direct state
+    const recruitmentState = determineRecruitmentStateFromActions(actions, state)
     state = recruitmentState.state
     stateLabel = recruitmentState.stateLabel
-  } else {
-    // Fallback: try to use stateLabel if available
-    const boondState = attrs.state ?? 0
-    const boondStateLabel = safeString(attrs.stateLabel)
-    state = mapStateLabelToState(boondStateLabel, boondState)
-    stateLabel = boondStateLabel || getCandidateStateLabelSync(state)
   }
 
   // Extract typeOf (Étape) from candidate
@@ -424,10 +493,15 @@ export function mapCandidateToSiteCandidate(
       ? rawSkills.split(',').map(s => s.trim()).filter(Boolean)
       : []
 
-  return {
+  // Parse dates from BoondManager
+  // BoondManager uses creationDate and updateDate fields
+  const createdAt = parseBoondDate(attrs.creationDate)
+  const updatedAt = parseBoondDate(attrs.updateDate) || new Date()
+
+  const result: Partial<SiteCandidate> = {
     boondManagerId: candidate.id,
-    firstName: safeString(attrs.firstName) || '',
-    lastName: safeString(attrs.lastName) || '',
+    firstName,
+    lastName,
     email: safeString(attrs.email),
     phone: safeString(attrs.phone1),
     title: safeString(attrs.title),
@@ -440,8 +514,17 @@ export function mapCandidateToSiteCandidate(
     experience: attrs.experienceYears ? `${attrs.experienceYears} ans` : undefined,
     source: safeString((attrs as Record<string, unknown>).source),
     notes: safeString((attrs as Record<string, unknown>).notes),
-    updatedAt: new Date(),
+    updatedAt,
   }
+
+  // Only set createdAt if we have a valid date from BoondManager
+  if (createdAt) {
+    (result as Record<string, unknown>).createdAt = createdAt
+  }
+
+  console.log(`[Import] Mapped candidate ${candidate.id} -> firstName: "${firstName}", lastName: "${lastName}", state: ${state} (${stateLabel})`)
+
+  return result
 }
 
 /**
@@ -651,18 +734,37 @@ export class BoondImportService {
         const existing = await collection.findOne({ boondManagerId: candidate.id })
 
         if (existing) {
-          // Update existing
+          // Update existing - don't overwrite empty values with existing data
+          // and never overwrite createdAt
+          const updateData = { ...candidateData }
+
+          // Don't overwrite existing names with empty strings
+          if (!updateData.firstName && existing.firstName) {
+            delete updateData.firstName
+          }
+          if (!updateData.lastName && existing.lastName) {
+            delete updateData.lastName
+          }
+
+          // Remove createdAt from update - we should never overwrite it
+          delete (updateData as Record<string, unknown>).createdAt
+
           await collection.updateOne(
             { _id: existing._id },
-            { $set: candidateData }
+            { $set: updateData }
           )
           result.updated++
         } else {
-          // Create new
-          await collection.insertOne({
+          // Create new - use createdAt from BoondManager or fallback to now
+          const createData = {
             ...candidateData,
-            createdAt: new Date(),
-          } as SiteCandidate)
+          }
+          // If no createdAt from BoondManager, use current date
+          if (!(createData as Record<string, unknown>).createdAt) {
+            (createData as Record<string, unknown>).createdAt = new Date()
+          }
+
+          await collection.insertOne(createData as SiteCandidate)
           result.created++
         }
       } catch (error) {
