@@ -75,13 +75,43 @@ async function fetchAllCandidates(client: BoondManagerClient): Promise<FetchResu
     while (hasMore) {
       const response = await client.getCandidates({ page, maxResults: PAGE_SIZE })
       const data = response.data || []
-      allData.push(...data)
+
+      // VALIDATION: Log and validate the response structure
+      if (page === 1) {
+        console.log(`[Import] First page response type:`, typeof response.data, Array.isArray(response.data))
+        if (data.length > 0) {
+          const first = data[0]
+          console.log(`[Import] First candidate structure:`, {
+            type: typeof first,
+            hasId: 'id' in (first || {}),
+            hasAttributes: 'attributes' in (first || {}),
+            id: (first as BoondCandidate)?.id,
+            firstName: (first as BoondCandidate)?.attributes?.firstName,
+          })
+        }
+      }
+
+      // Filter out any non-object items (safety check)
+      const validData = data.filter((item): item is BoondCandidate => {
+        const isValid = item && typeof item === 'object' && typeof item.id === 'number' && item.attributes && typeof item.attributes === 'object'
+        if (!isValid) {
+          console.warn(`[Import] Invalid candidate data filtered out:`, typeof item, item)
+        }
+        return isValid
+      })
+
+      if (validData.length !== data.length) {
+        console.warn(`[Import] Page ${page}: Filtered ${data.length - validData.length} invalid items from ${data.length} total`)
+      }
+
+      allData.push(...validData)
 
       const total = response.meta?.totals?.rows || 0
       hasMore = allData.length < total && data.length === PAGE_SIZE
       page++
     }
 
+    console.log(`[Import] Total valid candidates fetched: ${allData.length}`)
     return { data: allData }
   } catch (error) {
     if (error instanceof BoondPermissionError) {

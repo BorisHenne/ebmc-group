@@ -686,6 +686,7 @@ export class BoondImportService {
   /**
    * Import Candidates to Candidates collection
    * EXACT same pattern as importResources
+   * With robust validation to prevent corrupted data
    */
   async importCandidates(
     candidates: BoondCandidate[],
@@ -701,12 +702,52 @@ export class BoondImportService {
       errors: [],
     }
 
+    // Validate input is an array
+    if (!Array.isArray(candidates)) {
+      console.error('[Import] CRITICAL: candidates is not an array:', typeof candidates, candidates)
+      result.errors.push('Input is not an array - data corruption detected')
+      return result
+    }
+
     const db = await connectToDatabase()
     const collection = db.collection('candidates')
 
-    for (const candidate of candidates) {
+    for (let i = 0; i < candidates.length; i++) {
+      const candidate = candidates[i]
+
       try {
+        // CRITICAL VALIDATION: Ensure candidate is a proper object with id and attributes
+        if (!candidate || typeof candidate !== 'object') {
+          console.error(`[Import] SKIP: Invalid candidate at index ${i} - not an object:`, typeof candidate, candidate)
+          result.skipped++
+          result.errors.push(`Index ${i}: Not a valid object (got ${typeof candidate}: ${String(candidate).substring(0, 50)})`)
+          continue
+        }
+
+        // Check for required fields
+        if (typeof candidate.id !== 'number') {
+          console.error(`[Import] SKIP: Invalid candidate at index ${i} - missing or invalid id:`, candidate)
+          result.skipped++
+          result.errors.push(`Index ${i}: Missing or invalid id field`)
+          continue
+        }
+
+        if (!candidate.attributes || typeof candidate.attributes !== 'object') {
+          console.error(`[Import] SKIP: Invalid candidate ${candidate.id} - missing attributes:`, candidate)
+          result.skipped++
+          result.errors.push(`Candidate ${candidate.id}: Missing attributes object`)
+          continue
+        }
+
         const candidateData = mapCandidateToSiteCandidate(candidate, candidateStates, candidateTypes)
+
+        // Final validation: ensure the mapped data is a proper object with expected fields
+        if (!candidateData || typeof candidateData !== 'object' || typeof candidateData.boondManagerId !== 'number') {
+          console.error(`[Import] SKIP: mapCandidateToSiteCandidate returned invalid data for candidate ${candidate.id}:`, candidateData)
+          result.skipped++
+          result.errors.push(`Candidate ${candidate.id}: Mapping produced invalid data`)
+          continue
+        }
 
         // Check if already exists by boondManagerId
         const existing = await collection.findOne({ boondManagerId: candidate.id })
@@ -727,7 +768,9 @@ export class BoondImportService {
           result.created++
         }
       } catch (error) {
-        result.errors.push(`Candidate ${candidate.id}: ${error instanceof Error ? error.message : 'Erreur inconnue'}`)
+        const errorMsg = `Candidate ${candidate?.id ?? 'unknown'}: ${error instanceof Error ? error.message : 'Erreur inconnue'}`
+        console.error(`[Import] ERROR:`, errorMsg, error)
+        result.errors.push(errorMsg)
       }
     }
 
