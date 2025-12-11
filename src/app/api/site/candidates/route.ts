@@ -179,12 +179,22 @@ export async function GET(request: NextRequest) {
       })).sort((a, b) => a.id - b.id)
     }
 
+    // Include candidate states (for state-based kanban)
+    let states = null
+    if (includeTypes) {
+      states = Object.entries(candidateStates).map(([id, label]) => ({
+        id: parseInt(id),
+        value: label,
+      })).sort((a, b) => a.id - b.id)
+    }
+
     return NextResponse.json({
       success: true,
       data: candidatesWithLabels,
       total: candidatesWithLabels.length,
       stats,
       types,
+      states,
     })
 
   } catch (error) {
