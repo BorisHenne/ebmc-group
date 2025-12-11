@@ -685,7 +685,7 @@ export class BoondImportService {
 
   /**
    * Import Candidates to Candidates collection
-   * Simplified version similar to importResources
+   * EXACT same pattern as importResources
    */
   async importCandidates(
     candidates: BoondCandidate[],
@@ -706,33 +706,7 @@ export class BoondImportService {
 
     for (const candidate of candidates) {
       try {
-        // VALIDATION: Skip invalid candidate data
-        if (!candidate || typeof candidate !== 'object') {
-          console.error('[Import] Invalid candidate (not an object):', typeof candidate, candidate)
-          result.errors.push(`Invalid candidate data: expected object, got ${typeof candidate}`)
-          continue
-        }
-
-        if (!candidate.id || typeof candidate.id !== 'number') {
-          console.error('[Import] Candidate missing valid id:', candidate)
-          result.errors.push(`Candidate missing valid id`)
-          continue
-        }
-
-        if (!candidate.attributes || typeof candidate.attributes !== 'object') {
-          console.error('[Import] Candidate missing attributes:', candidate.id, candidate)
-          result.errors.push(`Candidate ${candidate.id}: missing attributes object`)
-          continue
-        }
-
         const candidateData = mapCandidateToSiteCandidate(candidate, candidateStates, candidateTypes)
-
-        // VALIDATION: Ensure candidateData is a proper object before inserting
-        if (!candidateData || typeof candidateData !== 'object' || Array.isArray(candidateData)) {
-          console.error('[Import] Invalid mapped data for candidate:', candidate.id, typeof candidateData)
-          result.errors.push(`Candidate ${candidate.id}: mapping produced invalid data`)
-          continue
-        }
 
         // Check if already exists by boondManagerId
         const existing = await collection.findOne({ boondManagerId: candidate.id })
@@ -745,20 +719,11 @@ export class BoondImportService {
           )
           result.updated++
         } else {
-          // Create new - same pattern as importResources
-          const docToInsert = {
+          // Create new
+          await collection.insertOne({
             ...candidateData,
             createdAt: new Date(),
-          }
-
-          // Final validation before insert
-          if (typeof docToInsert.boondManagerId !== 'number') {
-            console.error('[Import] Document missing boondManagerId:', candidate.id)
-            result.errors.push(`Candidate ${candidate.id}: document missing boondManagerId`)
-            continue
-          }
-
-          await collection.insertOne(docToInsert as SiteCandidate)
+          } as SiteCandidate)
           result.created++
         }
       } catch (error) {
