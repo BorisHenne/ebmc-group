@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { getCollection } from '@/lib/mongodb'
 import { ObjectId } from 'mongodb'
+import { fetchDictionary } from '@/lib/boondmanager-dictionary'
 import type { CandidateState } from '@/lib/candidate-states'
 import { getCandidateStateColors, getDefaultCandidateStates } from '@/lib/candidate-states'
 
@@ -103,7 +104,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       states,
-      colors: CANDIDATE_STATE_COLORS,
+      colors: getCandidateStateColors(),
       synced: syncFromBoond
     })
   } catch (error) {
