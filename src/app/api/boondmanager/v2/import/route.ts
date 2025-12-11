@@ -338,16 +338,35 @@ export async function POST(request: NextRequest) {
 
     const client = createBoondClient(environment)
 
-    // If cleanBeforeImport is set, clear the candidates collection first
-    let cleanedCount = 0
-    if (cleanBeforeImport && importCandidates) {
-      console.log('[Import] Cleaning candidates collection before import...')
+    // If cleanBeforeImport is set, clear the affected collections first
+    const cleanedCounts: Record<string, number> = {}
+    if (cleanBeforeImport) {
+      console.log('[Import] Cleaning collections before import...')
       const { connectToDatabase } = await import('@/lib/mongodb')
       const db = await connectToDatabase()
-      const deleteResult = await db.collection('candidates').deleteMany({})
-      cleanedCount = deleteResult.deletedCount
-      console.log(`[Import] Deleted ${cleanedCount} existing candidates`)
+
+      // Clean candidates collection
+      if (importCandidates) {
+        const deleteResult = await db.collection('candidates').deleteMany({})
+        cleanedCounts.candidates = deleteResult.deletedCount
+        console.log(`[Import] Deleted ${cleanedCounts.candidates} existing candidates`)
+      }
+
+      // Clean consultants collection (from resources)
+      if (importResources) {
+        const deleteResult = await db.collection('consultants').deleteMany({})
+        cleanedCounts.consultants = deleteResult.deletedCount
+        console.log(`[Import] Deleted ${cleanedCounts.consultants} existing consultants`)
+      }
+
+      // Clean jobs collection (from opportunities)
+      if (importOpportunities) {
+        const deleteResult = await db.collection('jobs').deleteMany({})
+        cleanedCounts.jobs = deleteResult.deletedCount
+        console.log(`[Import] Deleted ${cleanedCounts.jobs} existing jobs`)
+      }
     }
+    const cleanedCount = Object.values(cleanedCounts).reduce((a, b) => a + b, 0)
 
     // Fetch ALL data from BoondManager with pagination (with 403 handling)
     const [resourcesResult, candidatesResult, opportunitiesResult] = await Promise.all([
@@ -442,6 +461,7 @@ export async function POST(request: NextRequest) {
       environment,
       result,
       cleanedCount: cleanBeforeImport ? cleanedCount : undefined,
+      cleanedDetails: cleanBeforeImport && cleanedCount > 0 ? cleanedCounts : undefined,
       message,
     }
 

@@ -537,8 +537,11 @@ export default function BoondManagerV2Page() {
   }
 
   // Execute import to site - ALWAYS from production
-  const handleExecuteImport = async (entities: string[], options: { createAllCandidatesAsUsers?: boolean } = {}) => {
-    if (!confirm('Cette opération va importer les données de BoondManager PRODUCTION vers les collections du site. Continuer ?')) return
+  const handleExecuteImport = async (entities: string[], options: { createAllCandidatesAsUsers?: boolean; cleanBeforeImport?: boolean } = {}) => {
+    const cleanMessage = options.cleanBeforeImport
+      ? 'ATTENTION: Cette opération va SUPPRIMER toutes les données existantes puis importer les données de BoondManager PRODUCTION. Continuer ?'
+      : 'Cette opération va importer les données de BoondManager PRODUCTION vers les collections du site. Continuer ?'
+    if (!confirm(cleanMessage)) return
 
     setImporting(true)
     setError(null)
@@ -2107,6 +2110,32 @@ export default function BoondManagerV2Page() {
                 <X className="w-4 h-4" />
                 Annuler
               </button>
+            </div>
+
+            {/* Clean & Re-import section */}
+            <div className="mt-4 pt-4 border-t border-red-200 dark:border-red-800">
+              <div className="flex items-center gap-2 mb-3">
+                <AlertTriangle className="w-5 h-5 text-red-500" />
+                <span className="text-sm font-medium text-red-600 dark:text-red-400">Zone dangereuse - Suppression des données</span>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <button
+                  onClick={() => handleExecuteImport(['candidates'], { cleanBeforeImport: true })}
+                  disabled={importing}
+                  className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition disabled:opacity-50"
+                >
+                  <Trash className="w-4 h-4" />
+                  Nettoyer & Ré-importer candidats
+                </button>
+                <button
+                  onClick={() => handleExecuteImport(['resources', 'candidates', 'opportunities'], { cleanBeforeImport: true })}
+                  disabled={importing}
+                  className="flex items-center gap-2 px-4 py-2 bg-red-700 text-white rounded-lg hover:bg-red-800 transition disabled:opacity-50"
+                >
+                  <Trash className="w-4 h-4" />
+                  Nettoyer TOUT & Ré-importer
+                </button>
+              </div>
             </div>
           </div>
         )}
