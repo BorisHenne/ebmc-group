@@ -97,25 +97,41 @@ interface SyncResult {
 
 interface DebugTestResult {
   name: string
-  passed?: boolean
-  data: Record<string, unknown>
+  endpoint: string
+  params: Record<string, string>
+  status: number
+  ok: boolean
+  totalRows: number | null
+  dataCount: number
+  timing: string
+  error: string | null
+  sampleData?: unknown[]
 }
 
 interface DebugResults {
   timestamp: string
+  environment?: string
   baseUrl: string
+  credentials?: {
+    userToken: string
+    userTokenDecoded: string
+    clientToken: string
+    clientTokenDecoded: string
+  }
   tests: DebugTestResult[]
   summary: {
     totalTests: number
     passed: number
     failed: number
-    inconclusive: number
+    empty: number
   }
-  diagnosis?: {
-    problem: string
-    possibleCauses: string[]
-    suggestion: string
+  comparison?: {
+    resourcesWork: boolean
+    candidatesWork: boolean
+    opportunitiesWork: boolean
+    diagnosis: string
   }
+  recommendations?: string[]
 }
 
 // State labels
@@ -2251,7 +2267,7 @@ export default function BoondManagerV2Page() {
     setDebugResults(null)
 
     try {
-      const res = await fetch(`/api/boondmanager/v2/debug?_t=${Date.now()}`, {
+      const res = await fetch(`/api/boondmanager/v2/debug?env=${environment}&_t=${Date.now()}`, {
         credentials: 'include',
         cache: 'no-store'
       })
@@ -2261,19 +2277,17 @@ export default function BoondManagerV2Page() {
       setDebugResults({
         timestamp: new Date().toISOString(),
         baseUrl: 'Error',
-        tests: [{
-          name: 'Connection Test',
-          passed: false,
-          data: { error: err instanceof Error ? err.message : 'Unknown error' }
-        }],
-        summary: { totalTests: 1, passed: 0, failed: 1, inconclusive: 0 }
+        tests: [],
+        summary: { totalTests: 0, passed: 0, failed: 1, empty: 0 },
+        comparison: { diagnosis: err instanceof Error ? err.message : 'Erreur de connexion' },
+        recommendations: []
       })
     } finally {
       setDebugging(false)
     }
   }
 
-  // Render debug tab
+  // Render debug tab - Comprehensive API testing for candidates
   const renderDebugTab = () => (
     <div className="space-y-6">
       {/* Header */}
@@ -2282,10 +2296,10 @@ export default function BoondManagerV2Page() {
           <div>
             <h2 className="text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
               <Bug className="w-6 h-6 text-red-500" />
-              Debug Environnements Prod / Sandbox
+              Debug API Candidates
             </h2>
             <p className="text-slate-600 dark:text-slate-400 mt-1">
-              Verifier que les environnements Production et Sandbox renvoient des donnees differentes
+              Tests complets de l&apos;API BoondManager pour diagnostiquer le problème des candidats
             </p>
           </div>
           <button
@@ -2301,7 +2315,7 @@ export default function BoondManagerV2Page() {
             ) : (
               <>
                 <Play className="w-5 h-5" />
-                Lancer les tests
+                Lancer les tests ({environment})
               </>
             )}
           </button>
@@ -2316,7 +2330,7 @@ export default function BoondManagerV2Page() {
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-slate-800 dark:text-white flex items-center gap-2">
                 <Terminal className="w-5 h-5 text-slate-500" />
-                Resultat des tests
+                Résumé des tests - {debugResults.environment}
               </h3>
               <span className="text-sm text-slate-500 dark:text-slate-400">
                 {new Date(debugResults.timestamp).toLocaleString('fr-FR')}
@@ -2325,22 +2339,37 @@ export default function BoondManagerV2Page() {
 
             <div className="grid grid-cols-4 gap-4 mb-6">
               <div className="p-4 rounded-lg bg-slate-100 dark:bg-slate-800/60 text-center">
-                <div className="text-2xl font-bold text-slate-800 dark:text-white">{debugResults.summary.totalTests}</div>
+                <div className="text-2xl font-bold text-slate-800 dark:text-white">{debugResults.summary?.totalTests || 0}</div>
                 <div className="text-sm text-slate-500 dark:text-slate-400">Total</div>
               </div>
               <div className="p-4 rounded-lg bg-green-100 dark:bg-green-900/30 text-center">
-                <div className="text-2xl font-bold text-green-600 dark:text-green-400">{debugResults.summary.passed}</div>
-                <div className="text-sm text-green-600 dark:text-green-400">Reussis</div>
-              </div>
-              <div className="p-4 rounded-lg bg-red-100 dark:bg-red-900/30 text-center">
-                <div className="text-2xl font-bold text-red-600 dark:text-red-400">{debugResults.summary.failed}</div>
-                <div className="text-sm text-red-600 dark:text-red-400">Echoues</div>
+                <div className="text-2xl font-bold text-green-600 dark:text-green-400">{debugResults.summary?.passed || 0}</div>
+                <div className="text-sm text-green-600 dark:text-green-400">Avec données</div>
               </div>
               <div className="p-4 rounded-lg bg-amber-100 dark:bg-amber-900/30 text-center">
-                <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">{debugResults.summary.inconclusive}</div>
-                <div className="text-sm text-amber-600 dark:text-amber-400">Inconcluants</div>
+                <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">{debugResults.summary?.empty || 0}</div>
+                <div className="text-sm text-amber-600 dark:text-amber-400">Vides (0 résultat)</div>
+              </div>
+              <div className="p-4 rounded-lg bg-red-100 dark:bg-red-900/30 text-center">
+                <div className="text-2xl font-bold text-red-600 dark:text-red-400">{debugResults.summary?.failed || 0}</div>
+                <div className="text-sm text-red-600 dark:text-red-400">Erreurs</div>
               </div>
             </div>
+
+            {/* Credentials info */}
+            {debugResults.credentials && (
+              <div className="mb-4 p-4 bg-slate-100 dark:bg-slate-800/60 rounded-lg">
+                <h4 className="font-medium text-slate-700 dark:text-slate-300 mb-2">Credentials utilisés:</h4>
+                <div className="grid grid-cols-2 gap-4 text-sm font-mono">
+                  <div>
+                    <span className="text-slate-500">userToken:</span> {debugResults.credentials.userToken}
+                  </div>
+                  <div>
+                    <span className="text-slate-500">décodé:</span> {debugResults.credentials.userTokenDecoded}
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="text-sm text-slate-600 dark:text-slate-400">
               <strong>Base URL:</strong> {debugResults.baseUrl}
@@ -2348,92 +2377,180 @@ export default function BoondManagerV2Page() {
           </div>
 
           {/* Diagnosis */}
-          {debugResults.diagnosis && (
-            <div className="glass-card p-6 border-2 border-red-500/50">
-              <h3 className="font-semibold text-red-600 dark:text-red-400 mb-3 flex items-center gap-2">
-                <AlertTriangle className="w-5 h-5" />
-                Diagnostic: {debugResults.diagnosis.problem}
+          {debugResults.comparison && (
+            <div className={`glass-card p-6 border-2 ${
+              debugResults.comparison.candidatesWork
+                ? 'border-green-500/50'
+                : 'border-red-500/50'
+            }`}>
+              <h3 className={`font-semibold mb-3 flex items-center gap-2 ${
+                debugResults.comparison.candidatesWork
+                  ? 'text-green-600 dark:text-green-400'
+                  : 'text-red-600 dark:text-red-400'
+              }`}>
+                {debugResults.comparison.candidatesWork ? (
+                  <CheckCircle className="w-5 h-5" />
+                ) : (
+                  <AlertTriangle className="w-5 h-5" />
+                )}
+                {debugResults.comparison.diagnosis}
               </h3>
-              <div className="space-y-3">
-                <div>
-                  <h4 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Causes possibles:</h4>
-                  <ul className="list-disc list-inside text-sm text-slate-600 dark:text-slate-400 space-y-1">
-                    {debugResults.diagnosis.possibleCauses.map((cause, i) => (
-                      <li key={i}>{cause}</li>
+
+              <div className="grid grid-cols-3 gap-4 mb-4">
+                <div className={`p-3 rounded-lg ${debugResults.comparison.resourcesWork ? 'bg-green-100 dark:bg-green-900/30' : 'bg-red-100 dark:bg-red-900/30'}`}>
+                  <div className="font-medium">Resources</div>
+                  <div className={debugResults.comparison.resourcesWork ? 'text-green-600' : 'text-red-600'}>
+                    {debugResults.comparison.resourcesWork ? '✓ OK' : '✗ Erreur'}
+                  </div>
+                </div>
+                <div className={`p-3 rounded-lg ${debugResults.comparison.candidatesWork ? 'bg-green-100 dark:bg-green-900/30' : 'bg-red-100 dark:bg-red-900/30'}`}>
+                  <div className="font-medium">Candidates</div>
+                  <div className={debugResults.comparison.candidatesWork ? 'text-green-600' : 'text-red-600'}>
+                    {debugResults.comparison.candidatesWork ? '✓ OK' : '✗ 0 résultat'}
+                  </div>
+                </div>
+                <div className={`p-3 rounded-lg ${debugResults.comparison.opportunitiesWork ? 'bg-green-100 dark:bg-green-900/30' : 'bg-red-100 dark:bg-red-900/30'}`}>
+                  <div className="font-medium">Opportunities</div>
+                  <div className={debugResults.comparison.opportunitiesWork ? 'text-green-600' : 'text-red-600'}>
+                    {debugResults.comparison.opportunitiesWork ? '✓ OK' : '✗ Erreur'}
+                  </div>
+                </div>
+              </div>
+
+              {debugResults.recommendations && debugResults.recommendations.length > 0 && (
+                <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
+                  <h4 className="font-medium text-amber-800 dark:text-amber-200 mb-2">Recommandations:</h4>
+                  <ul className="list-disc list-inside text-sm text-amber-700 dark:text-amber-300 space-y-1">
+                    {debugResults.recommendations.map((rec: string, i: number) => (
+                      <li key={i}>{rec}</li>
                     ))}
                   </ul>
                 </div>
-                <div className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
-                  <p className="text-sm text-amber-800 dark:text-amber-200">
-                    <strong>Suggestion:</strong> {debugResults.diagnosis.suggestion}
-                  </p>
-                </div>
-              </div>
+              )}
             </div>
           )}
 
           {/* Individual tests */}
-          <div className="space-y-4">
-            {debugResults.tests.map((test, index) => (
-              <div key={index} className="glass-card p-6">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-semibold text-slate-800 dark:text-white flex items-center gap-2">
-                    {test.passed === true ? (
-                      <CheckCircle className="w-5 h-5 text-green-500" />
-                    ) : test.passed === false ? (
-                      <XCircle className="w-5 h-5 text-red-500" />
+          <div className="space-y-3">
+            <h3 className="font-semibold text-slate-800 dark:text-white">Détails des tests:</h3>
+            {debugResults.tests && debugResults.tests.map((test: DebugTestResult, index: number) => (
+              <div key={index} className={`glass-card p-4 border-l-4 ${
+                test.ok && test.dataCount > 0
+                  ? 'border-green-500'
+                  : test.ok && test.dataCount === 0
+                    ? 'border-amber-500'
+                    : 'border-red-500'
+              }`}>
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="font-medium text-slate-800 dark:text-white flex items-center gap-2">
+                    {test.ok && test.dataCount > 0 ? (
+                      <CheckCircle className="w-4 h-4 text-green-500" />
+                    ) : test.ok && test.dataCount === 0 ? (
+                      <AlertTriangle className="w-4 h-4 text-amber-500" />
                     ) : (
-                      <Info className="w-5 h-5 text-amber-500" />
+                      <XCircle className="w-4 h-4 text-red-500" />
                     )}
-                    Test {index + 1}: {test.name}
-                  </h3>
-                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                    test.passed === true ? 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400' :
-                    test.passed === false ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' :
-                    'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400'
-                  }`}>
-                    {test.passed === true ? 'Reussi' : test.passed === false ? 'Echoue' : 'Info'}
-                  </span>
+                    {test.name}
+                  </h4>
+                  <div className="flex items-center gap-3 text-sm">
+                    <span className={`px-2 py-1 rounded ${
+                      test.ok ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                    }`}>
+                      {test.status}
+                    </span>
+                    <span className="text-slate-500">{test.timing}</span>
+                  </div>
                 </div>
 
-                <div className="bg-slate-900 rounded-lg p-4 overflow-x-auto">
-                  <pre className="text-sm text-green-400 font-mono whitespace-pre-wrap">
-                    {JSON.stringify(test.data, null, 2)}
-                  </pre>
+                <div className="grid grid-cols-3 gap-4 text-sm mb-2">
+                  <div>
+                    <span className="text-slate-500">Endpoint:</span>{' '}
+                    <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded">{test.endpoint}</code>
+                  </div>
+                  <div>
+                    <span className="text-slate-500">Total (meta):</span>{' '}
+                    <strong className={test.totalRows === 0 ? 'text-amber-600' : 'text-green-600'}>
+                      {test.totalRows ?? 'N/A'}
+                    </strong>
+                  </div>
+                  <div>
+                    <span className="text-slate-500">Données reçues:</span>{' '}
+                    <strong className={test.dataCount === 0 ? 'text-amber-600' : 'text-green-600'}>
+                      {test.dataCount}
+                    </strong>
+                  </div>
                 </div>
+
+                {test.params && Object.keys(test.params).length > 0 && (
+                  <div className="text-sm mb-2">
+                    <span className="text-slate-500">Params:</span>{' '}
+                    <code className="bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded text-xs">
+                      {JSON.stringify(test.params)}
+                    </code>
+                  </div>
+                )}
+
+                {test.error && (
+                  <div className="mt-2 p-2 bg-red-50 dark:bg-red-900/20 rounded text-sm text-red-700 dark:text-red-300 font-mono overflow-x-auto">
+                    {test.error}
+                  </div>
+                )}
+
+                {test.sampleData && test.sampleData.length > 0 && (
+                  <details className="mt-2">
+                    <summary className="text-sm text-blue-600 dark:text-blue-400 cursor-pointer hover:underline">
+                      Voir les données ({test.sampleData.length} exemples)
+                    </summary>
+                    <pre className="mt-2 p-2 bg-slate-900 rounded text-xs text-green-400 overflow-x-auto max-h-40">
+                      {JSON.stringify(test.sampleData, null, 2)}
+                    </pre>
+                  </details>
+                )}
               </div>
             ))}
           </div>
         </div>
       )}
 
-      {/* Information */}
+      {/* Information before running tests */}
       {!debugResults && (
         <div className="glass-card p-6">
           <h3 className="font-semibold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
             <Info className="w-5 h-5 text-blue-500" />
-            A propos des tests
+            Tests qui seront effectués
           </h3>
           <ul className="space-y-2 text-sm text-slate-600 dark:text-slate-400">
             <li className="flex items-start gap-2">
               <Check className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-              <span><strong>Test 1:</strong> Verifie que les credentials Production et Sandbox sont differents</span>
+              <span><strong>Test 1-2:</strong> Resources et Opportunities (baseline - doivent fonctionner)</span>
             </li>
             <li className="flex items-start gap-2">
               <Check className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-              <span><strong>Test 2:</strong> Genere des JWT pour chaque environnement et verifie qu&apos;ils sont differents</span>
+              <span><strong>Test 3:</strong> Candidates - requête basique sans paramètres</span>
             </li>
             <li className="flex items-start gap-2">
               <Check className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-              <span><strong>Test 3:</strong> Fait des appels API reels aux deux environnements et compare les donnees</span>
+              <span><strong>Test 4:</strong> Candidates - avec recherche wildcard (*)</span>
             </li>
             <li className="flex items-start gap-2">
               <Check className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-              <span><strong>Test 4:</strong> Affiche la configuration des headers JWT</span>
+              <span><strong>Test 5:</strong> Candidates - avec périmètre (agency/manager = all)</span>
             </li>
             <li className="flex items-start gap-2">
+              <Check className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+              <span><strong>Test 6-7:</strong> Candidates - recherche &quot;a&quot; et tri par date</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <Check className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+              <span><strong>Test 8:</strong> Candidates - filtrage par état (0, 1, 2, 3)</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <Check className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+              <span><strong>Test 9-11:</strong> Endpoint /search, current-user, dictionary</span>
+            </li>
+            <li className="flex items-start gap-2 mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
               <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
-              <span>Si Production et Sandbox retournent le meme nombre de lignes, il y a un probleme de configuration</span>
+              <span>Si tous les tests Candidates retournent 0, c&apos;est probablement un problème de permissions ou il n&apos;y a pas de candidats dans BoondManager</span>
             </li>
           </ul>
         </div>
