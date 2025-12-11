@@ -1193,14 +1193,23 @@ export default function BoondManagerV2Page() {
 
           {dictionary && (
             <div className="space-y-4">
-              {/* Debug: Show raw dictionary keys */}
-              <div className="p-4 bg-yellow-100 dark:bg-yellow-900/30 rounded-xl text-sm">
-                <p className="font-bold text-yellow-800 dark:text-yellow-200 mb-2">Debug - Cles du dictionnaire:</p>
-                <code className="text-xs text-yellow-700 dark:text-yellow-300 break-all">
+              {/* Debug: Show raw dictionary keys and data types */}
+              <div className="p-4 bg-yellow-100 dark:bg-yellow-900/30 rounded-xl text-sm space-y-2">
+                <p className="font-bold text-yellow-800 dark:text-yellow-200">Debug - Cles du dictionnaire:</p>
+                <code className="text-xs text-yellow-700 dark:text-yellow-300 break-all block">
                   {JSON.stringify(Object.keys(dictionary))}
                 </code>
-                {Object.keys(dictionary).length === 0 && (
-                  <p className="mt-2 text-red-600">Le dictionnaire est vide!</p>
+                <p className="font-bold text-yellow-800 dark:text-yellow-200 mt-2">Types de donnees:</p>
+                <code className="text-xs text-yellow-700 dark:text-yellow-300 break-all block">
+                  {Object.entries(dictionary).map(([k, v]) => `${k}: ${Array.isArray(v) ? 'array[' + (v as unknown[]).length + ']' : typeof v}`).join(', ')}
+                </code>
+                {dictionary.candidateStates && (
+                  <div className="mt-2">
+                    <p className="font-bold text-yellow-800 dark:text-yellow-200">Exemple candidateStates:</p>
+                    <code className="text-xs text-yellow-700 dark:text-yellow-300 break-all block max-h-32 overflow-auto">
+                      {JSON.stringify(dictionary.candidateStates, null, 2).slice(0, 800)}
+                    </code>
+                  </div>
                 )}
               </div>
 
