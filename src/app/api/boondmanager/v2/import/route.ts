@@ -92,15 +92,43 @@ async function fetchAllCandidates(client: BoondManagerClient): Promise<FetchResu
       if (page === 1) {
         if (data.length > 0) {
           const first = data[0]
-          console.log(`[Import] First candidate structure:`, {
+          console.log(`[Import] First candidate FULL structure:`, JSON.stringify(first, null, 2).substring(0, 1500))
+          console.log(`[Import] First candidate analysis:`, {
             type: typeof first,
+            isArray: Array.isArray(first),
             hasId: 'id' in (first || {}),
             hasAttributes: 'attributes' in (first || {}),
+            hasType: 'type' in (first || {}),
+            topLevelKeys: first ? Object.keys(first) : 'N/A',
             id: (first as BoondCandidate)?.id,
+            idType: typeof (first as BoondCandidate)?.id,
+            attributesType: typeof (first as BoondCandidate)?.attributes,
+            attributesIsObject: (first as BoondCandidate)?.attributes && typeof (first as BoondCandidate)?.attributes === 'object',
+            attributesKeys: (first as BoondCandidate)?.attributes ? Object.keys((first as BoondCandidate).attributes) : 'N/A',
             firstName: (first as BoondCandidate)?.attributes?.firstName,
+            firstNameType: typeof (first as BoondCandidate)?.attributes?.firstName,
             lastName: (first as BoondCandidate)?.attributes?.lastName,
+            lastNameType: typeof (first as BoondCandidate)?.attributes?.lastName,
             state: (first as BoondCandidate)?.attributes?.state,
           })
+
+          // Log second and third candidate too for comparison
+          if (data.length > 1) {
+            const second = data[1] as BoondCandidate
+            console.log(`[Import] Second candidate:`, {
+              id: second?.id,
+              firstName: second?.attributes?.firstName,
+              lastName: second?.attributes?.lastName,
+            })
+          }
+          if (data.length > 2) {
+            const third = data[2] as BoondCandidate
+            console.log(`[Import] Third candidate:`, {
+              id: third?.id,
+              firstName: third?.attributes?.firstName,
+              lastName: third?.attributes?.lastName,
+            })
+          }
         } else {
           console.log(`[Import] Page 1 returned 0 candidates. Total from meta: ${total}`)
           // If meta says there are candidates but data is empty, there might be a permission issue

@@ -438,17 +438,64 @@ function parseBoondDate(dateValue: unknown): Date | undefined {
  * @param candidate The candidate from BoondManager
  * @param candidateStates Optional map of state ID to label (from dictionary)
  * @param candidateTypes Optional map of typeOf ID to label (from dictionary)
+ * @param logSample If true, log detailed debug info (use for first few items)
  */
 export function mapCandidateToSiteCandidate(
   candidate: BoondCandidate,
   candidateStates?: Map<number, string>,
-  candidateTypes?: Map<number, string>
+  candidateTypes?: Map<number, string>,
+  logSample = false
 ): Partial<SiteCandidate> {
+  // DEBUG: Log raw candidate structure
+  if (logSample) {
+    console.log('[MAP DEBUG] Raw candidate:', {
+      id: candidate.id,
+      idType: typeof candidate.id,
+      hasAttributes: !!candidate.attributes,
+      attributesType: typeof candidate.attributes,
+      attributesKeys: candidate.attributes ? Object.keys(candidate.attributes) : 'N/A',
+      firstName: candidate.attributes?.firstName,
+      lastName: candidate.attributes?.lastName,
+    })
+  }
+
   const attrs = candidate.attributes
+
+  // CRITICAL: Check if attrs is actually an object with the expected fields
+  if (!attrs || typeof attrs !== 'object') {
+    console.error('[MAP ERROR] candidate.attributes is not an object:', {
+      candidateId: candidate.id,
+      attrs,
+      attrsType: typeof attrs,
+      candidateKeys: Object.keys(candidate),
+    })
+    // Return minimal object with empty names (this will cause "Sans nom")
+    return {
+      boondManagerId: typeof candidate.id === 'string' ? parseInt(candidate.id, 10) : candidate.id,
+      firstName: '',
+      lastName: '',
+      state: 0,
+      stateLabel: 'Inconnu',
+      skills: [],
+      updatedAt: new Date(),
+    }
+  }
 
   // Extract names directly like mapResourceToConsultant does
   const firstName = attrs.firstName || ''
   const lastName = attrs.lastName || ''
+
+  // DEBUG: Log extracted values
+  if (logSample) {
+    console.log('[MAP DEBUG] Extracted values:', {
+      firstName,
+      lastName,
+      rawFirstName: attrs.firstName,
+      rawLastName: attrs.lastName,
+      firstNameType: typeof attrs.firstName,
+      lastNameType: typeof attrs.lastName,
+    })
+  }
 
   // Get state directly from BoondManager
   const state = typeof attrs.state === 'number' ? attrs.state : 0
@@ -744,7 +791,19 @@ export class BoondImportService {
           continue
         }
 
-        const candidateData = mapCandidateToSiteCandidate(candidate, candidateStates, candidateTypes)
+        // Enable debug logging for first 3 candidates
+        const shouldLog = i < 3
+        const candidateData = mapCandidateToSiteCandidate(candidate, candidateStates, candidateTypes, shouldLog)
+
+        if (shouldLog) {
+          console.log(`[Import] Candidate ${i} mapped data:`, {
+            boondManagerId: candidateData.boondManagerId,
+            firstName: candidateData.firstName,
+            lastName: candidateData.lastName,
+            email: candidateData.email,
+            state: candidateData.state,
+          })
+        }
 
         // Final validation: ensure the mapped data is a proper object with expected fields
         if (!candidateData || typeof candidateData !== 'object' || typeof candidateData.boondManagerId !== 'number') {
