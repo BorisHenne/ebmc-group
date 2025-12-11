@@ -18,7 +18,7 @@ export interface CandidateState {
 }
 
 // Couleurs disponibles (basées sur BoondManager)
-export const CANDIDATE_STATE_COLORS: Record<number, { name: string; hex: string; tailwind: string }> = {
+const CANDIDATE_STATE_COLORS: Record<number, { name: string; hex: string; tailwind: string }> = {
   0: { name: 'Gris', hex: '#6B7280', tailwind: 'bg-gray-500' },
   1: { name: 'Bleu clair', hex: '#3B82F6', tailwind: 'bg-blue-500' },
   2: { name: 'Vert', hex: '#22C55E', tailwind: 'bg-green-500' },
@@ -40,7 +40,7 @@ export const CANDIDATE_STATE_COLORS: Record<number, { name: string; hex: string;
 }
 
 // États par défaut (basés sur BoondManager)
-export const DEFAULT_CANDIDATE_STATES: Omit<CandidateState, '_id'>[] = [
+const DEFAULT_CANDIDATE_STATES: Omit<CandidateState, '_id'>[] = [
   { id: 0, color: 3, value: 'A traiter !', isEnabled: true, isExcludedFromSentState: false, reason: [], order: 0 },
   { id: 1, color: 1, value: 'En cours de qualif.', isEnabled: true, isExcludedFromSentState: false, reason: [], order: 1 },
   { id: 2, color: 10, value: 'Vivier++', isEnabled: true, isExcludedFromSentState: false, reason: [], order: 2 },
@@ -57,3 +57,12 @@ export const DEFAULT_CANDIDATE_STATES: Omit<CandidateState, '_id'>[] = [
   { id: 13, color: 13, value: 'Need LU Work Permit', isEnabled: true, isExcludedFromSentState: false, reason: [], order: 13 },
   { id: 14, color: 14, value: 'Envoyé aux Sales', isEnabled: true, isExcludedFromSentState: false, reason: [], order: 14 },
 ]
+
+// Getters to avoid Next.js route export detection issues
+export function getCandidateStateColors() {
+  return CANDIDATE_STATE_COLORS
+}
+
+export function getDefaultCandidateStates() {
+  return DEFAULT_CANDIDATE_STATES
+}
