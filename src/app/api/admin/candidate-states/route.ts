@@ -2,11 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { getCollection } from '@/lib/mongodb'
 import { ObjectId } from 'mongodb'
-import {
-  CANDIDATE_STATE_COLORS,
-  DEFAULT_CANDIDATE_STATES,
-  CandidateState
-} from '@/lib/candidate-states'
+import type { CandidateState } from '@/lib/candidate-states'
+import { getCandidateStateColors, getDefaultCandidateStates } from '@/lib/candidate-states'
 
 // GET - Récupérer tous les états candidats
 export async function GET() {
@@ -27,7 +24,8 @@ export async function GET() {
     // Si pas d'états, initialiser avec les valeurs par défaut
     if (states.length === 0) {
       const now = new Date()
-      const statesWithDates = DEFAULT_CANDIDATE_STATES.map(state => ({
+      const defaultStates = getDefaultCandidateStates()
+      const statesWithDates = defaultStates.map(state => ({
         ...state,
         createdAt: now,
         updatedAt: now
@@ -35,13 +33,13 @@ export async function GET() {
       await collection.insertMany(statesWithDates)
       return NextResponse.json({
         states: statesWithDates,
-        colors: CANDIDATE_STATE_COLORS
+        colors: getCandidateStateColors()
       })
     }
 
     return NextResponse.json({
       states,
-      colors: CANDIDATE_STATE_COLORS
+      colors: getCandidateStateColors()
     })
   } catch (error) {
     console.error('Error fetching candidate states:', error)
