@@ -73,6 +73,7 @@ const PERMISSION_LABELS: Record<keyof RolePermissions, string> = {
   jobs: 'Gestion des offres',
   consultants: 'Gestion des consultants',
   candidates: 'Gestion des candidats',
+  candidateStates: 'États candidats (Kanban)',
   messages: 'Messagerie',
   users: 'Gestion des utilisateurs',
   roles: 'Gestion des rôles',
