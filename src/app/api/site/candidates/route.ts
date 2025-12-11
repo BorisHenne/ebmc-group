@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
-import { connectToDatabase } from '@/lib/mongodb'
+import { connectToDatabase, getCollection } from '@/lib/mongodb'
 import { getCandidateStates, fetchDictionary } from '@/lib/boondmanager-dictionary'
 import { sanitizeDocument } from '@/lib/sanitize'
 import { hasPermission } from '@/lib/roles'
@@ -23,6 +23,52 @@ async function getCandidateTypes(): Promise<Map<number, { value: string; color?:
     console.warn('Could not fetch candidate types from dictionary:', error)
   }
   return map
+}
+
+// Helper to get candidate states from synced MongoDB collection
+async function getSyncedCandidateStates(): Promise<Record<number, string>> {
+  try {
+    const collection = await getCollection('candidateStates')
+    const states = await collection.find({}).sort({ order: 1, id: 1 }).toArray()
+
+    if (states.length > 0) {
+      const stateMap: Record<number, string> = {}
+      for (const state of states) {
+        stateMap[state.id] = state.value
+      }
+      return stateMap
+    }
+  } catch (error) {
+    console.warn('Could not fetch synced candidate states:', error)
+  }
+
+  // Fallback to dictionary helper
+  return getCandidateStates()
+}
+
+// Helper to get candidate states as array for Kanban columns
+async function getCandidateStatesArray(): Promise<Array<{ id: number; value: string; color?: number }>> {
+  try {
+    const collection = await getCollection('candidateStates')
+    const states = await collection.find({}).sort({ order: 1, id: 1 }).toArray()
+
+    if (states.length > 0) {
+      return states.map(s => ({
+        id: s.id,
+        value: s.value,
+        color: s.color
+      }))
+    }
+  } catch (error) {
+    console.warn('Could not fetch synced candidate states array:', error)
+  }
+
+  // Fallback to dictionary
+  const stateMap = await getCandidateStates()
+  return Object.entries(stateMap).map(([id, value]) => ({
+    id: parseInt(id),
+    value
+  })).sort((a, b) => a.id - b.id)
 }
 
 // Helper to convert dictionary items to a map
@@ -104,8 +150,8 @@ export async function GET(request: NextRequest) {
       .limit(limit)
       .toArray()
 
-    // Fetch dynamic state labels and candidate types from BoondManager
-    const candidateStates = await getCandidateStates()
+    // Fetch dynamic state labels from synced MongoDB collection (or fallback to dictionary)
+    const candidateStates = await getSyncedCandidateStates()
     const candidateTypes = await getCandidateTypes()
 
     // Sanitize and add state labels and type labels
@@ -179,13 +225,10 @@ export async function GET(request: NextRequest) {
       })).sort((a, b) => a.id - b.id)
     }
 
-    // Include candidate states (for state-based kanban)
+    // Include candidate states (for state-based kanban) - from synced MongoDB collection
     let states = null
     if (includeTypes) {
-      states = Object.entries(candidateStates).map(([id, label]) => ({
-        id: parseInt(id),
-        value: label,
-      })).sort((a, b) => a.id - b.id)
+      states = await getCandidateStatesArray()
     }
 
     return NextResponse.json({
