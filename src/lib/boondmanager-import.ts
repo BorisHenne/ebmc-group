@@ -471,8 +471,11 @@ export function mapCandidateToSiteCandidate(
       : []
 
   // Build result object - simple and direct like mapResourceToConsultant
+  // Note: BoondManager API returns IDs as strings, convert to number
+  const boondManagerId = typeof candidate.id === 'string' ? parseInt(candidate.id, 10) : candidate.id
+
   return {
-    boondManagerId: candidate.id,
+    boondManagerId,
     firstName,
     lastName,
     email: attrs.email || undefined,
@@ -725,7 +728,9 @@ export class BoondImportService {
         }
 
         // Check for required fields
-        if (typeof candidate.id !== 'number') {
+        // Note: BoondManager API returns IDs as strings OR numbers
+        const candidateId = typeof candidate.id === 'string' ? parseInt(candidate.id, 10) : candidate.id
+        if (typeof candidateId !== 'number' || isNaN(candidateId)) {
           console.error(`[Import] SKIP: Invalid candidate at index ${i} - missing or invalid id:`, candidate)
           result.skipped++
           result.errors.push(`Index ${i}: Missing or invalid id field`)
@@ -749,8 +754,8 @@ export class BoondImportService {
           continue
         }
 
-        // Check if already exists by boondManagerId
-        const existing = await collection.findOne({ boondManagerId: candidate.id })
+        // Check if already exists by boondManagerId (use the converted numeric ID)
+        const existing = await collection.findOne({ boondManagerId: candidateData.boondManagerId })
 
         if (existing) {
           // Update existing
