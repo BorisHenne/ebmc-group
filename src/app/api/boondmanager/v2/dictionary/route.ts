@@ -3,7 +3,12 @@ import { getSession } from '@/lib/auth'
 import { createBoondClient, BoondDictionary } from '@/lib/boondmanager-client'
 
 // Cache the dictionary for 1 hour (it rarely changes)
-let cachedDictionary: { data: BoondDictionary; timestamp: number; environment: string } | null = null
+let cachedDictionary: {
+  data: BoondDictionary
+  normalizedAttributes: Record<string, unknown>
+  timestamp: number
+  environment: string
+} | null = null
 const CACHE_DURATION = 60 * 60 * 1000 // 1 hour in ms
 
 // GET - Fetch the application dictionary
@@ -25,13 +30,13 @@ export async function GET(request: NextRequest) {
       cachedDictionary.environment === environment &&
       now - cachedDictionary.timestamp < CACHE_DURATION
     ) {
-      // Normalize cached dictionary structure for frontend
-      const cachedAttributes = cachedDictionary.data?.data?.attributes || cachedDictionary.data || {}
+      // Return cached normalized attributes
+      // The cache stores normalized attributes directly now
       return NextResponse.json({
         success: true,
         cached: true,
         environment,
-        data: cachedAttributes
+        data: cachedDictionary.normalizedAttributes || {}
       })
     }
 
@@ -42,38 +47,93 @@ export async function GET(request: NextRequest) {
     // Debug: Log the raw dictionary structure
     console.log('[Dictionary API] Raw response keys:', Object.keys(dictionary || {}))
     console.log('[Dictionary API] dictionary.data keys:', Object.keys(dictionary?.data || {}))
-    console.log('[Dictionary API] dictionary.data.attributes keys:', Object.keys(dictionary?.data?.attributes || {}))
 
-    // Update cache
-    cachedDictionary = {
-      data: dictionary,
-      timestamp: now,
-      environment
-    }
+    // BoondManager uses data.setting.* format, not data.attributes.*
+    const setting = (dictionary?.data as Record<string, unknown>)?.setting
+    console.log('[Dictionary API] dictionary.data.setting keys:', Object.keys(setting || {}))
 
     // Normalize dictionary structure for frontend
-    // BoondManager API returns: { data: { type, id, attributes: {...} } }
-    // We need to extract attributes and send them to frontend
+    // BoondManager API returns: { data: { setting: { state: {...}, typeOf: {...}, ... } } }
+    // We need to transform this to the format expected by the frontend
     let attributes: Record<string, unknown> = {}
 
-    if (dictionary?.data?.attributes) {
-      // Standard JSON:API format
-      attributes = dictionary.data.attributes
-    } else if (dictionary?.data && typeof dictionary.data === 'object') {
-      // Check if data itself contains the states directly
-      const dataKeys = Object.keys(dictionary.data)
-      if (dataKeys.some(k => k.includes('States') || k.includes('Types'))) {
-        attributes = dictionary.data as Record<string, unknown>
+    if (setting && typeof setting === 'object') {
+      const settingObj = setting as Record<string, unknown>
+
+      // Map BoondManager setting structure to our expected format
+      // States are in setting.state.*
+      const states = settingObj.state as Record<string, unknown> | undefined
+      if (states) {
+        if (states.candidate) attributes.candidateStates = states.candidate
+        if (states.resource) attributes.resourceStates = states.resource
+        if (states.opportunity) attributes.opportunityStates = states.opportunity
+        if (states.project) attributes.projectStates = states.project
+        if (states.company) attributes.companyStates = states.company
+        if (states.contact) attributes.contactStates = states.contact
+        if (states.positioning) attributes.positioningStates = states.positioning
+        if (states.action) attributes.actionStates = states.action
       }
-    } else if (dictionary && typeof dictionary === 'object') {
-      // Direct format - dictionary itself contains the states
+
+      // Types are in setting.typeOf.*
+      const typeOf = settingObj.typeOf as Record<string, unknown> | undefined
+      if (typeOf) {
+        if (typeOf.candidate) attributes.candidateTypes = typeOf.candidate
+        if (typeOf.resource) attributes.resourceTypes = typeOf.resource
+        if (typeOf.opportunity) attributes.opportunityTypes = typeOf.opportunity
+        if (typeOf.project) attributes.projectTypes = typeOf.project
+        if (typeOf.company) attributes.companyTypes = typeOf.company
+        if (typeOf.action) attributes.actionTypes = typeOf.action
+        if (typeOf.employee) attributes.employeeTypes = typeOf.employee
+      }
+
+      // Modes
+      const mode = settingObj.mode as Record<string, unknown> | undefined
+      if (mode) {
+        if (mode.opportunity) attributes.opportunityModes = mode.opportunity
+        if (mode.project) attributes.projectModes = mode.project
+      }
+
+      // Other dictionaries - direct mapping
+      if (settingObj.civility) attributes.civilities = settingObj.civility
+      if (settingObj.country) attributes.countries = settingObj.country
+      if (settingObj.currency) attributes.currencies = settingObj.currency
+      if (settingObj.languageSpoken) attributes.languages = settingObj.languageSpoken
+      if (settingObj.expertiseArea) attributes.expertises = settingObj.expertiseArea
+      if (settingObj.experience) attributes.expertiseLevels = settingObj.experience
+      if (settingObj.agency) attributes.agencies = settingObj.agency
+      if (settingObj.pole) attributes.poles = settingObj.pole
+      if (settingObj.origin) attributes.origins = settingObj.origin
+      if (settingObj.source) attributes.sources = settingObj.source
+      if (settingObj.durationUnit) attributes.durationUnits = settingObj.durationUnit
+      if (settingObj.activityArea) attributes.activityAreas = settingObj.activityArea
+      if (settingObj.tool) attributes.tools = settingObj.tool
+
+      // If we found data in setting, use it
+      console.log('[Dictionary API] Mapped from setting, attributes keys:', Object.keys(attributes))
+    }
+    // Fallback: try data.attributes (JSON:API standard)
+    else if (dictionary?.data?.attributes) {
+      attributes = dictionary.data.attributes
+      console.log('[Dictionary API] Using data.attributes format')
+    }
+    // Fallback: try direct format
+    else if (dictionary && typeof dictionary === 'object') {
       const dictKeys = Object.keys(dictionary)
-      if (dictKeys.some(k => k.includes('States') || k.includes('Types'))) {
+      if (dictKeys.some(k => k.includes('States') || k.includes('Types') || k.includes('setting'))) {
         attributes = dictionary as unknown as Record<string, unknown>
+        console.log('[Dictionary API] Using direct format')
       }
     }
 
     console.log('[Dictionary API] Final attributes keys:', Object.keys(attributes))
+
+    // Update cache with normalized attributes
+    cachedDictionary = {
+      data: dictionary,
+      normalizedAttributes: attributes,
+      timestamp: now,
+      environment
+    }
 
     return NextResponse.json({
       success: true,
