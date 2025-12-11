@@ -490,19 +490,17 @@ export function mapCandidateToSiteCandidate(
   let stateLabel: string = 'A traiter'
 
   // BoondManager returns state as a number (0-8 typically)
+  // Use the NATIVE state field from BoondManager directly
   if (typeof attrs.state === 'number') {
     state = attrs.state
     // Use stateLabel from BoondManager if provided, otherwise look it up
     if (attrs.stateLabel && typeof attrs.stateLabel === 'string') {
       stateLabel = attrs.stateLabel
+    } else if (candidateStates) {
+      stateLabel = candidateStates.get(state) || getCandidateStateLabelSync(state)
     } else {
       stateLabel = getCandidateStateLabelSync(state)
     }
-  } else if (actions && actions.length > 0) {
-    // Fallback to action-based state determination if no direct state
-    const recruitmentState = determineRecruitmentStateFromActions(actions, state)
-    state = recruitmentState.state
-    stateLabel = recruitmentState.stateLabel
   }
 
   // Extract typeOf from candidate
@@ -744,7 +742,7 @@ export class BoondImportService {
    * Import Candidates to Candidates collection
    * Syncs the recruitment pipeline from BoondManager
    * @param candidates Array of candidates from BoondManager
-   * @param actionsByCandidate Optional map of candidateId → actions (used to determine recruitment state)
+   * @param candidateStates Optional map of state ID to label (from dictionary)
    * @param candidateTypes Optional map of typeOf ID to label (from dictionary) for étapes
    */
   async importCandidates(
