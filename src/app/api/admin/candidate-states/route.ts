@@ -2,11 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { getCollection } from '@/lib/mongodb'
 import { ObjectId } from 'mongodb'
-import { fetchDictionary } from '@/lib/boondmanager-dictionary'
-import {
-  CANDIDATE_STATE_COLORS,
-  CandidateState
-} from '@/lib/candidate-states'
+import type { CandidateState } from '@/lib/candidate-states'
+import { getCandidateStateColors, getDefaultCandidateStates } from '@/lib/candidate-states'
 
 // Sync states from BoondManager dictionary to local MongoDB
 async function syncFromBoondManager(): Promise<CandidateState[]> {
