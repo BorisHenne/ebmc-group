@@ -636,7 +636,18 @@ export class BoondManagerClient {
       return {} as T
     }
 
-    return JSON.parse(text)
+    // Check if response is HTML (error page) instead of JSON
+    if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
+      console.error(`BoondManager API returned HTML instead of JSON for ${endpoint}`)
+      throw new Error(`BoondManager API returned HTML error page for ${endpoint}. Check server logs.`)
+    }
+
+    try {
+      return JSON.parse(text)
+    } catch (parseError) {
+      console.error(`Failed to parse BoondManager response for ${endpoint}:`, text.substring(0, 200))
+      throw new Error(`Invalid JSON response from BoondManager API: ${text.substring(0, 100)}...`)
+    }
   }
 
   // Get current environment
