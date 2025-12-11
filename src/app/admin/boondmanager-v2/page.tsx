@@ -1203,7 +1203,7 @@ export default function BoondManagerV2Page() {
                 <code className="text-xs text-yellow-700 dark:text-yellow-300 break-all block">
                   {Object.entries(dictionary).map(([k, v]) => `${k}: ${Array.isArray(v) ? 'array[' + (v as unknown[]).length + ']' : typeof v}`).join(', ')}
                 </code>
-                {dictionary.candidateStates && (
+                {'candidateStates' in dictionary && dictionary.candidateStates !== undefined && (
                   <div className="mt-2">
                     <p className="font-bold text-yellow-800 dark:text-yellow-200">Exemple candidateStates:</p>
                     <code className="text-xs text-yellow-700 dark:text-yellow-300 break-all block max-h-32 overflow-auto">
