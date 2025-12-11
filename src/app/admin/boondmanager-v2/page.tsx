@@ -259,9 +259,6 @@ export default function BoondManagerV2Page() {
       const data = await res.json()
 
       if (data.success) {
-        // data.data now contains the normalized dictionary attributes directly
-        console.log('[Dictionary Frontend] Received data:', data)
-        console.log('[Dictionary Frontend] data.data keys:', Object.keys(data.data || {}))
         setDictionary(data.data || null)
       } else {
         throw new Error(data.error)
@@ -1193,26 +1190,6 @@ export default function BoondManagerV2Page() {
 
           {dictionary && (
             <div className="space-y-4">
-              {/* Debug: Show raw dictionary keys and data types */}
-              <div className="p-4 bg-yellow-100 dark:bg-yellow-900/30 rounded-xl text-sm space-y-2">
-                <p className="font-bold text-yellow-800 dark:text-yellow-200">Debug - Cles du dictionnaire:</p>
-                <code className="text-xs text-yellow-700 dark:text-yellow-300 break-all block">
-                  {JSON.stringify(Object.keys(dictionary))}
-                </code>
-                <p className="font-bold text-yellow-800 dark:text-yellow-200 mt-2">Types de donnees:</p>
-                <code className="text-xs text-yellow-700 dark:text-yellow-300 break-all block">
-                  {Object.entries(dictionary).map(([k, v]) => `${k}: ${Array.isArray(v) ? 'array[' + (v as unknown[]).length + ']' : typeof v}`).join(', ')}
-                </code>
-                {'candidateStates' in dictionary && dictionary.candidateStates !== undefined && (
-                  <div className="mt-2">
-                    <p className="font-bold text-yellow-800 dark:text-yellow-200">Exemple candidateStates:</p>
-                    <code className="text-xs text-yellow-700 dark:text-yellow-300 break-all block max-h-32 overflow-auto">
-                      {JSON.stringify(dictionary.candidateStates, null, 2).slice(0, 800)}
-                    </code>
-                  </div>
-                )}
-              </div>
-
               {dictionaryCategories.map((category) => {
                 const hasData = category.keys.some(key => dictionary[key] && Array.isArray(dictionary[key]) && (dictionary[key] as DictionaryItem[]).length > 0)
                 if (!hasData) return null
