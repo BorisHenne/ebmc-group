@@ -296,6 +296,8 @@ export default function BoondManagerV2Page() {
 
       if (data.success) {
         // data.data now contains the normalized dictionary attributes directly
+        console.log('[Dictionary Frontend] Received data:', data)
+        console.log('[Dictionary Frontend] data.data keys:', Object.keys(data.data || {}))
         setDictionary(data.data || null)
       } else {
         throw new Error(data.error)
@@ -1293,6 +1295,17 @@ export default function BoondManagerV2Page() {
 
           {dictionary && (
             <div className="space-y-4">
+              {/* Debug: Show raw dictionary keys */}
+              <div className="p-4 bg-yellow-100 dark:bg-yellow-900/30 rounded-xl text-sm">
+                <p className="font-bold text-yellow-800 dark:text-yellow-200 mb-2">Debug - Cles du dictionnaire:</p>
+                <code className="text-xs text-yellow-700 dark:text-yellow-300 break-all">
+                  {JSON.stringify(Object.keys(dictionary))}
+                </code>
+                {Object.keys(dictionary).length === 0 && (
+                  <p className="mt-2 text-red-600">Le dictionnaire est vide!</p>
+                )}
+              </div>
+
               {dictionaryCategories.map((category) => {
                 const hasData = category.keys.some(key => dictionary[key] && Array.isArray(dictionary[key]) && (dictionary[key] as DictionaryItem[]).length > 0)
                 if (!hasData) return null
